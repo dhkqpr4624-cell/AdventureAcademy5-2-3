@@ -155,7 +155,8 @@ import {
 } from "../../game/quest/itemCollectionQuestRules";
 import type { QuestStatus } from "../../game/quest/questTypes";
 import { createDungeon4SeaEnvironment } from "../../three/dungeon/Dungeon4SeaEnvironment";
-import { createGyeongseongEnvironment } from "../../three/dungeon/gyeongseong/GyeongseongEnvironment";
+import { createGyeongseongEnvironment, GYEONGSEONG_CAMERA_FAR } from "../../three/dungeon/gyeongseong/GyeongseongEnvironment";
+import { toGyeongseongVisualMap } from "../../three/dungeon/gyeongseong/gyeongseongLayout";
 import { StoryPlayer } from "../../game/story/StoryPlayer";
 import { DUNGEON5_ENTRY_STORY, DUNGEON5_FINAL_STORY } from "../../data/stories/dungeon5Stories";
 import { DUNGEON6_CLUE_STORIES, DUNGEON6_ENTRY_STORY, DUNGEON6_FINAL_STORY } from "../../data/stories/dungeon6Stories";
@@ -298,7 +299,9 @@ export function prepareFloorDungeonMap(
   floorId: FloorId,
   seed: string,
 ): DungeonMapDefinition {
-  if (floorId === UNIT3_FLOOR1_ID) return prepareUnit3Floor1Map(map, seed);
+  // Logical layout (events/gates) first, then the visual spread for the wide Gyeongseong streets —
+  // only positions change, so the room graph and every story condition stay identical.
+  if (floorId === UNIT3_FLOOR1_ID) return toGyeongseongVisualMap(prepareUnit3Floor1Map(map, seed));
   const baseMap = floorId === "floor-1" || floorId === "floor-2" || floorId === "floor-6" || floorId === "floor-7" || floorId === "floor-8" || floorId === "floor-9" ? map : {
     ...map,
     rooms: map.rooms.filter((room) => !room.id.startsWith("room-story-")),
@@ -925,12 +928,14 @@ export function DungeonScreen({
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x090b10);
 
-    const camera = new THREE.PerspectiveCamera(64, 1, 0.1, 100);
+    const camera = new THREE.PerspectiveCamera(64, 1, 0.1, floorId === UNIT3_FLOOR1_ID ? GYEONGSEONG_CAMERA_FAR : 100);
     const initialRoom = getDungeonRoom(currentRoomId);
     camera.position.set(...initialRoom.explorationCameraPose.position);
     camera.lookAt(...initialRoom.explorationCameraPose.lookAt);
     scene.add(camera);
     const dungeonCamera = new DungeonCameraController(camera);
+    // 3× longer streets: walk ~2.2× faster so a move takes about 1.4× the Phase 2 time.
+    if (floorId === UNIT3_FLOOR1_ID) dungeonCamera.speedMultiplier = 2.2;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));

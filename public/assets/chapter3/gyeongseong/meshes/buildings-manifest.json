@@ -1,0 +1,122 @@
+{
+ "gs-timber-shop": {
+  "vertices": 45704,
+  "triangles": 54629,
+  "sourceTriangles": 54629,
+  "size": [
+   0.726,
+   1,
+   0.584
+  ],
+  "sourceSize": [
+   0.712,
+   0.98,
+   0.572
+  ],
+  "sourceMaterial": {
+   "name": "tripo_mat_b87dc502",
+   "type": "MeshPhongMaterial",
+   "embeddedTexturePath": "base_color_texture"
+  }
+ },
+ "gs-timber-shop-lod1": {
+  "vertices": 5496,
+  "triangles": 11011
+ },
+ "gs-brick-corner": {
+  "vertices": 43435,
+  "triangles": 50084,
+  "sourceTriangles": 50084,
+  "size": [
+   0.757,
+   1,
+   0.744
+  ],
+  "sourceSize": [
+   0.739,
+   0.977,
+   0.727
+  ],
+  "sourceMaterial": {
+   "name": "tripo_mat_a731bbc9",
+   "type": "MeshPhongMaterial",
+   "embeddedTexturePath": "base_color_texture"
+  }
+ },
+ "gs-brick-corner-lod1": {
+  "vertices": 4985,
+  "triangles": 10235
+ },
+ "gs-hanok": {
+  "vertices": 48358,
+  "triangles": 55820,
+  "sourceTriangles": 55820,
+  "size": [
+   1.222,
+   1,
+   1.204
+  ],
+  "sourceSize": [
+   0.968,
+   0.792,
+   0.953
+  ],
+  "sourceMaterial": {
+   "name": "tripo_mat_97c30c06",
+   "type": "MeshPhongMaterial",
+   "embeddedTexturePath": "base_color_texture"
+  }
+ },
+ "gs-hanok-lod1": {
+  "vertices": 5595,
+  "triangles": 11261
+ },
+ "gs-station": {
+  "vertices": 39779,
+  "triangles": 50739,
+  "sourceTriangles": 50739,
+  "size": [
+   1.008,
+   1,
+   0.52
+  ],
+  "sourceSize": [
+   0.971,
+   0.963,
+   0.501
+  ],
+  "sourceMaterial": {
+   "name": "tripo_mat_0237cc0c",
+   "type": "MeshPhongMaterial",
+   "embeddedTexturePath": "base_color_texture"
+  }
+ },
+ "gs-station-lod1": {
+  "vertices": 5075,
+  "triangles": 10145
+ },
+ "gs-mansion": {
+  "vertices": 39845,
+  "triangles": 49106,
+  "sourceTriangles": 49106,
+  "size": [
+   1.145,
+   1,
+   0.809
+  ],
+  "sourceSize": [
+   183.547,
+   160.252,
+   129.645
+  ],
+  "sourceMaterial": {
+   "name": "tripo_mat_196dbbeb",
+   "type": "MeshPhongMaterial",
+   "embeddedTexturePath": "base_color_texture"
+  }
+ },
+ "gs-mansion-lod1": {
+  "vertices": 4922,
+  "triangles": 9791
+ }
+}

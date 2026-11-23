@@ -26,8 +26,10 @@ export function StageActor({ id, x, footY, facing, walking = false, moveMs = 0, 
   const walk = walking && sprite.walk ? sprite.walk : null;
   /** No walk sheet: the standing frame glides with a small step bob (never a stretched/renamed sheet). */
   const gliding = walking && !sprite.walk;
-  const blinkFrame = useBlinkFrame(sprite.blink && !walking ? sprite.blink.frames : 0, sprite.blink?.frameMs ?? 90);
-  const blinkSheet = sprite.blink && blinkFrame > 0 ? sprite.blink.images[facing] : null;
+  const blinkSheet = sprite.blink?.images[facing] ?? null;
+  const blinkReady = useImageReady(blinkSheet);
+  // Blink only once the sheet is decoded; restart the cycle when the facing (sheet) changes.
+  const blinkFrame = useBlinkFrame(sprite.blink && blinkReady && !walking ? sprite.blink.frames : 0, sprite.blink?.frameMs ?? 90, `${id}:${facing}`);
   const style = {
     left: x - sprite.cx * width,
     top: footY - sprite.foot * height,
@@ -42,10 +44,22 @@ export function StageActor({ id, x, footY, facing, walking = false, moveMs = 0, 
       <div className="stage-actor-body">
         {walk ? (
           <span className="stage-actor-walk" style={{ backgroundImage: `url("${walk.images[facing]}")` }} />
-        ) : blinkSheet && sprite.blink ? (
-          <span className="stage-actor-blink" style={{ backgroundImage: `url("${blinkSheet}")`, backgroundSize: `${sprite.blink.frames * 100}% 100%`, backgroundPosition: `${(blinkFrame / (sprite.blink.frames - 1)) * 100}% 0` }} />
         ) : (
-          <img src={src} alt="" draggable={false} style={mirrored ? { transform: "scaleX(-1)" } : undefined} />
+          <>
+            {/*
+              Phase 2 hotfix: the standing frame stays mounted at all times. The blink sheet is a separate,
+              always-mounted overlay in the same box that is shown only for the closed-eye frames (1..n-1)
+              and only after the sheet has been decoded — previously the <img> was swapped for an
+              un-preloaded background image, so the whole character vanished for a moment.
+            */}
+            <img src={src} alt="" draggable={false} style={mirrored ? { transform: "scaleX(-1)" } : undefined} />
+            {sprite.blink && blinkSheet && (
+              <span
+                className={`stage-actor-blink ${blinkReady && blinkFrame > 0 ? "is-visible" : ""}`}
+                style={{ backgroundImage: `url("${blinkSheet}")`, backgroundSize: `${sprite.blink.frames * 100}% 100%`, backgroundPosition: `${(Math.max(1, blinkFrame) / (sprite.blink.frames - 1)) * 100}% 0` }}
+              />
+            )}
+          </>
         )}
       </div>
       {children}
@@ -53,10 +67,25 @@ export function StageActor({ id, x, footY, facing, walking = false, moveMs = 0, 
   );
 }
 
+/** Loads and decodes an image once; true when it can be painted without a blank frame. */
+function useImageReady(url: string | null): boolean {
+  const [readyUrl, setReadyUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!url) return;
+    let alive = true;
+    const image = new Image();
+    image.onload = () => { void (image.decode ? image.decode().catch(() => undefined) : Promise.resolve()).then(() => { if (alive) setReadyUrl(url); }); };
+    image.src = url;
+    return () => { alive = false; image.onload = null; };
+  }, [url]);
+  return url !== null && readyUrl === url;
+}
+
 /** Random-interval blink (frames 1..n-1, then back to the standing frame 0). */
-function useBlinkFrame(frameCount: number, frameMs: number): number {
+function useBlinkFrame(frameCount: number, frameMs: number, resetKey: string): number {
   const [frame, setFrame] = useState(0);
   useEffect(() => {
+    setFrame(0);
     if (frameCount < 2) return;
     let timer = 0;
     let alive = true;
@@ -75,6 +104,6 @@ function useBlinkFrame(frameCount: number, frameMs: number): number {
     };
     schedule();
     return () => { alive = false; window.clearTimeout(timer); };
-  }, [frameCount, frameMs]);
+  }, [frameCount, frameMs, resetKey]);
   return frame;
 }

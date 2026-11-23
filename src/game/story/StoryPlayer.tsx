@@ -224,6 +224,7 @@ export function StoryPlayer({
   const startedRef = useRef(false);
   const choiceLockedRef = useRef(false);
   const skipLockedRef = useRef(false);
+  const mountedAtRef = useRef(performance.now());
   const [completedChoiceActions, setCompletedChoiceActions] = useState<ReadonlySet<string>>(new Set());
 
   useEffect(() => {
@@ -431,6 +432,7 @@ export function StoryPlayer({
   const skip = () => {
     const target = sequence.skipTarget;
     if (!target || skipLockedRef.current || hasNavigatedRef.current) return;
+    if (sequence.skipDelayMs && performance.now() - mountedAtRef.current < sequence.skipDelayMs) return;
     skipLockedRef.current = true;
     activeStepAbortRef.current?.abort();
     runnerRef.current = new StoryStepRunner();

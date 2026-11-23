@@ -1,60 +1,118 @@
-import type { DungeonMapDefinition } from "../../../game/dungeon/dungeonTypes";
+import type { DungeonMapDefinition, DungeonRoomNode, DungeonVector3 } from "../../../game/dungeon/dungeonTypes";
 import { createSeededRandom } from "../../../game/dungeon/generation/seededRandom";
 
 /**
  * Pure (three-free) layout planner for the stylised 1900s Gyeongseong streets of Unit 3 Floor 1.
  *
- * The dungeon graph is kept as-is (rooms on a 16-unit grid, camera paths between room centres). The
- * world is rasterised on a 2-unit lattice:
- * - every room becomes a 10×10 plaza (5×5 cells), every connection a 6-unit-wide street (3 cells),
- *   so straights, corners, T-junctions, crossings and dead ends all follow from the graph itself;
- * - every other cell inside the bounds is closed: façades from the supplied building models line the
- *   open cells, and any closed cell a building does not cover gets a solid block, so side paths that are
- *   not part of the dungeon are visibly closed and there are no gaps to look through;
- * - placement is deterministic from the dungeon seed.
+ * Logical vs visual: the dungeon graph (room ids, connections, room types, events, gates) is never touched.
+ * `toGyeongseongVisualMap` only spreads the room *positions* apart by GYEONGSEONG_WORLD_SCALE so the wide
+ * streets and the large buildings fit between the rooms; camera → monster offsets keep their original
+ * length, so combat framing is unchanged.
+ *
+ * The visual world is rasterised on a 3-unit lattice:
+ * - every room becomes a 24×24 plaza (8×8 cells), every connection an 18-unit-wide street (6 cells);
+ *   straights, corners, T-junctions, crossings and dead ends follow from the graph itself;
+ * - every other cell is closed and is filled with the supplied FBX buildings only (no generated boxes):
+ *   façades line the open cells, and remaining space is filled with further FBX buildings set back from
+ *   the street, so side paths that are not part of the dungeon are closed off by houses;
+ * - the placement is deterministic from the dungeon seed.
  */
-export const CELL = 2;
-export const PLAZA_RADIUS_CELLS = 2; // 5×5 cells = 10×10 units
-export const STREET_RADIUS_CELLS = 1; // 3 cells = 6 units
-export const BOUNDS_MARGIN_CELLS = 7;
+export const GYEONGSEONG_WORLD_SCALE = 3;
+export const CELL = 3;
+export const PLAZA_HALF_CELLS = 4; // 8 cells = 24 units
+export const STREET_HALF_CELLS = 3; // 6 cells = 18 units (Phase 2: 6 units)
+export const BOUNDS_MARGIN_CELLS = 9;
 export const GROUND_Y = -3;
 
-export type BuildingModelId =
-  | "timber-shop" | "brick-corner-shop" | "hanok-courtyard" | "brick-arch"
-  | "railway-station" | "platform-canopy" | "school" | "newspaper-office";
+export type BuildingModelId = "gs-timber-shop" | "gs-brick-corner" | "gs-hanok" | "gs-station" | "gs-mansion";
 export type RoadTileId = "road-paving" | "road-tram" | "road-curb";
 
-/** Footprints (world units at scale 1) measured from the converted meshes; every façade faces +Z. */
-export const BUILDING_FOOTPRINTS: Record<BuildingModelId, { width: number; depth: number; height: number; weight: number }> = {
-  "timber-shop": { width: 6, depth: 4, height: 8, weight: 3 },
-  "brick-corner-shop": { width: 6, depth: 6, height: 9, weight: 2 },
-  "hanok-courtyard": { width: 10, depth: 8, height: 6, weight: 2 },
-  "brick-arch": { width: 6, depth: 8, height: 7, weight: 2 },
-  "railway-station": { width: 14, depth: 6, height: 12, weight: 1 },
-  "platform-canopy": { width: 8, depth: 4, height: 6.5, weight: 1 },
-  school: { width: 12, depth: 8, height: 10, weight: 1 },
-  "newspaper-office": { width: 8, depth: 6, height: 7.5, weight: 2 },
+/**
+ * Footprints of the converted meshes (normalised to height 1, façade towards +Z) and the display height
+ * chosen per model. Each model gets its own height because the sources have different proportions; the
+ * resulting size is ≈ 2.5× the Phase 2 buildings (which were 6–12 units tall/wide).
+ */
+export const BUILDING_MODELS: Record<BuildingModelId, { width: number; depth: number; height: number; weight: number }> = {
+  "gs-timber-shop": { width: 0.726, depth: 0.584, height: 20, weight: 3 },
+  "gs-brick-corner": { width: 0.757, depth: 0.744, height: 22, weight: 3 },
+  "gs-hanok": { width: 1.222, depth: 1.204, height: 14, weight: 2 },
+  "gs-station": { width: 1.008, depth: 0.52, height: 27, weight: 1 },
+  "gs-mansion": { width: 1.145, depth: 0.809, height: 19, weight: 2 },
 };
+export const BUILDING_MODEL_IDS = Object.keys(BUILDING_MODELS) as BuildingModelId[];
 /** Asset kept in the repository for later floors; it must never be placed on Floors 1–7. */
 export const FORBIDDEN_ROAD_ASSET_FLOORS_1_TO_7 = "12a-cracked-road";
 
 export type Dir = { dx: number; dz: number };
 const DIRS: Dir[] = [{ dx: 0, dz: -1 }, { dx: 1, dz: 0 }, { dx: 0, dz: 1 }, { dx: -1, dz: 0 }];
 const key = (i: number, j: number) => `${i},${j}`;
+/** Cell index containing world coordinate v (cell i spans [i·CELL, (i+1)·CELL)). */
+export const cellOf = (v: number) => Math.floor(v / CELL);
 
 export type OpenCell = { i: number; j: number; kind: "plaza" | "street"; axis?: "x" | "z"; centerLine?: boolean; main?: boolean };
 export type TilePlacement = { tile: RoadTileId; x: number; z: number; rotationY: number };
-export type BuildingPlacement = { model: BuildingModelId; x: number; z: number; rotationY: number; scale: number; cells: string[] };
-export type BlockPlacement = { x: number; z: number; height: number; tone: number };
+export type BuildingPlacement = {
+  model: BuildingModelId; x: number; z: number; rotationY: number; scale: number; mirrored: boolean;
+  /** world-space footprint rectangle (axis aligned) */
+  minX: number; maxX: number; minZ: number; maxZ: number; height: number; cells: string[]; frontage: boolean;
+};
 
 export type GyeongseongLayout = {
   open: Map<string, OpenCell>;
   tiles: TilePlacement[];
   buildings: BuildingPlacement[];
-  blocks: BlockPlacement[];
   bounds: { minI: number; maxI: number; minJ: number; maxJ: number };
 };
 
+/* ------------------------------------------------------------------ visual map (positions only) */
+const spread = (v: DungeonVector3, center: { x: number; z: number }, next: { x: number; z: number }): DungeonVector3 =>
+  [next.x + (v[0] - center.x), v[1], next.z + (v[2] - center.z)];
+
+/**
+ * Returns the same dungeon with room positions multiplied by GYEONGSEONG_WORLD_SCALE (x/z). Ids, types,
+ * connections, events and requirement flags are copied unchanged; camera/monster poses move with their
+ * room and keep their offsets; corridor camera paths are recomputed as the same lerps between the moved
+ * room cameras.
+ */
+export function toGyeongseongVisualMap(map: DungeonMapDefinition, scale = GYEONGSEONG_WORLD_SCALE): DungeonMapDefinition {
+  const moved = new Map<string, DungeonRoomNode>();
+  for (const room of map.rooms) {
+    const center = { x: room.position.x, z: room.position.z };
+    const next = { x: room.position.x * scale, z: room.position.z * scale };
+    const pose = (p: { position: DungeonVector3; lookAt: DungeonVector3 }) => ({ position: spread(p.position, center, next), lookAt: spread(p.lookAt, center, next) });
+    moved.set(room.id, {
+      ...room,
+      position: { ...room.position, x: next.x, z: next.z },
+      explorationCameraPose: pose(room.explorationCameraPose),
+      combatConfig: room.combatConfig && { ...room.combatConfig, monsterPosition: spread(room.combatConfig.monsterPosition, center, next), combatCameraPose: pose(room.combatConfig.combatCameraPose) },
+      eliteConfig: room.eliteConfig && { ...room.eliteConfig, monsterPosition: spread(room.eliteConfig.monsterPosition, center, next), combatCameraPose: pose(room.eliteConfig.combatCameraPose) },
+    });
+  }
+  const connections = map.connections.map((connection) => {
+    const fromOld = map.rooms.find((room) => room.id === connection.fromRoomId)!.explorationCameraPose.position;
+    const toOld = map.rooms.find((room) => room.id === connection.toRoomId)!.explorationCameraPose.position;
+    const fromNew = moved.get(connection.fromRoomId)!.explorationCameraPose.position;
+    const toNew = moved.get(connection.toRoomId)!.explorationCameraPose.position;
+    const remap = (p: DungeonVector3): DungeonVector3 => {
+      // express p as a lerp between the old room cameras and re-apply it between the new ones
+      const lengthSq = (toOld[0] - fromOld[0]) ** 2 + (toOld[2] - fromOld[2]) ** 2;
+      const t = lengthSq === 0 ? 0 : ((p[0] - fromOld[0]) * (toOld[0] - fromOld[0]) + (p[2] - fromOld[2]) * (toOld[2] - fromOld[2])) / lengthSq;
+      return [fromNew[0] + (toNew[0] - fromNew[0]) * t, p[1], fromNew[2] + (toNew[2] - fromNew[2]) * t];
+    };
+    return {
+      ...connection,
+      cameraPath: connection.cameraPath.map((point) => ({
+        ...point,
+        position: remap(point.position),
+        // path look-at targets belong to the destination room: keep their offset from its camera
+        lookAt: point.lookAt && [toNew[0] + (point.lookAt[0] - toOld[0]), point.lookAt[1], toNew[2] + (point.lookAt[2] - toOld[2])] as DungeonVector3,
+      })),
+    };
+  });
+  return { ...map, rooms: map.rooms.map((room) => moved.get(room.id)!), connections };
+}
+
+/* ------------------------------------------------------------------ layout */
 function mainRouteRoomPairs(map: DungeonMapDefinition): Set<string> {
   const final = map.rooms.find((room) => room.isFinalQuestRoom)?.id;
   const adjacency = new Map<string, string[]>();
@@ -73,38 +131,35 @@ function mainRouteRoomPairs(map: DungeonMapDefinition): Set<string> {
   }
   const pairs = new Set<string>();
   for (let current = final; current && previous.has(current); current = previous.get(current)) {
-    const from = previous.get(current)!;
-    pairs.add([from, current].sort().join("|"));
+    pairs.add([previous.get(current)!, current].sort().join("|"));
   }
   return pairs;
 }
 
+/** `map` must be the visual map (toGyeongseongVisualMap). */
 export function planGyeongseongLayout(map: DungeonMapDefinition, seed: string): GyeongseongLayout {
-  const random = createSeededRandom(`${seed}::gyeongseong-layout`);
+  const random = createSeededRandom(`${seed}::gyeongseong-layout-v2`);
   const open = new Map<string, OpenCell>();
-  const roomCell = new Map(map.rooms.map((room) => [room.id, { i: Math.round(room.position.x / CELL), j: Math.round(room.position.z / CELL) }]));
-  for (const cell of roomCell.values()) {
-    for (let di = -PLAZA_RADIUS_CELLS; di <= PLAZA_RADIUS_CELLS; di += 1) {
-      for (let dj = -PLAZA_RADIUS_CELLS; dj <= PLAZA_RADIUS_CELLS; dj += 1) {
-        open.set(key(cell.i + di, cell.j + dj), { i: cell.i + di, j: cell.j + dj, kind: "plaza" });
-      }
+  // room centres sit on cell corners: plaza cells [c-PLAZA_HALF, c+PLAZA_HALF-1]
+  const roomCorner = new Map(map.rooms.map((room) => [room.id, { i: Math.round(room.position.x / CELL), j: Math.round(room.position.z / CELL) }]));
+  for (const c of roomCorner.values()) {
+    for (let i = c.i - PLAZA_HALF_CELLS; i < c.i + PLAZA_HALF_CELLS; i += 1) {
+      for (let j = c.j - PLAZA_HALF_CELLS; j < c.j + PLAZA_HALF_CELLS; j += 1) open.set(key(i, j), { i, j, kind: "plaza" });
     }
   }
   const mainPairs = mainRouteRoomPairs(map);
   for (const connection of map.connections) {
-    const a = roomCell.get(connection.fromRoomId)!;
-    const b = roomCell.get(connection.toRoomId)!;
+    const a = roomCorner.get(connection.fromRoomId)!;
+    const b = roomCorner.get(connection.toRoomId)!;
     const axis: "x" | "z" = a.j === b.j ? "x" : "z";
     const main = mainPairs.has([connection.fromRoomId, connection.toRoomId].sort().join("|"));
-    const steps = Math.max(Math.abs(b.i - a.i), Math.abs(b.j - a.j));
-    const si = Math.sign(b.i - a.i), sj = Math.sign(b.j - a.j);
-    for (let step = 0; step <= steps; step += 1) {
-      for (let w = -STREET_RADIUS_CELLS; w <= STREET_RADIUS_CELLS; w += 1) {
-        const i = a.i + si * step + (axis === "z" ? w : 0);
-        const j = a.j + sj * step + (axis === "x" ? w : 0);
-        const existing = open.get(key(i, j));
-        if (existing?.kind === "plaza") continue;
-        open.set(key(i, j), { i, j, kind: "street", axis, centerLine: w === 0, main });
+    const [i0, i1] = axis === "x" ? [Math.min(a.i, b.i), Math.max(a.i, b.i)] : [a.i - STREET_HALF_CELLS, a.i + STREET_HALF_CELLS];
+    const [j0, j1] = axis === "z" ? [Math.min(a.j, b.j), Math.max(a.j, b.j)] : [a.j - STREET_HALF_CELLS, a.j + STREET_HALF_CELLS];
+    for (let i = i0; i < i1; i += 1) {
+      for (let j = j0; j < j1; j += 1) {
+        if (open.get(key(i, j))?.kind === "plaza") continue;
+        const across = axis === "x" ? j - a.j : i - a.i; // −3..2
+        open.set(key(i, j), { i, j, kind: "street", axis, centerLine: across === -1 || across === 0, main });
       }
     }
   }
@@ -118,42 +173,75 @@ export function planGyeongseongLayout(map: DungeonMapDefinition, seed: string): 
   const isOpen = (i: number, j: number) => open.has(key(i, j));
   const inBounds = (i: number, j: number) => i >= bounds.minI && i <= bounds.maxI && j >= bounds.minJ && j <= bounds.maxJ;
 
-  /* ---- road tiles */
+  /* ---- road tiles (one 3×3 tile per open cell; no gaps) */
   const tiles: TilePlacement[] = [];
-  const sortedOpen = cells.sort((p, q) => p.j - q.j || p.i - q.i);
-  for (const cell of sortedOpen) {
+  for (const cell of cells.sort((p, q) => p.j - q.j || p.i - q.i)) {
     const closedDir = DIRS.find((dir) => !isOpen(cell.i + dir.dx, cell.j + dir.dz));
     let tile: RoadTileId = "road-paving";
     let rotationY = Math.floor(random.next() * 4) * (Math.PI / 2);
     if (closedDir) {
-      // 07a's curb runs along the tile's −X edge: turn it towards the closed side.
+      // 07a's curb (pavement edge) runs along the tile's −X edge: turn it towards the buildings.
       tile = "road-curb";
       rotationY = closedDir.dx === -1 ? 0 : closedDir.dx === 1 ? Math.PI : closedDir.dz === 1 ? Math.PI / 2 : -Math.PI / 2;
     } else if (cell.kind === "street" && cell.main && cell.centerLine) {
-      // 07b's rails run along local Z.
-      tile = "road-tram";
+      tile = "road-tram"; // rails run along local Z
       rotationY = cell.axis === "z" ? 0 : Math.PI / 2;
     }
-    tiles.push({ tile, x: cell.i * CELL, z: cell.j * CELL, rotationY });
+    tiles.push({ tile, x: (cell.i + 0.5) * CELL, z: (cell.j + 0.5) * CELL, rotationY });
   }
 
-  /* ---- façades along the open area */
+  /* ---- buildings */
   const taken = new Set<string>();
   const buildings: BuildingPlacement[] = [];
-  const models = Object.keys(BUILDING_FOOTPRINTS) as BuildingModelId[];
-  const pickModel = (maxWidth: number, maxDepth: number): { model: BuildingModelId; scale: number } | null => {
-    const candidates = models.flatMap((model) => {
-      const f = BUILDING_FOOTPRINTS[model];
-      const scale = Math.min(1.3, maxWidth / f.width, maxDepth / f.depth);
-      return scale >= 0.6 ? [{ model, scale, weight: f.weight }] : [];
-    });
-    if (candidates.length === 0) return null;
-    const total = candidates.reduce((sum, c) => sum + c.weight, 0);
-    let roll = random.next() * total;
-    for (const candidate of candidates) { roll -= candidate.weight; if (roll <= 0) return candidate; }
-    return candidates[candidates.length - 1];
+  const cellsOfRect = (minX: number, maxX: number, minZ: number, maxZ: number) => {
+    const out: string[] = [];
+    for (let i = cellOf(minX + 0.01); i <= cellOf(maxX - 0.01); i += 1) for (let j = cellOf(minZ + 0.01); j <= cellOf(maxZ - 0.01); j += 1) out.push(key(i, j));
+    return out;
   };
-  // Frontage cells: closed cells with an open 4-neighbour. Facing = towards that open neighbour.
+  const rectFree = (minX: number, maxX: number, minZ: number, maxZ: number) => cellsOfRect(minX, maxX, minZ, maxZ).every((k) => {
+    const [i, j] = k.split(",").map(Number);
+    return inBounds(i, j) && !isOpen(i, j) && !taken.has(k);
+  });
+  const pickModels = () => {
+    // weighted shuffle
+    const pool = BUILDING_MODEL_IDS.flatMap((id) => Array.from({ length: BUILDING_MODELS[id].weight }, () => id));
+    const order: BuildingModelId[] = [];
+    while (pool.length) { const index = Math.floor(random.next() * pool.length); const id = pool.splice(index, 1)[0]; if (!order.includes(id)) order.push(id); }
+    return order;
+  };
+  /**
+   * Try to place a building whose façade lies on the line `front` (world coordinate along the facing axis)
+   * facing `dir`, starting at `start` along the run axis, with at most `maxAlong` units of frontage.
+   */
+  const tryPlace = (dir: Dir, front: number, start: number, maxAlong: number, frontage: boolean): BuildingPlacement | null => {
+    for (const model of pickModels()) {
+      const spec = BUILDING_MODELS[model];
+      for (const variation of [1 + (random.next() - 0.5) * 0.16, 0.9, 0.8, 0.7, 0.62]) {
+        const scale = spec.height * variation;
+        const width = spec.width * scale, depth = spec.depth * scale;
+        if (width > maxAlong + 0.01) continue;
+        const setback = frontage ? 0.4 + random.next() * 1.2 : 0.4;
+        const alongMin = start + Math.max(0, (Math.min(maxAlong, width + 3) - width)) * random.next() * 0.5;
+        const facePos = front - (dir.dx + dir.dz) * setback; // façade plane, set back into the closed side
+        const backPos = facePos - (dir.dx + dir.dz) * depth;
+        const [minA, maxA] = [alongMin, alongMin + width];
+        const [minF, maxF] = [Math.min(facePos, backPos), Math.max(facePos, backPos)];
+        const rect = dir.dx !== 0 ? { minX: minF, maxX: maxF, minZ: minA, maxZ: maxA } : { minX: minA, maxX: maxA, minZ: minF, maxZ: maxF };
+        if (!rectFree(rect.minX, rect.maxX, rect.minZ, rect.maxZ)) continue;
+        const placement: BuildingPlacement = {
+          model, scale, mirrored: random.next() < 0.35, frontage,
+          x: (rect.minX + rect.maxX) / 2, z: (rect.minZ + rect.maxZ) / 2,
+          rotationY: Math.atan2(dir.dx, dir.dz), height: scale, ...rect, cells: cellsOfRect(rect.minX, rect.maxX, rect.minZ, rect.maxZ),
+        };
+        placement.cells.forEach((cell) => taken.add(cell));
+        buildings.push(placement);
+        return placement;
+      }
+    }
+    return null;
+  };
+
+  // Pass 1 — façades: walk every closed cell row/column bordering the open area.
   type Front = { i: number; j: number; dir: Dir };
   const fronts: Front[] = [];
   for (let j = bounds.minJ; j <= bounds.maxJ; j += 1) {
@@ -161,7 +249,6 @@ export function planGyeongseongLayout(map: DungeonMapDefinition, seed: string): 
       if (isOpen(i, j)) continue;
       const dirs = DIRS.filter((dir) => isOpen(i + dir.dx, j + dir.dz));
       if (dirs.length === 1) fronts.push({ i, j, dir: dirs[0] });
-      // Thin separator between two open areas: face the plaza side (backs face the other side).
       else if (dirs.length === 2 && dirs[0].dx === -dirs[1].dx && dirs[0].dz === -dirs[1].dz) {
         const plazaSide = dirs.find((dir) => open.get(key(i + dir.dx, j + dir.dz))?.kind === "plaza");
         fronts.push({ i, j, dir: plazaSide ?? dirs[0] });
@@ -173,70 +260,51 @@ export function planGyeongseongLayout(map: DungeonMapDefinition, seed: string): 
   const used = new Set<string>();
   for (const front of fronts) {
     if (used.has(frontKey(front))) continue;
-    // Collect the run along the façade line (perpendicular to the facing direction).
     const along: Dir = { dx: front.dir.dz === 0 ? 0 : 1, dz: front.dir.dz === 0 ? 1 : 0 };
     const run: Front[] = [];
     for (let step = 0; ; step += 1) {
       const candidate = { i: front.i + along.dx * step, j: front.j + along.dz * step, dir: front.dir };
       if (!frontSet.has(frontKey(candidate)) || used.has(frontKey(candidate))) break;
-      run.push(candidate);
-      used.add(frontKey(candidate));
+      run.push(candidate); used.add(frontKey(candidate));
     }
-    let cursor = 0;
-    while (cursor < run.length) {
-      const remaining = run.length - cursor;
-      if (remaining < 2) { cursor = run.length; break; }
-      // 2–5 cells (4–10 units); avoid leaving a single cell at the end of the run
-      const spans = [5, 4, 3, 2].filter((span) => span <= remaining && (remaining - span !== 1));
-      const span = spans.length ? spans[Math.floor(random.next() * spans.length)] : remaining;
-      const chunk = run.slice(cursor, cursor + span);
-      // free depth behind the chunk (closed, untaken cells)
-      let depthCells = 0;
-      for (let d = 0; d < 6; d += 1) {
-        const ok = chunk.every((c) => {
-          const ci = c.i - c.dir.dx * d, cj = c.j - c.dir.dz * d;
-          return inBounds(ci, cj) && !isOpen(ci, cj) && !taken.has(key(ci, cj));
-        });
-        if (!ok) break;
-        depthCells = d + 1;
-      }
-      const choice = depthCells >= 2 ? pickModel(span * CELL, depthCells * CELL - 0.2) : null;
-      if (choice) {
-        const f = BUILDING_FOOTPRINTS[choice.model];
-        const width = f.width * choice.scale, depth = f.depth * choice.scale;
-        const first = chunk[0], last = chunk[chunk.length - 1];
-        const midI = (first.i + last.i) / 2, midJ = (first.j + last.j) / 2;
-        // façade line = shared edge between the frontage cells and the open cells, set back 0.1
-        const frontX = midI * CELL + front.dir.dx * (CELL / 2 - 0.1);
-        const frontZ = midJ * CELL + front.dir.dz * (CELL / 2 - 0.1);
-        const x = frontX - front.dir.dx * depth / 2;
-        const z = frontZ - front.dir.dz * depth / 2;
-        const covered: string[] = [];
-        const coveredDepth = Math.ceil(depth / CELL - 0.05);
-        const halfWidthCells = width / CELL / 2;
-        for (const c of chunk) {
-          const offset = Math.abs((c.i - midI) * along.dx + (c.j - midJ) * along.dz);
-          if (offset > halfWidthCells + 0.01) continue;
-          for (let d = 0; d < coveredDepth; d += 1) covered.push(key(c.i - c.dir.dx * d, c.j - c.dir.dz * d));
-        }
-        covered.forEach((cell) => taken.add(cell));
-        buildings.push({ model: choice.model, x, z, rotationY: Math.atan2(front.dir.dx, front.dir.dz), scale: choice.scale, cells: covered });
-      }
-      cursor += span;
+    // façade line: the edge between these closed cells and the open cells
+    const faceLine = front.dir.dx !== 0
+      ? (front.i + (front.dir.dx > 0 ? 1 : 0)) * CELL
+      : (front.j + (front.dir.dz > 0 ? 1 : 0)) * CELL;
+    // let façades overhang the run ends a little into neighbouring closed cells (corners)
+    let cursor = (along.dx ? run[0].i : run[0].j) * CELL - 2 * CELL;
+    const end = ((along.dx ? run[run.length - 1].i : run[run.length - 1].j) + 1) * CELL + 2 * CELL;
+    let misses = 0;
+    while (end - cursor > 6 && misses < 12) {
+      const placed = tryPlace(front.dir, faceLine, cursor, end - cursor, true);
+      if (placed) { cursor = (along.dx ? placed.maxX : placed.maxZ) + random.next() * 0.6; misses = 0; }
+      else { cursor += CELL; misses += 1; }
     }
   }
-
-  /* ---- solid blocks for every closed cell not covered by a building */
-  const blocks: BlockPlacement[] = [];
+  // Pass 2 — fill the remaining closed space (gaps behind/between façades, outer ring) with further FBX
+  // buildings, each facing the nearest open direction, so no empty ground or world edge shows through.
+  // Only the band visible from the streets is filled (deeper blocks are hidden behind the façades and fog).
+  const FILL_DEPTH_CELLS = 7;
+  for (let j = bounds.minJ; j <= bounds.maxJ; j += 2) {
+    for (let i = bounds.minI; i <= bounds.maxI; i += 2) {
+      if (isOpen(i, j) || taken.has(key(i, j))) continue;
+      const distance = (d: Dir) => { for (let s = 1; s <= FILL_DEPTH_CELLS; s += 1) if (isOpen(i + d.dx * s, j + d.dz * s)) return s; return 99; };
+      const dir = [...DIRS].sort((p, q) => distance(p) - distance(q))[0];
+      if (distance(dir) === 99) continue;
+      const along = dir.dz === 0 ? j : i;
+      const facing = dir.dx !== 0 ? (i + (dir.dx > 0 ? 1 : 0)) * CELL : (j + (dir.dz > 0 ? 1 : 0)) * CELL;
+      tryPlace(dir, facing + (dir.dx + dir.dz) * 0.4, along * CELL, 40, false);
+    }
+  }
+  // Pavement continues under every uncovered closed cell near the streets (forecourts, gaps between
+  // houses), so the road, the pavement and the building plots join without bare ground.
   for (let j = bounds.minJ; j <= bounds.maxJ; j += 1) {
     for (let i = bounds.minI; i <= bounds.maxI; i += 1) {
       if (isOpen(i, j) || taken.has(key(i, j))) continue;
-      const touching = DIRS.some((dir) => isOpen(i + dir.dx, j + dir.dz));
-      const diagonal = !touching && [[1, 1], [1, -1], [-1, 1], [-1, -1]].some(([a, b]) => isOpen(i + a, j + b));
-      // Low walls next to the street so the façades behind read as the city; taller masses only far away.
-      const height = touching ? 3.4 + random.next() * 0.8 : diagonal ? 4 + random.next() * 1.4 : 4.5 + random.next() * 3.5;
-      blocks.push({ x: i * CELL, z: j * CELL, height, tone: random.next() });
+      let near = false;
+      for (let d = -FILL_DEPTH_CELLS; d <= FILL_DEPTH_CELLS && !near; d += 1) near = isOpen(i + d, j) || isOpen(i, j + d);
+      if (near) tiles.push({ tile: "road-paving", x: (i + 0.5) * CELL, z: (j + 0.5) * CELL, rotationY: Math.floor(random.next() * 4) * (Math.PI / 2) });
     }
   }
-  return { open, tiles, buildings, blocks, bounds };
+  return { open, tiles, buildings, bounds };
 }

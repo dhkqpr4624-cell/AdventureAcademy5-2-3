@@ -1,0 +1,70 @@
+<!doctype html><html><body><script type="importmap">{"imports":{"three":"./three/build/three.module.js","three/addons/":"./three/examples/jsm/"}}</script>
+<script type="module">
+// Phase 2 hotfix: building FBX (3d assets.zip, Tripo exports) → "GSM2" indexed meshes, normalised to height 1,
+// base on y = 0, centred on x/z, façade towards +Z. See scripts/chapter3/convert-gyeongseong-buildings.mjs.
+import * as THREE from "three";
+import { FBXLoader } from "three/addons/loaders/FBXLoader.js";
+import { mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
+import { SimplifyModifier } from "three/addons/modifiers/SimplifyModifier.js";
+const jobs = JSON.parse(decodeURIComponent(location.hash.slice(1)));
+const toB64 = (buffer) => { let s = ""; const bytes = new Uint8Array(buffer); for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(s); };
+const out = {};
+for (const job of jobs) {
+  const root = await new FBXLoader().loadAsync(job.fbx);
+  root.rotation.set(job.rotateX ?? 0, 0, 0); root.updateMatrixWorld(true);
+  let mesh = null; root.traverse((m) => { if (m.isMesh && !mesh) mesh = m; });
+  const g = mesh.geometry.clone().applyMatrix4(mesh.matrixWorld);
+  if (job.rotateY) g.rotateY(job.rotateY);
+  for (const name of Object.keys(g.attributes)) if (!["position", "normal", "uv"].includes(name)) g.deleteAttribute(name);
+  g.computeBoundingBox();
+  const bb = g.boundingBox.clone(); const height = bb.max.y - bb.min.y;
+  g.translate(-(bb.min.x + bb.max.x) / 2, -bb.min.y, -(bb.min.z + bb.max.z) / 2);
+  g.scale(1 / height, 1 / height, 1 / height);
+  const merged = mergeVertices(g, 1e-6);
+  merged.computeBoundingBox();
+  const size = merged.boundingBox.getSize(new THREE.Vector3());
+  const n = merged.attributes.position.count, index = merged.index.array;
+  const P = new Float32Array(merged.attributes.position.array), N = new Int8Array(n * 3), U = new Float32Array(merged.attributes.uv.array);
+  const nor = merged.attributes.normal;
+  for (let i = 0; i < n; i++) { N[i * 3] = Math.round(nor.getX(i) * 127); N[i * 3 + 1] = Math.round(nor.getY(i) * 127); N[i * 3 + 2] = Math.round(nor.getZ(i) * 127); }
+  const big = n > 65535; const I = big ? new Uint32Array(index) : new Uint16Array(index);
+  const pad = (len) => (4 - (len % 4)) % 4;
+  const header = new Uint32Array([0x324d5347, n, I.length, big ? 1 : 0]);
+  const parts = [header, P, U, N, new Uint8Array(pad(N.byteLength)), I];
+  const total = parts.reduce((a, p) => a + p.byteLength, 0); const buf = new Uint8Array(total); let off = 0;
+  for (const p of parts) { buf.set(new Uint8Array(p.buffer, p.byteOffset, p.byteLength), off); off += p.byteLength; }
+  /*
+   * LOD1 (distant buildings): weld by position only, simplify to ~20 % of the vertices with three's
+   * SimplifyModifier, and bake the texture colour at each surviving vertex into vertex colours (no UVs,
+   * so texture seams cannot tear). Same FBX geometry, just fewer triangles.
+   */
+  const lodSource = g.clone(); lodSource.deleteAttribute("normal");
+  const srcUv = lodSource.getAttribute("uv"); lodSource.deleteAttribute("uv");
+  const keyOf = (x, y, z) => `${Math.round(x * 1e5)},${Math.round(y * 1e5)},${Math.round(z * 1e5)}`;
+  const uvByPos = new Map(); const sp = lodSource.attributes.position;
+  for (let i = 0; i < sp.count; i++) { const k = keyOf(sp.getX(i), sp.getY(i), sp.getZ(i)); if (!uvByPos.has(k)) uvByPos.set(k, [srcUv.getX(i), srcUv.getY(i)]); }
+  const welded = mergeVertices(lodSource, 1e-5);
+  const wp = welded.attributes.position; const wuv = new Float32Array(wp.count * 2);
+  for (let i = 0; i < wp.count; i++) { const v = uvByPos.get(keyOf(wp.getX(i), wp.getY(i), wp.getZ(i))) ?? [0, 0]; wuv[i * 2] = v[0]; wuv[i * 2 + 1] = v[1]; }
+  welded.setAttribute("uv", new THREE.BufferAttribute(wuv, 2));
+  const lod = new SimplifyModifier().modify(welded, Math.floor(wp.count * (1 - (job.lodKeep ?? 0.2))));
+  lod.computeVertexNormals();
+  const image = await new Promise((resolve, reject) => { const img = new Image(); img.onload = () => resolve(img); img.onerror = reject; img.src = job.texture; });
+  const canvas = document.createElement("canvas"); canvas.width = image.width; canvas.height = image.height;
+  const ctx = canvas.getContext("2d"); ctx.drawImage(image, 0, 0); const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  const ln = lod.attributes.position.count; const LP = new Float32Array(lod.attributes.position.array); const LN = new Int8Array(ln * 3); const LC = new Uint8Array(ln * 3);
+  for (let i = 0; i < ln; i++) {
+    const x = Math.min(canvas.width - 1, Math.max(0, Math.floor(lod.attributes.uv.getX(i) * canvas.width)));
+    const y = Math.min(canvas.height - 1, Math.max(0, Math.floor((1 - lod.attributes.uv.getY(i)) * canvas.height)));
+    const o = (y * canvas.width + x) * 4; LC[i * 3] = pixels[o]; LC[i * 3 + 1] = pixels[o + 1]; LC[i * 3 + 2] = pixels[o + 2];
+    LN[i * 3] = Math.round(lod.attributes.normal.getX(i) * 127); LN[i * 3 + 1] = Math.round(lod.attributes.normal.getY(i) * 127); LN[i * 3 + 2] = Math.round(lod.attributes.normal.getZ(i) * 127);
+  }
+  const lodIndex = lod.index.array; const lodBig = ln > 65535; const LI = lodBig ? new Uint32Array(lodIndex) : new Uint16Array(lodIndex);
+  const lodParts = [new Uint32Array([0x314c5347, ln, LI.length, lodBig ? 1 : 0]), LP, LN, new Uint8Array(pad(LN.byteLength)), LC, new Uint8Array(pad(LC.byteLength)), LI];
+  const lodTotal = lodParts.reduce((a, p) => a + p.byteLength, 0); const lodBuf = new Uint8Array(lodTotal); let lodOff = 0;
+  for (const p of lodParts) { lodBuf.set(new Uint8Array(p.buffer, p.byteOffset, p.byteLength), lodOff); lodOff += p.byteLength; }
+  out[job.id + "-lod1"] = { b64: toB64(lodBuf.buffer), vertices: ln, triangles: LI.length / 3 };
+  out[job.id] = { b64: toB64(buf.buffer), vertices: n, triangles: I.length / 3, sourceTriangles: mesh.geometry.attributes.position.count / 3, size: size.toArray().map((v) => Math.round(v * 1000) / 1000), sourceSize: [bb.max.x - bb.min.x, height, bb.max.z - bb.min.z].map((v) => Math.round(v * 1000) / 1000), sourceMaterial: { name: mesh.material.name, type: mesh.material.type, embeddedTexturePath: mesh.material.map?.name ?? null } };
+}
+window.__out = out; window.__done = true;
+</script></body></html>

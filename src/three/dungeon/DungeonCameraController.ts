@@ -72,6 +72,9 @@ export class DungeonCameraController {
   private frameId: number | null = null;
   private sequenceId = 0;
 
+  /** Multiplies the walking speed (Unit 3 Floor 1 uses a 3× wider visual world). */
+  speedMultiplier = 1;
+
   constructor(private readonly camera: THREE.PerspectiveCamera) {
     this.camera.rotation.order = "YXZ";
   }
@@ -140,7 +143,7 @@ export class DungeonCameraController {
     const totalLength = cumulative;
     const duration = options.reducedMotion
       ? 80
-      : Math.max(500, (totalLength / CAMERA_SPEED_UNITS_PER_SECOND) * 1000);
+      : Math.max(500, (totalLength / (CAMERA_SPEED_UNITS_PER_SECOND * this.speedMultiplier)) * 1000);
     const initialYaw = this.camera.rotation.y;
     const startedAt = performance.now();
     const movementMode = options.mode ?? "forward";
@@ -260,7 +263,7 @@ export class DungeonCameraController {
         step.duration ??
         (step.type === "rotate"
           ? ARRIVAL_TURN_DURATION_MS
-          : Math.max(250, distance / CAMERA_SPEED_UNITS_PER_SECOND * 1000));
+          : Math.max(250, distance / (CAMERA_SPEED_UNITS_PER_SECOND * this.speedMultiplier) * 1000));
       const yawDelta =
         step.type === "rotate"
           ? shortestAngleDelta(fromYaw, step.yaw)

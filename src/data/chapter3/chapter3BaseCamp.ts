@@ -36,14 +36,20 @@ const idle = (standingImage: string, blinkSpriteSheet = standingImage, blinkFram
 
 function placement(id: Chapter3ActorId, x: number) {
   const sprite = CHAPTER3_STAGE_SPRITES[id];
-  const width = sprite.frameWidth * STAGE_SPRITE_SCALE;
-  const height = sprite.frameHeight * STAGE_SPRITE_SCALE;
-  return { x: x - sprite.cx * width, y: CHAPTER3_BASE_CAMP_FOOT_Y - sprite.foot * height, width, height };
+  // Whole pixels: the blink sheet is positioned in px steps of this width, so a fractional width
+  // (600 × 0.3 = 180.00000000000003) would shift the frames by sub-pixels.
+  const width = Math.round(sprite.frameWidth * STAGE_SPRITE_SCALE);
+  const height = Math.round(sprite.frameHeight * STAGE_SPRITE_SCALE);
+  return { x: Math.round(x - sprite.cx * width), y: Math.round(CHAPTER3_BASE_CAMP_FOOT_Y - sprite.foot * height), width, height };
 }
 
-/** Supply crates (shop npc.png, 1568x1003; visible pixels 161..1524 x 31..979) at map x≈1300 on the ground line. */
-const SUPPLY_SCALE = 0.0844;
-const SUPPLY_CENTER_X = 1300;
+/**
+ * Supply crates (shop npc.png, 1568x1003; visible pixels 161..1524 x 31..979) standing on the ground line.
+ * Phase 2 hotfix: shown 2× larger (scale 0.0844 → 0.1688, ratio kept) and moved slightly right so the
+ * visible crates (≈1205–1435) stay clear of Kaiden (visible ≈1059–1171).
+ */
+const SUPPLY_SCALE = 0.1688;
+const SUPPLY_CENTER_X = 1320;
 const supplyPlacement = {
   x: Math.round(SUPPLY_CENTER_X - (842 / 1568) * 1568 * SUPPLY_SCALE),
   y: Math.round(CHAPTER3_BASE_CAMP_FOOT_Y - (979 / 1003) * 1003 * SUPPLY_SCALE),
@@ -84,6 +90,6 @@ export function createChapter3BaseCampNpcs(): BaseCampNpcView[] {
     { id: "deneb", displayName: "데네브", displayRole: "지휘관", placement: placement("deneb", 545),
       idle: idle(`${import.meta.env.BASE_URL}assets/npcs/chapter2/deneb/standing_R.png`, `${import.meta.env.BASE_URL}assets/npcs/chapter2/deneb/blink_R.png`, 7) },
     { id: "kaiden", displayName: "카이든", displayRole: "지휘관", placement: placement("kaiden", 1115), idle: idle(kaidenStanding, kaidenBlink, 4) },
-    { id: "supply", displayName: "보급물품", displayRole: "", placement: supplyPlacement, idle: idle(`${import.meta.env.BASE_URL}assets/chapter3/floor1/shop/supply-crates.png`) },
+    { id: "supply", displayName: "보급물품", displayRole: "상점", nameTagVariant: "shop", placement: supplyPlacement, idle: idle(`${import.meta.env.BASE_URL}assets/chapter3/floor1/shop/supply-crates.png`) },
   ];
 }

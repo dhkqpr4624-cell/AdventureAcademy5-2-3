@@ -1,6 +1,6 @@
 import originalScript from "../docs/chapter3/floor1-original-script.txt?raw";
 import { resolvePlayerNamePlaceholders, PLAYER_NAME_TOKEN_START, stripPlayerNameTokens } from "./game/story/StoryPlayer";
-import { CHAPTER3_INTRO_SEQUENCE } from "./data/chapter3/chapter3IntroScript";
+import { CHAPTER3_INTRO_ARRIVAL_SEQUENCE, CHAPTER3_INTRO_HQ_SEQUENCE, CHAPTER3_INTRO_SEQUENCE } from "./data/chapter3/chapter3IntroScript";
 import { CHAPTER3_INTRO_PHASES } from "./data/chapter3/chapter3IntroStage";
 import { CHAPTER3_STAGE_SPRITES } from "./data/chapter3/chapter3Actors";
 import { createChapter3BaseCampHitboxes, createChapter3BaseCampNpcs } from "./data/chapter3/chapter3BaseCamp";
@@ -14,7 +14,7 @@ import {
 } from "./game/chapter3/unit3Floor1";
 import { UNIT3_FLOOR1_ALL_STORIES, UNIT3_FLOOR1_BASE_CAMP_RETURN_STORY, UNIT3_FLOOR1_FINAL_STORY } from "./data/chapter3/floor1Stories";
 import { UNIT3_FLOOR1_STAGE_PHASES } from "./game/chapter3/Unit3Floor1Stage";
-import { FORBIDDEN_ROAD_ASSET_FLOORS_1_TO_7, planGyeongseongLayout } from "./three/dungeon/gyeongseong/gyeongseongLayout";
+import { BUILDING_MODEL_IDS, CELL, FORBIDDEN_ROAD_ASSET_FLOORS_1_TO_7, GYEONGSEONG_WORLD_SCALE, PLAZA_HALF_CELLS, STREET_HALF_CELLS, cellOf, planGyeongseongLayout, toGyeongseongVisualMap } from "./three/dungeon/gyeongseong/gyeongseongLayout";
 import { applySaveDataToGameState, createInitialGameSaveState, createSaveDataFromGameState } from "./save/saveStateAdapter";
 import { validateCurrentSave } from "./save/saveSchema";
 import { getItemDefinition } from "./game/inventory/itemDefinitions";
@@ -49,16 +49,27 @@ export function runChapter3Phase2Checks(): void {
   }
   assert(!("player" in CHAPTER3_STAGE_SPRITES), "player has no map sprite");
   assert(CHAPTER3_INTRO_SEQUENCE.skipTarget?.complete === true, "intro skip completes the intro");
+  // hotfix: two intro states, one skip per state, guarded against double clicks
+  assert(CHAPTER3_INTRO_HQ_SEQUENCE.scenes.length === 1 && CHAPTER3_INTRO_HQ_SEQUENCE.scenes[0].id === "chapter3-hq", "HQ_INTRO is its own sequence");
+  const arrivalSteps = CHAPTER3_INTRO_ARRIVAL_SEQUENCE.scenes[0].steps;
+  assert(CHAPTER3_INTRO_ARRIVAL_SEQUENCE.scenes[0].id === "chapter3-arrival" && arrivalSteps[0].type === "fade" && arrivalSteps.some((step) => step.id === "arrival-start"), "ARRIVAL_INTRO starts from the first arrival step");
+  assert((CHAPTER3_INTRO_HQ_SEQUENCE.skipDelayMs ?? 0) >= 500 && (CHAPTER3_INTRO_ARRIVAL_SEQUENCE.skipDelayMs ?? 0) >= 500, "skip guarded against double clicks");
 
   /* 3. base camp hitboxes */
   const npcs = createChapter3BaseCampNpcs();
   const hitboxes = createChapter3BaseCampHitboxes(npcs);
-  assert(npcs.find((npc) => npc.id === "supply")?.displayName === "보급물품", "supply crates are called 보급물품");
+  const supply = npcs.find((npc) => npc.id === "supply")!;
+  assert(supply.displayName === "보급물품" && supply.displayRole === "상점" && supply.nameTagVariant === "shop", "supply name tag: 상점 / 보급물품");
+  assert(Math.abs(supply.placement.width - 2 * 132) <= 2 && Math.abs(supply.placement.width / supply.placement.height - 1568 / 1003) < 0.02, "supply crates 2× (ratio kept)");
+  const kaidenBox = createChapter3BaseCampHitboxes(npcs).kaiden;
+  assert(createChapter3BaseCampHitboxes(npcs).supply.x > kaidenBox.x + kaidenBox.width, "supply crates clear of Kaiden");
   for (const [id, box] of Object.entries(hitboxes)) assert(box.width > 20 && box.height > 20, `${id} hitbox size`);
   const deneb = npcs.find((npc) => npc.id === "deneb")!.placement;
   assert(hitboxes.deneb.width < deneb.width && hitboxes.deneb.y > deneb.y, "Deneb hitbox fitted inside the transparent frame");
 
   /* 4. floor layout over many seeds */
+  const coverage: number[] = [];
+  const heights: number[] = [];
   for (let n = 0; n < 40; n += 1) {
     const run = createDungeonRun(UNIT3_FLOOR1_ID, `phase2-check-${n}`);
     const map = prepareUnit3Floor1Map(run.map, run.seed);
@@ -104,36 +115,71 @@ export function runChapter3Phase2Checks(): void {
       assert(canEnterFinalRoom(map, progress) && isFinalRoom(map, final.id), `seed ${n} order ${order}: final open after all three`);
     }
 
-    // 3D layout: deterministic, no buildings on streets, no overlaps, no gaps, never the cracked road
-    const layout = planGyeongseongLayout(map, run.seed);
-    const again = planGyeongseongLayout(map, run.seed);
+    // 3D: logical map → visual map only moves positions
+    const visual = toGyeongseongVisualMap(map);
+    assert(JSON.stringify(visual.rooms.map((room) => [room.id, room.type, room.isRequired, room.isFinalQuestRoom, room.combatConfig?.monsterId, room.eliteConfig?.monsterId])) === JSON.stringify(map.rooms.map((room) => [room.id, room.type, room.isRequired, room.isFinalQuestRoom, room.combatConfig?.monsterId, room.eliteConfig?.monsterId])), `seed ${n}: visual map keeps the logical rooms`);
+    assert(JSON.stringify(visual.connections.map((c) => [c.fromRoomId, c.toRoomId, c.directionFromSource])) === JSON.stringify(map.connections.map((c) => [c.fromRoomId, c.toRoomId, c.directionFromSource])) && visual.startRoomId === map.startRoomId, `seed ${n}: visual map keeps the connections`);
+    for (const room of visual.rooms) {
+      const logical = map.rooms.find((candidate) => candidate.id === room.id)!;
+      assert(room.position.x === logical.position.x * GYEONGSEONG_WORLD_SCALE && room.position.z === logical.position.z * GYEONGSEONG_WORLD_SCALE, `seed ${n}: room spread`);
+      const offset = (pose: { position: number[]; lookAt: number[] }) => Math.hypot(pose.lookAt[0] - pose.position[0], pose.lookAt[2] - pose.position[2]);
+      assert(Math.abs(offset(room.explorationCameraPose) - offset(logical.explorationCameraPose)) < 1e-9, `seed ${n}: camera → monster distance unchanged`);
+    }
+    assert(canEnterFinalRoom(visual, applyUnit3Floor1Progress(visual, {}, {})) === false && findCartRoomId(visual) === cart, `seed ${n}: gates identical on the visual map`);
+
+    // 3D layout: deterministic, only supplied FBX buildings, no overlaps / street intrusion, never 12a
+    const layout = planGyeongseongLayout(visual, run.seed);
+    const again = planGyeongseongLayout(visual, run.seed);
     assert(JSON.stringify(layout.buildings) === JSON.stringify(again.buildings) && layout.tiles.length === again.tiles.length, `seed ${n}: layout deterministic`);
+    assert(layout.buildings.length > 20 && layout.buildings.every((building) => BUILDING_MODEL_IDS.includes(building.model)), `seed ${n}: buildings are the supplied FBX models only`);
+    assert(!("blocks" in layout), `seed ${n}: no generated block buildings`);
     const covered = new Set<string>();
     for (const building of layout.buildings) {
       for (const cell of building.cells) {
-        assert(!layout.open.has(cell), `seed ${n}: building ${building.model} on an open cell ${cell}`);
+        assert(!layout.open.has(cell), `seed ${n}: building ${building.model} on the street/plaza at ${cell}`);
         assert(!covered.has(cell), `seed ${n}: overlapping buildings at ${cell}`);
         covered.add(cell);
       }
     }
-    const blockCells = new Set(layout.blocks.map((block) => `${block.x / 2},${block.z / 2}`));
-    for (let j = layout.bounds.minJ; j <= layout.bounds.maxJ; j += 1) {
-      for (let i = layout.bounds.minI; i <= layout.bounds.maxI; i += 1) {
-        const k = `${i},${j}`;
-        if (layout.open.has(k)) continue;
-        assert(covered.has(k) || blockCells.has(k), `seed ${n}: gap at closed cell ${k}`);
-      }
+    for (let a = 0; a < layout.buildings.length; a += 1) for (let b = a + 1; b < layout.buildings.length; b += 1) {
+      const p = layout.buildings[a], q = layout.buildings[b];
+      const overlap = Math.min(p.maxX, q.maxX) - Math.max(p.minX, q.minX) > 0.01 && Math.min(p.maxZ, q.maxZ) - Math.max(p.minZ, q.minZ) > 0.01;
+      assert(!overlap, `seed ${n}: footprints of ${p.model} and ${q.model} intersect`);
     }
+    // façade coverage: most closed cells that touch the streets are fronted by a building
+    let frontCells = 0, frontCovered = 0;
+    for (let j = layout.bounds.minJ; j <= layout.bounds.maxJ; j += 1) for (let i = layout.bounds.minI; i <= layout.bounds.maxI; i += 1) {
+      if (layout.open.has(`${i},${j}`)) continue;
+      if (![[1, 0], [-1, 0], [0, 1], [0, -1]].some(([a, b]) => layout.open.has(`${i + a},${j + b}`))) continue;
+      frontCells += 1;
+      // covered either directly or by a building set back right behind it
+      if ([0, 1].some((d) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([a, b]) => layout.open.has(`${i + a},${j + b}`) && covered.has(`${i - a * d},${j - b * d}`)))) frontCovered += 1;
+    }
+    coverage.push(frontCovered / frontCells);
+    heights.push(...layout.buildings.map((building) => building.height));
+    const tileCells = new Set(layout.tiles.map((tile) => `${cellOf(tile.x)},${cellOf(tile.z)}`));
+    assert([...layout.open.keys()].every((cell) => tileCells.has(cell)) && tileCells.size === layout.tiles.length, `seed ${n}: one road tile per open cell (no holes)`);
+    assert(layout.tiles.every((tile) => !covered.has(`${cellOf(tile.x)},${cellOf(tile.z)}`)), `seed ${n}: no pavement tile under a building`);
     assert(layout.tiles.every((tile) => ["road-paving", "road-tram", "road-curb"].includes(tile.tile)), `seed ${n}: only permitted road tiles`);
     assert(!JSON.stringify(layout).includes(FORBIDDEN_ROAD_ASSET_FLOORS_1_TO_7) && !JSON.stringify(layout).includes("cracked"), `seed ${n}: 12a-cracked-road never used`);
-    // every room centre and every camera stop is an open cell (camera never inside a building)
-    for (const room of map.rooms) assert(layout.open.has(`${Math.round(room.position.x / 2)},${Math.round(room.position.z / 2)}`), `seed ${n}: room centre open`);
-    for (const connection of map.connections) {
-      for (const point of connection.cameraPath) {
-        assert(layout.open.has(`${Math.round(point.position[0] / 2)},${Math.round(point.position[2] / 2)}`), `seed ${n}: camera path stays on the street`);
-      }
+    // every room centre and every camera stop is on the street (camera never inside a building)
+    const cellKey = (x: number, z: number) => `${cellOf(x)},${cellOf(z)}`;
+    for (const room of visual.rooms) {
+      for (const [dx, dz] of [[-0.5, -0.5], [0.5, 0.5], [-0.5, 0.5], [0.5, -0.5]]) assert(layout.open.has(cellKey(room.position.x + dx, room.position.z + dz)), `seed ${n}: room centre open`);
+      const look = room.explorationCameraPose.lookAt;
+      assert(layout.open.has(cellKey(look[0], look[2])), `seed ${n}: monster spot open`);
+    }
+    for (const connection of visual.connections) {
+      for (const point of connection.cameraPath) assert(layout.open.has(cellKey(point.position[0] + 0.01, point.position[2] + 0.01)), `seed ${n}: camera path stays on the street`);
     }
   }
+  const averageCoverage = coverage.reduce((a, b) => a + b, 0) / coverage.length;
+  const averageHeight = heights.reduce((a, b) => a + b, 0) / heights.length;
+  assert(averageCoverage > 0.85, `façades cover the streets (${averageCoverage.toFixed(2)})`);
+  // Phase 2 FBX buildings averaged 6.6 units high / 5.8 wide over these seeds; target ≈ 2.5×
+  assert(averageHeight / 6.57 > 2.3 && averageHeight / 6.57 < 3, `building size ≈ 2.5× Phase 2 (average height ${averageHeight.toFixed(1)})`);
+  assert(STREET_HALF_CELLS * 2 * CELL === 18 && PLAZA_HALF_CELLS * 2 * CELL === 24, "streets 18 wide (Phase 2: 6), plazas 24 (Phase 2: 10)");
+  console.info(`  gyeongseong: façade coverage ${(averageCoverage * 100).toFixed(1)} %, average building height ${averageHeight.toFixed(1)}`);
 
   /* 5. dialogue fidelity: every line comes from the original script (overrides excepted) */
   const normalize = (text: string) => text.replace(/\s+/g, "").replace(/[“”"]/g, "");

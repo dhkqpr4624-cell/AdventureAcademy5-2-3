@@ -205,7 +205,7 @@ export function BaseCampWorld({
           <div key={npc.id} className="base-camp-npc-view" data-npc={npc.id}>
             <NpcIdleSprite npc={npc} selected={false} interactionHighlighted={viewHighlightId === npc.id} mirrored={npc.mirrored} />
             <span className="base-camp-npc-view-tag" style={{ left: npc.placement.x, top: npc.placement.y, width: npc.placement.width, height: npc.placement.height }}>
-              <NpcNameTag displayName={npc.displayName} displayRole={npc.displayRole} />
+              <NpcNameTag displayName={npc.displayName} displayRole={npc.displayRole} variant={npc.nameTagVariant} />
             </span>
           </div>
         ))}
