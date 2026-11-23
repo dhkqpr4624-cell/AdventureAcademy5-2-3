@@ -11,7 +11,7 @@ import {
   type StageAudioCue,
   type StagePhase,
 } from "../../data/chapter3/chapter3IntroStage";
-import { crossfadeBgm, fadeOutBgm, playBgm } from "../audioBgm";
+import { crossfadeBgm, duckBgm, fadeOutBgm, playBgm } from "../audioBgm";
 import { startWarpCharge, startWindLoop, type Chapter3SfxHandle, type WarpHandle } from "../audio/chapter3ProceduralSfx";
 import { MapLayer, MapStage } from "./MapStage";
 import { LoopingLayer } from "./LoopingLayer";
@@ -45,14 +45,21 @@ function useStageAudio(phaseName: string, revision: number, cues: readonly Stage
     if (!cues?.length || handled.current === revision) return;
     handled.current = revision;
     for (const cue of cues) {
+      // HQ theme: starts with the HQ map and keeps looping through dialogue, choices, entrances and the warp charge.
+      // playBgm() is idempotent for the active track, so a repeated cue never restarts it.
       if (cue === "bgm-hq") playBgm("unit3-hq", undefined, { loop: true, volume: 0.42, fadeInMs: 1200 });
       if (cue === "bgm-tension") void crossfadeBgm("unit3-tension", 2200, { loop: true, volume: 0.42, fadeInMs: 1800 });
       if (cue === "warp-start") {
-        void fadeOutBgm(2400);
+        // the theme stays under the warp charge, ducked ~4.4 dB so the rising charge reads clearly over it
+        duckBgm(0.6, 1500, "unit3-hq");
         warp.current?.stop(100);
         warp.current = startWarpCharge(4600);
       }
-      if (cue === "warp-distort") warp.current?.distort();
+      if (cue === "warp-distort") {
+        warp.current?.distort();
+        // The warp flash ends the HQ: the theme fades out with the white-out / fade to black (never reaches the arrival map).
+        void fadeOutBgm(1200, "unit3-hq");
+      }
       if (cue === "wind-start") {
         wind.current?.stop(200);
         wind.current = startWindLoop(0.2, 2400);

@@ -112,7 +112,7 @@ const HQ_STEPS: StoryStep[] = [
   d("aron", "smile", "임무가 끝난 뒤에 들려주시면 좋겠습니다."),
   d("kaiden", "shame", "아론, 자네까지 그러는 건가."),
 
-  // 연구원 등장과 포탈 현황 (본부 BGM → 긴장 BGM)
+  // 연구원 등장과 포탈 현황 (본부 BGM 유지)
   stage("hq-researcher", 1200),
   d("researcher", "serious", "모두 모이셨군요. 바로 상황을 설명하겠습니다."),
   d("deneb", "default", "무슨 일이 생겼나요?"),

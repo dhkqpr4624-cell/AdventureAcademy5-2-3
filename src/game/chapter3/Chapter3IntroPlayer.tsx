@@ -70,7 +70,7 @@ export function Chapter3IntroPlayer({ playerName, onNavigate, onStarted, onCompl
         if (hq) {
           // played to the end or skipped: HQ audio (warp charge, BGM) must not leak into the arrival map
           stopAllChapter3Sfx(200);
-          void fadeOutBgm(400);
+          void fadeOutBgm(800, "unit3-hq");
           setIntroState("ARRIVAL_INTRO");
         } else {
           onCompleted(CHAPTER3_INTRO_STORY_ID);

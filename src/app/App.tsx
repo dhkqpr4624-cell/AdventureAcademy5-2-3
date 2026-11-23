@@ -8,7 +8,7 @@ import { applySaveDataToGameState, createInitialGameSaveState, createSaveDataFro
 import type { SaveReason } from "../save/saveTypes";
 import { PlayerNamePopup } from "../components/PlayerNamePopup";
 import { playRandomizedOneShot } from "../game/audioOneShot";
-import { playBgm, stopBgm } from "../game/audioBgm";
+import { fadeOutBgm, playBgm, stopBgm } from "../game/audioBgm";
 import { stopAllChapter3Sfx } from "../game/audio/chapter3ProceduralSfx";
 import { completeChapter3Intro, resolveContinueScreen } from "./chapter3Flow";
 import type { SetStateAction } from "react";
@@ -101,13 +101,18 @@ export function App() {
 
   useEffect(() => {
     if (currentScreen === "baseCamp") {
-      playBgm("village", undefined, { loop: true, volume: 0.42, fadeInMs: 1500 });
+      // Base camp theme: loops through NPC talk, the shop and quest dialogue (all overlays on this screen).
+      // Entering the dungeon fades it out (1.2 s, below); returning / continuing starts it again.
+      playBgm("unit3-basecamp", undefined, { loop: true, volume: 0.42, fadeInMs: 1500 });
       return;
     }
     if (currentScreen === "title") {
       stopBgm();
       stopAllChapter3Sfx(200);
+      return;
     }
+    // Leaving the base camp (dungeon entry): the camp theme fades out instead of carrying into the dungeon.
+    void fadeOutBgm(1200, "unit3-basecamp");
     // The intro (story) drives its own BGM / ambience through the chapter3 stage.
   }, [currentScreen]);
 

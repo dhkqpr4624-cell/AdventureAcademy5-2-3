@@ -77,7 +77,8 @@ export const CHAPTER3_INTRO_PHASES: Record<string, StagePhase> = {
   "hq-gather": { map: "hq", actors: four(), camera: HQ_CAMERA, audio: ["bgm-hq"] },
   "hq-exclaim": { map: "hq", actors: four(true), camera: HQ_CAMERA },
   "hq-commanders": { map: "hq", actors: [...four(), ...commanders], camera: HQ_CAMERA },
-  "hq-researcher": { map: "hq", actors: hqFull, camera: HQ_CAMERA, audio: ["bgm-tension"] },
+  // The HQ theme carries on through the researcher's briefing (Hotfix 2: no switch to the tension theme).
+  "hq-researcher": { map: "hq", actors: hqFull, camera: HQ_CAMERA },
   "hq-portal-dim": { map: "hq", actors: hqFull, camera: HQ_CAMERA, dim: true },
   "hq-briefing": { map: "hq", actors: hqFull, camera: HQ_CAMERA },
   "hq-warp-charge": { map: "hq", actors: withCircle(hqFull), camera: HQ_CAMERA, warp: 1, audio: ["warp-start"] },
