@@ -38,7 +38,7 @@
 | 2단원 데네브 구출·역사포식자 | `dungeon10/boss/hungry-history-devourer-combat.png` (마지막 대사는 같은 그림을 어둡게) |
 
 - 표정 대체: 카이든 serious → default(새 ZIP에 serious 없음), 데네브 serious → default, 연구원 serious → default(기본 하나뿐).
-- 플레이어 스프라이트: 저장소에 플레이어 캐릭터 그림이 없어(1인칭 게임) 이름 없는 망토 실루엣을 생성했습니다(`public/assets/chapter3/actors/player-standing.png`, `scripts/chapter3/make_player_silhouette.py`). 같은 경로에 실제 그림을 넣으면 코드 수정 없이 바뀝니다.
+- 플레이어 표시: 1인칭 시점이므로 플레이어는 어떤 맵에도 그리지 않습니다(핫픽스에서 임시 실루엣 제거, `docs/UNIT3_PHASE1_HOTFIX.md` 참고).
 - `src/assets/story/npcs/kaiden/standing_R.png`가 원본 저장소에서 잘린 파일(76,800바이트, 디코딩 실패)이라 standing_L 좌우 반전본으로 다시 만들었습니다.
 
 ## 4. 오디오·VFX
@@ -68,7 +68,7 @@
 | `final-nine-assets-checks.mjs` | 실패 — 손대지 않은 원본에서도 똑같이 실패(옛 `git diff` 상태를 단정하는 검사) |
 | 브라우저 실제 플레이(Chrome, `/`와 `/AdventureAcademy5-2-2/`) | 세 본부 경로·도착 두 응답 모두 합류해서 베이스캠프 도착. 콘솔 오류 0, 404 0 |
 | 연속 클릭 | 대사 더블클릭은 한 줄만, 선택지 더블클릭은 다음 대사를 건너뛰지 않음 |
-| 워프 / 재집결 | 마법진 7개(연구원 제외) / 도착 맵 3명 |
+| 워프 / 재집결 | 마법진 6개(원정대 NPC 6명, 연구원 제외) / 도착 맵 데네브·카이든 2명 (핫픽스 기준) |
 | 오디오 순서 | 본부 BGM → 긴장 BGM → 워프 전에 페이드아웃 → 베이스캠프 BGM, 동시에 두 BGM이 재생되는 순간 없음 |
 | 저장 | 완료 표시와 이름 저장, 새로고침 후 이어하기는 베이스캠프로. 미리 넣어 둔 2단원 키 값은 끝까지 그대로 |
 | 전차(가짜 시계) | 첫 대기 31.2초(30~60초 범위), x 1672에서 출발, 초당 약 197px 등속, 통과 후 새 대기 54.7초, 화면 이탈 시 제거 |

@@ -1,6 +1,5 @@
 import type { StoryActor, StoryVisualAsset } from "../../types/story";
 import { createChapter2Actor } from "../stories/chapter2Portraits";
-import { CHAPTER3_ASSETS } from "./chapter3Assets";
 import lunaL from "../../assets/story/npcs/chapter2/luna/standing_L.png";
 import lunaR from "../../assets/story/npcs/chapter2/luna/standing_R.png";
 import theoL from "../../assets/story/npcs/chapter2/theo/standing_L.png";
@@ -20,7 +19,8 @@ import kaidenAngry from "../../assets/portraits/chapter3/kaiden/angry.png";
 import kaidenShout from "../../assets/portraits/chapter3/kaiden/shout.png";
 import kaidenShame from "../../assets/portraits/chapter3/kaiden/shame.png";
 
-export type Chapter3ActorId = "player" | "theo" | "luna" | "aron" | "kapp" | "deneb" | "kaiden" | "researcher";
+/** Visible story NPCs. The player is the viewer (first person) and is never drawn on a map. */
+export type Chapter3ActorId = "theo" | "luna" | "aron" | "kapp" | "deneb" | "kaiden" | "researcher";
 export type Facing = "L" | "R";
 
 /**
@@ -45,7 +45,6 @@ export const STAGE_SPRITE_SCALE = 0.3;
 const deneb = `${import.meta.env.BASE_URL}assets/npcs/chapter2/deneb/standing_R.png`;
 
 export const CHAPTER3_STAGE_SPRITES: Record<Chapter3ActorId, StageSprite> = {
-  player: { frameWidth: 380, frameHeight: 600, foot: 0.9917, cx: 0.505, head: 0.005, images: { L: CHAPTER3_ASSETS.actors.player } },
   theo: { frameWidth: 380, frameHeight: 600, foot: 0.985, cx: 0.509, head: 0.017, images: { L: theoL, R: theoR } },
   luna: { frameWidth: 380, frameHeight: 600, foot: 0.98, cx: 0.5, head: 0.01, images: { L: lunaL, R: lunaR } },
   aron: { frameWidth: 400, frameHeight: 700, foot: 0.9814, cx: 0.525, head: 0.137, images: { L: aronL, R: aronR } },

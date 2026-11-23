@@ -36,9 +36,6 @@ export const CHAPTER3_ASSETS = {
   illust: {
     nationSwallowingPortal: chapter3Asset("illust/nation-swallowing-portal.png"),
   },
-  actors: {
-    player: chapter3Asset("actors/player-standing.png"),
-  },
 } as const;
 
 /** Tram crop origin inside the original 1672x941 layer (see maps/basecamp/tram.json). */

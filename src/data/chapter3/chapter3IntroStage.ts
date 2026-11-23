@@ -47,29 +47,33 @@ export const ARRIVAL_SKY_CRACK = { x: 1320, y: 160, width: 400, height: 256 } as
 const HQ_CAMERA = { x: 700, y: 520, zoom: 1 } as const;
 const ARRIVAL_HOME = { x: 660, y: 600, zoom: 1.6 } as const;
 
+/*
+ * First-person rule: the player is the viewer and is never drawn. The party stands as one line on the
+ * left of the command table (facing it); Deneb and Kaiden join directly to the right of the four, and the
+ * researcher enters on the far side of the table, facing the party.
+ */
 const four = (exclaim = false): StageActorState[] => [
-  { id: "theo", x: 190, facing: "R", exclaim },
-  { id: "luna", x: 290, facing: "R", exclaim },
-  { id: "aron", x: 390, facing: "R", exclaim },
-  { id: "kapp", x: 490, facing: "R", exclaim },
+  { id: "theo", x: 230, facing: "R", exclaim },
+  { id: "luna", x: 330, facing: "R", exclaim },
+  { id: "aron", x: 430, facing: "R", exclaim },
+  { id: "kapp", x: 530, facing: "R", exclaim },
 ];
-const player: StageActorState = { id: "player", x: 960, facing: "L" };
 const commanders: StageActorState[] = [
-  { id: "deneb", x: 590, facing: "L", enter: "fade" },
-  { id: "kaiden", x: 690, facing: "R", enter: "fade" },
+  { id: "deneb", x: 630, facing: "L", enter: "fade" },
+  { id: "kaiden", x: 730, facing: "R", enter: "fade" },
 ];
-const researcher: StageActorState = { id: "researcher", x: 1230, facing: "L", enter: "fade" };
+const researcher: StageActorState = { id: "researcher", x: 1020, facing: "L", enter: "fade" };
+/** Transfer circles under the six travelling NPCs (the researcher stays at HQ). */
 const withCircle = (actors: StageActorState[]) => actors.map((actor) => actor.id === "researcher" ? actor : { ...actor, circle: true });
-const hqFull = [...four(), ...commanders, player, researcher];
+const hqFull = [...four(), ...commanders, researcher];
 
-const arrivalPlayer: StageActorState = { id: "player", x: 760, facing: "L" };
-const arrivalKaiden: StageActorState = { id: "kaiden", x: 560, facing: "R", enter: "warp" };
-const arrivalDeneb: StageActorState = { id: "deneb", x: 660, facing: "L", enter: "warp" };
+const arrivalKaiden: StageActorState = { id: "kaiden", x: 540, facing: "R", enter: "warp" };
+const arrivalDeneb: StageActorState = { id: "deneb", x: 650, facing: "L", enter: "warp" };
 
 export const CHAPTER3_INTRO_PHASES: Record<string, StagePhase> = {
-  "hq-gather": { map: "hq", actors: [...four(), player], camera: HQ_CAMERA, audio: ["bgm-hq"] },
-  "hq-exclaim": { map: "hq", actors: [...four(true), player], camera: HQ_CAMERA },
-  "hq-commanders": { map: "hq", actors: [...four(), ...commanders, player], camera: HQ_CAMERA },
+  "hq-gather": { map: "hq", actors: four(), camera: HQ_CAMERA, audio: ["bgm-hq"] },
+  "hq-exclaim": { map: "hq", actors: four(true), camera: HQ_CAMERA },
+  "hq-commanders": { map: "hq", actors: [...four(), ...commanders], camera: HQ_CAMERA },
   "hq-researcher": { map: "hq", actors: hqFull, camera: HQ_CAMERA, audio: ["bgm-tension"] },
   "hq-portal-dim": { map: "hq", actors: hqFull, camera: HQ_CAMERA, dim: true },
   "hq-briefing": { map: "hq", actors: hqFull, camera: HQ_CAMERA },
@@ -77,23 +81,24 @@ export const CHAPTER3_INTRO_PHASES: Record<string, StagePhase> = {
   "hq-warp-peak": { map: "hq", actors: withCircle(hqFull), camera: HQ_CAMERA, warp: 2 },
   "hq-warp-flash": { map: "hq", actors: withCircle(hqFull), camera: HQ_CAMERA, warp: 2, flash: true, audio: ["warp-distort"] },
   // Recap: base HQ state (same actors) with the dim on; the recap illustrations are StoryPlayer overlays.
-  "hq-recap-dim": { map: "hq", actors: [...four(), player], camera: HQ_CAMERA, dim: true },
-  "hq-recap-end": { map: "hq", actors: [...four(), player], camera: HQ_CAMERA },
+  "hq-recap-dim": { map: "hq", actors: four(), camera: HQ_CAMERA, dim: true },
+  "hq-recap-end": { map: "hq", actors: four(), camera: HQ_CAMERA },
 
-  "arrival-player": { map: "arrival", actors: [arrivalPlayer], camera: ARRIVAL_HOME, audio: ["wind-start"] },
-  "arrival-kaiden": { map: "arrival", actors: [arrivalKaiden, arrivalPlayer], camera: ARRIVAL_HOME },
-  "arrival-kaiden-look-left": { map: "arrival", actors: [{ ...arrivalKaiden, facing: "L" }, arrivalPlayer], camera: ARRIVAL_HOME },
-  "arrival-kaiden-look-right": { map: "arrival", actors: [{ ...arrivalKaiden, facing: "R" }, arrivalPlayer], camera: ARRIVAL_HOME },
-  "arrival-deneb": { map: "arrival", actors: [arrivalKaiden, arrivalDeneb, arrivalPlayer], camera: ARRIVAL_HOME },
-  "arrival-look-behind": { map: "arrival", actors: [arrivalKaiden, arrivalDeneb, arrivalPlayer], camera: { x: 380, y: 560, zoom: 1.6, durationMs: 2400 } },
-  "arrival-look-return": { map: "arrival", actors: [arrivalKaiden, arrivalDeneb, arrivalPlayer], camera: { ...ARRIVAL_HOME, durationMs: 2000 } },
-  "arrival-survey": { map: "arrival", actors: [arrivalKaiden, arrivalDeneb, arrivalPlayer], camera: { x: 1500, y: 420, zoom: 1.3, durationMs: 4200 } },
-  "arrival-survey-return": { map: "arrival", actors: [arrivalKaiden, arrivalDeneb, arrivalPlayer], camera: { ...ARRIVAL_HOME, durationMs: 3000 } },
-  "arrival-scout-out": { map: "arrival", actors: [{ ...arrivalKaiden, x: 1020, facing: "R", walking: true, moveMs: 2400 }, arrivalDeneb, arrivalPlayer], camera: ARRIVAL_HOME },
-  "arrival-scout-pause": { map: "arrival", actors: [{ ...arrivalKaiden, x: 1020, facing: "R" }, arrivalDeneb, arrivalPlayer], camera: ARRIVAL_HOME },
-  "arrival-scout-back": { map: "arrival", actors: [{ ...arrivalKaiden, x: 560, facing: "L", walking: true, moveMs: 2400 }, arrivalDeneb, arrivalPlayer], camera: ARRIVAL_HOME },
-  "arrival-regroup": { map: "arrival", actors: [arrivalKaiden, arrivalDeneb, arrivalPlayer], camera: ARRIVAL_HOME },
-  "arrival-drop": { map: "arrival", actors: [arrivalKaiden, arrivalDeneb, arrivalPlayer], camera: ARRIVAL_HOME, drop: true },
+  // The player arrives first, seen from their own eyes: an empty landing spot until Kaiden warps in.
+  "arrival-landing": { map: "arrival", actors: [], camera: ARRIVAL_HOME, audio: ["wind-start"] },
+  "arrival-kaiden": { map: "arrival", actors: [arrivalKaiden], camera: ARRIVAL_HOME },
+  "arrival-kaiden-look-left": { map: "arrival", actors: [{ ...arrivalKaiden, facing: "L" }], camera: ARRIVAL_HOME },
+  "arrival-kaiden-look-right": { map: "arrival", actors: [{ ...arrivalKaiden, facing: "R" }], camera: ARRIVAL_HOME },
+  "arrival-deneb": { map: "arrival", actors: [arrivalKaiden, arrivalDeneb], camera: ARRIVAL_HOME },
+  "arrival-look-behind": { map: "arrival", actors: [arrivalKaiden, arrivalDeneb], camera: { x: 380, y: 560, zoom: 1.6, durationMs: 2400 } },
+  "arrival-look-return": { map: "arrival", actors: [arrivalKaiden, arrivalDeneb], camera: { ...ARRIVAL_HOME, durationMs: 2000 } },
+  "arrival-survey": { map: "arrival", actors: [arrivalKaiden, arrivalDeneb], camera: { x: 1500, y: 420, zoom: 1.3, durationMs: 4200 } },
+  "arrival-survey-return": { map: "arrival", actors: [arrivalKaiden, arrivalDeneb], camera: { ...ARRIVAL_HOME, durationMs: 3000 } },
+  "arrival-scout-out": { map: "arrival", actors: [{ ...arrivalKaiden, x: 1020, facing: "R", walking: true, moveMs: 2400 }, arrivalDeneb], camera: ARRIVAL_HOME },
+  "arrival-scout-pause": { map: "arrival", actors: [{ ...arrivalKaiden, x: 1020, facing: "R" }, arrivalDeneb], camera: ARRIVAL_HOME },
+  "arrival-scout-back": { map: "arrival", actors: [{ ...arrivalKaiden, x: 540, facing: "L", walking: true, moveMs: 2400 }, arrivalDeneb], camera: ARRIVAL_HOME },
+  "arrival-regroup": { map: "arrival", actors: [arrivalKaiden, arrivalDeneb], camera: ARRIVAL_HOME },
+  "arrival-drop": { map: "arrival", actors: [arrivalKaiden, arrivalDeneb], camera: ARRIVAL_HOME, drop: true },
 };
 
 export const ARRIVAL_DROP_MS = 3600;

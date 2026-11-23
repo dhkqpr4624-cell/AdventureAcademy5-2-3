@@ -41,12 +41,14 @@ function placement(id: Chapter3ActorId, x: number) {
   return { x: x - sprite.cx * width, y: CHAPTER3_BASE_CAMP_FOOT_Y - sprite.foot * height, width, height };
 }
 
-/** Party at the base camp after the intro: player, Deneb, Kaiden only. */
-export function createChapter3BaseCampNpcs(playerName: string): BaseCampNpcView[] {
+/**
+ * NPCs at the base camp after the intro: Deneb and Kaiden on either side of the entrance.
+ * The player is the viewer (first person) and is not drawn.
+ */
+export function createChapter3BaseCampNpcs(): BaseCampNpcView[] {
   return [
-    { id: "deneb", displayName: "데네브", displayRole: "지휘관", placement: placement("deneb", 470),
+    { id: "deneb", displayName: "데네브", displayRole: "지휘관", placement: placement("deneb", 545),
       idle: idle(`${import.meta.env.BASE_URL}assets/npcs/chapter2/deneb/standing_R.png`, `${import.meta.env.BASE_URL}assets/npcs/chapter2/deneb/blink_R.png`, 7) },
-    { id: "player", displayName: playerName || "플레이어", displayRole: "원정대원", placement: placement("player", 1170), idle: idle(CHAPTER3_ASSETS.actors.player) },
-    { id: "kaiden", displayName: "카이든", displayRole: "지휘관", placement: placement("kaiden", 1290), idle: idle(kaidenStanding, kaidenBlink, 7) },
+    { id: "kaiden", displayName: "카이든", displayRole: "지휘관", placement: placement("kaiden", 1115), idle: idle(kaidenStanding, kaidenBlink, 7) },
   ];
 }

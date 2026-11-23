@@ -14,7 +14,7 @@ export function Chapter3BaseCampScreen({ playerState, onNavigate }: {
   onNavigate: (screen: ScreenId) => void;
 }) {
   const viewportRef = useRef<BaseCampViewportController>(null);
-  const npcViews = useMemo(() => createChapter3BaseCampNpcs(playerState.name ?? ""), [playerState.name]);
+  const npcViews = useMemo(() => createChapter3BaseCampNpcs(), []);
   return (
     <main className="game-screen base-camp-screen chapter3-base-camp-screen" data-testid="chapter3-base-camp">
       <BaseCampViewport

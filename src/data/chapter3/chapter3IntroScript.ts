@@ -163,7 +163,7 @@ const HQ_STEPS: StoryStep[] = [
 
 const ARRIVAL_STEPS: StoryStep[] = [
   wait(500),
-  stage("arrival-player", 0, true, "arrival-start"),
+  stage("arrival-landing", 0, true, "arrival-start"),
   wait(1300),
   fade("in", 2200),
   wait(1000),
@@ -252,6 +252,5 @@ export const CHAPTER3_INTRO_IMAGE_URLS: string[] = [
   CHAPTER3_ASSETS.vfx.holoGlobeSheet,
   CHAPTER3_ASSETS.vfx.exclamationSheet,
   CHAPTER3_ASSETS.illust.nationSwallowingPortal,
-  ...Object.values(CHAPTER3_ASSETS.actors),
   ...Object.values(RECAP_IMAGES),
 ];

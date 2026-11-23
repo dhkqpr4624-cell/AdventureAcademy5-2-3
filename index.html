@@ -11,7 +11,14 @@
     <title>Adventure Academy</title>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <div id="root">
+      <p id="boot-status" style="margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;box-sizing:border-box;background:#0b0f16;color:#f5e6c4;font:16px/1.6 system-ui,sans-serif;text-align:center">Adventure Academy를 불러오는 중입니다…</p>
+    </div>
+    <!--
+      Vite replaces this source entry with the hashed production bundle during `npm run build`.
+      If this exact tag reaches a browser, the site is serving unbuilt source (e.g. GitHub Pages
+      "Deploy from a branch"); the handler makes that visible instead of leaving a white page.
+    -->
+    <script type="module" src="/src/main.tsx" onerror="var s=document.getElementById('boot-status');if(s){s.textContent='게임 파일을 불러오지 못했습니다. 빌드되지 않은 소스가 배포된 것 같습니다. 저장소 Settings → Pages → Build and deployment → Source를 GitHub Actions로 설정한 뒤 Deploy to GitHub Pages 워크플로를 다시 실행해 주세요.'}"></script>
   </body>
 </html>

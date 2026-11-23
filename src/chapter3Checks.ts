@@ -83,15 +83,20 @@ export function runChapter3Checks() {
   assert(new Set(recapSteps.map((step) => step.imageUrl)).size === 7, "7 distinct recap images");
   assert(recapSteps.at(-1)?.dimmed === true && recapSteps.at(-1)?.imageUrl === RECAP_IMAGES.unit2Devourer, "last recap shot is the dimmed devourer");
 
-  // warp: 7 travellers on circles, researcher excluded; arrival regroup is exactly 3 people
+  // first person: the player is never a visible actor on any map, in any phase
+  const visibleIds = new Set(Object.values(CHAPTER3_INTRO_PHASES).flatMap((phase) => phase.actors.map((actor) => actor.id as string)));
+  assert(!visibleIds.has("player") && !("player" in CHAPTER3_STAGE_SPRITES), "player must never be drawn (first-person)");
+  // warp: transfer circles only under the six visible travelling NPCs (researcher stays; no empty player marker)
   for (const phase of ["hq-warp-charge", "hq-warp-peak", "hq-warp-flash"]) {
     const circled = CHAPTER3_INTRO_PHASES[phase].actors.filter((actor) => actor.circle).map((actor) => actor.id).sort();
-    assert(circled.join() === "aron,deneb,kaiden,kapp,luna,player,theo", `7 circles in ${phase}`);
+    assert(circled.join() === "aron,deneb,kaiden,kapp,luna,theo", `6 circles in ${phase}`);
   }
-  assert(CHAPTER3_INTRO_PHASES["arrival-regroup"].actors.map((a) => a.id).sort().join() === "deneb,kaiden,player", "3 at regroup");
-  assert(CHAPTER3_INTRO_PHASES["arrival-player"].actors.map((a) => a.id).join() === "player", "player alone first");
+  assert(CHAPTER3_INTRO_PHASES["hq-gather"].actors.map((a) => a.id).join() === "theo,luna,aron,kapp", "HQ starts with the four only");
+  assert(CHAPTER3_INTRO_PHASES["arrival-landing"].actors.length === 0, "arrival opens on the empty landing (player is the viewer)");
+  assert(CHAPTER3_INTRO_PHASES["arrival-kaiden"].actors.map((a) => a.id).join() === "kaiden", "Kaiden warps in alone");
+  assert(CHAPTER3_INTRO_PHASES["arrival-regroup"].actors.map((a) => a.id).sort().join() === "deneb,kaiden", "Deneb and Kaiden at regroup");
 
-  // HQ: Deneb/Kaiden slots right of the four, no sprite overlap with anyone (visible pixel widths)
+  // HQ: Deneb/Kaiden right of the four, no sprite overlap (visible pixel widths), no gaps in the line
   const hq = CHAPTER3_INTRO_PHASES["hq-researcher"].actors;
   const span = (id: string) => { const actor = hq.find((a) => a.id === id)!; const width = CHAPTER3_STAGE_SPRITES[actor.id].frameWidth * STAGE_SPRITE_SCALE * 0.82; return [actor.x - width / 2, actor.x + width / 2]; };
   for (const id of ["deneb", "kaiden"]) for (const other of hq.filter((a) => a.id !== id)) {
@@ -99,7 +104,8 @@ export function runChapter3Checks() {
     assert(a1 <= b0 || b1 <= a0, `${id} overlaps ${other.id}`);
   }
   const four = ["theo", "luna", "aron", "kapp"].map((id) => hq.find((a) => a.id === id)!.x);
-  assert(Math.max(...four) < hq.find((a) => a.id === "deneb")!.x && hq.find((a) => a.id === "kaiden")!.x < hq.find((a) => a.id === "player")!.x, "slot order: four < deneb,kaiden < player");
+  const line = [...four, hq.find((a) => a.id === "deneb")!.x, hq.find((a) => a.id === "kaiden")!.x];
+  assert(line.every((x, index) => index === 0 || (x > line[index - 1] && x - line[index - 1] <= 110)), "party line: four, then Deneb, Kaiden, evenly spaced");
 
   // camera: never shows outside the map for common viewports and every phase
   for (const [w, h] of [[1280, 720], [1366, 768], [1024, 768], [820, 1180], [2560, 1080], [390, 844]]) {
@@ -121,7 +127,7 @@ export function runChapter3Checks() {
   assert(tramLeftAt(tram.crossingSeconds * 1000, tram, CHAPTER3_BASE_CAMP_MAP.worldWidth) + tram.width === 0, "tram leaves fully on the left");
   assert(tram.crossingSeconds >= 10 && tram.crossingSeconds <= 15, "tram crossing 10–15 s");
   assert(CHAPTER3_BASE_CAMP_MAP.interactionRegions.length === 0 && !CHAPTER3_BASE_CAMP_MAP.layers.dungeonEntranceButton, "Phase 1: entrance is scenery only");
-  assert(createChapter3BaseCampNpcs("하늘").map((npc) => npc.id).sort().join() === "deneb,kaiden,player", "base camp party");
+  assert(createChapter3BaseCampNpcs().map((npc) => npc.id).sort().join() === "deneb,kaiden", "base camp NPCs (player not drawn)");
 
   // save: separate keys, completion + name persisted, continue goes to the base camp
   assert(Object.values(SAVE_STORAGE_KEYS).every((key) => !UNIT2_SAVE_STORAGE_KEYS.includes(key as never)), "unit3 keys differ from unit2");

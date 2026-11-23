@@ -55,7 +55,10 @@ const outputs = Object.keys(result.metafile.outputs).map((p) => path.relative(ou
 const mainJs = outputs.find((p) => /assets\/main-.*\.js$/.test(p));
 const mainCss = outputs.find((p) => /assets\/main-.*\.css$/.test(p));
 let html = readFileSync(path.join(root, "index.html"), "utf8");
-html = html.replace(/\s*<script type="module" src="\/src\/main.tsx"><\/script>/, "");
+// Like Vite: drop the source entry tag (and its comment) and inject the hashed bundle.
+html = html.replace(/\s*<!--[\s\S]*?-->\s*(?=<script type="module" src="\/src\/main.tsx")/, "\n");
+html = html.replace(/\s*<script type="module" src="\/src\/main.tsx"[^>]*><\/script>/, "");
+if (html.includes("/src/main.tsx")) throw new Error("source entry tag was not replaced");
 html = html.replace("</head>", `    <script type="module" crossorigin src="${base}${mainJs}"></script>\n${mainCss ? `    <link rel="stylesheet" crossorigin href="${base}${mainCss}">\n` : ""}  </head>`);
 writeFileSync(path.join(outDir, "index.html"), html);
 if (args.metafile) writeFileSync(args.metafile, JSON.stringify(result.metafile));
