@@ -1,0 +1,99 @@
+import { getQuestRareRewardCondition } from "../game/quest/questRareRewardConditions";
+
+export type AchievementDefinition = {
+  id: string;
+  floorId: string;
+  floorTitle: string;
+  title: string;
+  rewardIcon: string;
+  rewardItemId: string;
+  rewardStateId: string;
+  requiredCorrect: number;
+  totalQuestions: number;
+  description: string;
+};
+
+const floor2RareRewardCondition = getQuestRareRewardCondition(
+  "quest-floor-2-memory-fragment",
+);
+const floor3RareRewardCondition = getQuestRareRewardCondition("quest-floor-3-torn-cloth");
+const floor4RareRewardCondition = getQuestRareRewardCondition("quest-floor-4-jeon-rescue");
+const floor5RareRewardCondition = getQuestRareRewardCondition("quest-floor-5-unified-silla");
+const floor6RareRewardCondition = getQuestRareRewardCondition("quest-floor-6-balhae");
+const floor7RareRewardCondition = getQuestRareRewardCondition("quest-floor-7-goryeo-founding");
+const floor8RareRewardCondition = getQuestRareRewardCondition("quest-floor-8-goryeo-relations");
+const floor9RareRewardCondition = getQuestRareRewardCondition("quest-floor-9-goryeo-society-culture");
+
+export const ACHIEVEMENT_DEFINITIONS: AchievementDefinition[] = [
+  {
+    id: "achievement-floor-2-rare-reward",
+    floorId: "floor-2",
+    floorTitle: "던전 2층",
+    title: "양반의 부채",
+    rewardIcon: `${import.meta.env.BASE_URL}assets/items/yangban-folding-fan.png`,
+    rewardItemId: "weapon-yangban-folding-fan",
+    rewardStateId: "quest-floor-2-memory-fragment",
+    requiredCorrect: floor2RareRewardCondition.requiredCorrect,
+    totalQuestions: floor2RareRewardCondition.totalQuestions,
+    description: "던전 2층 정답",
+  },
+  {
+    id: "achievement-floor-3-guaranteed-reward",
+    floorId: "floor-3",
+    floorTitle: "던전 3층",
+    title: "앙부일구 투구 획득",
+    rewardIcon: `${import.meta.env.BASE_URL}assets/items/angbuilgu-helmet.png`,
+    rewardItemId: "armor-angbuilgu-helmet",
+    rewardStateId: "quest-floor-3-torn-cloth",
+    requiredCorrect: floor3RareRewardCondition.requiredCorrect,
+    totalQuestions: floor3RareRewardCondition.totalQuestions,
+    description: "던전 3층 희귀 보상 획득",
+  },
+  {
+    id: "achievement-floor-4-rare-reward",
+    floorId: "floor-4",
+    floorTitle: "던전 4층",
+    title: "충무공(이순신) 장검 모양 지팡이 획득",
+    rewardIcon: `${import.meta.env.BASE_URL}assets/items/chungmugong-long-sword.png`,
+    rewardItemId: "weapon-chiljido",
+    rewardStateId: "quest-floor-4-jeon-rescue",
+    requiredCorrect: floor4RareRewardCondition.requiredCorrect,
+    totalQuestions: floor4RareRewardCondition.totalQuestions,
+    description: "던전 4층 희귀 보상 획득",
+  },
+  {
+    id: "achievement-floor-5-rare-reward", floorId: "floor-5", floorTitle: "던전 5층",
+    title: "실학자의 수첩 획득", rewardIcon: `${import.meta.env.BASE_URL}assets/items/silhak-scholar-notebook.png`,
+    rewardItemId: "armor-munmu", rewardStateId: "quest-floor-5-unified-silla",
+    requiredCorrect: floor5RareRewardCondition.requiredCorrect, totalQuestions: floor5RareRewardCondition.totalQuestions,
+    description: "던전 5층 희귀 보상 획득",
+  },
+  {
+    id: "achievement-floor-6-rare-reward", floorId: "floor-6", floorTitle: "던전 6층",
+    title: "김홍도의 붓 획득", rewardIcon: `${import.meta.env.BASE_URL}assets/items/kim-hong-do-brush.png`,
+    rewardItemId: "weapon-silla-ring-pommel-sword", rewardStateId: "quest-floor-6-balhae",
+    requiredCorrect: floor6RareRewardCondition.requiredCorrect, totalQuestions: floor6RareRewardCondition.totalQuestions,
+    description: "던전 6층 희귀 보상 획득",
+  },
+  {
+    id: "achievement-floor-7-rare-reward", floorId: "floor-7", floorTitle: "던전 7층",
+    title: "척화비 획득", rewardIcon: `${import.meta.env.BASE_URL}assets/items/anti-foreign-stele.png`,
+    rewardItemId: "accessory-gungye-eyepatch", rewardStateId: "quest-floor-7-goryeo-founding",
+    requiredCorrect: floor7RareRewardCondition.requiredCorrect, totalQuestions: floor7RareRewardCondition.totalQuestions,
+    description: "던전 7층 희귀 보상 획득",
+  },
+  {
+    id: "achievement-floor-8-rare-reward", floorId: "floor-8", floorTitle: "던전 8층",
+    title: "동학농민군 죽창 획득", rewardIcon: `${import.meta.env.BASE_URL}assets/items/donghak-bamboo-spear.png`,
+    rewardItemId: "weapon-choe-museon-cannon", rewardStateId: "quest-floor-8-goryeo-relations",
+    requiredCorrect: floor8RareRewardCondition.requiredCorrect, totalQuestions: floor8RareRewardCondition.totalQuestions,
+    description: "던전 8층 희귀 보상 획득",
+  },
+  {
+    id: "achievement-floor-9-rare-reward", floorId: "floor-9", floorTitle: "던전 9층",
+    title: "대한제국 국기 뱃지 획득", rewardIcon: `${import.meta.env.BASE_URL}assets/items/korean-empire-flag-badge.png`,
+    rewardItemId: "armor-tripitaka-koreana", rewardStateId: "quest-floor-9-goryeo-society-culture",
+    requiredCorrect: floor9RareRewardCondition.requiredCorrect, totalQuestions: floor9RareRewardCondition.totalQuestions,
+    description: "던전 9층 희귀 보상 획득",
+  },
+];

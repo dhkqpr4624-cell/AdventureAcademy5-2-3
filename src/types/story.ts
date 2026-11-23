@@ -1,0 +1,341 @@
+import type { ScreenId } from "../app/routes";
+
+export type StoryPortraitPosition = "left" | "right";
+export type StoryTransition = "none" | "fade" | "slideLeft" | "slideRight";
+export type StoryFacing = "Left" | "Right";
+export type StoryNpcPose = "Standing" | "Walking" | "FallDown";
+
+export type StoryVisualAsset = {
+  imageUrl?: string;
+  layers?: {
+    id: string;
+    imageUrl: string;
+    order: number;
+  }[];
+  placeholder: {
+    label: string;
+    subtitle?: string;
+    gradient: string;
+  };
+};
+
+export type StoryActor = {
+  id: string;
+  name: string;
+  role?: string;
+  portraits: Record<string, StoryVisualAsset>;
+  accentColor?: string;
+  defaultExpression?: string;
+  /** Optional title rendered under the speaker name in the dialogue box (e.g. 지휘관). */
+  displayRole?: string;
+};
+
+export type PortraitExpressionMap = Record<string, string>;
+
+export type StoryNpcPortraitDefinition = {
+  defaultExpression: string;
+  expressions: PortraitExpressionMap;
+};
+
+type AutoStoryStep = {
+  id: string;
+  advanceMode?: "auto";
+  durationMs?: number;
+};
+
+export type StoryStep =
+  | (AutoStoryStep & {
+      type: "setBackground";
+      backgroundId: string;
+      transition?: StoryTransition;
+    })
+  | (AutoStoryStep & {
+      type: "showPortrait";
+      actorId: string;
+      portraitId: string;
+      position: StoryPortraitPosition;
+      transition?: StoryTransition;
+    })
+  | (AutoStoryStep & {
+      type: "changePortrait";
+      actorId: string;
+      portraitId: string;
+    })
+  | (AutoStoryStep & {
+      type: "hidePortrait";
+      actorId: string;
+    })
+  | {
+      id: string;
+      type: "dialogue";
+      speakerId?: string;
+      speakerName: string;
+      activeActorId?: string;
+      expression?: string;
+      text: string;
+      emphasis?: "danger" | "info";
+      nextStepId?: string;
+      nextStepWhenActionsComplete?: { actionIds: string[]; stepId: string };
+      advanceMode: "click";
+    }
+  | {
+      id: string;
+      type: "setStagePhase";
+      stageId: string;
+      phase: string;
+      durationMs?: number;
+      hideDialogue?: boolean;
+      advanceMode: "auto";
+    }
+  | {
+      id: string;
+      type: "narration";
+      text: string;
+      advanceMode: "click";
+    }
+  | {
+      id: string;
+      type: "choice";
+      prompt?: string;
+      /** "popup" renders the options in a centered modal with the prompt and hides the dialogue box. */
+      presentation?: "list" | "popup";
+      options: StoryChoiceOption[];
+      advanceMode: "click";
+    }
+  | {
+      id: string;
+      type: "checkpoint";
+      checkpointId: string;
+      advanceMode: "auto";
+    }
+  | {
+      id: string;
+      type: "wait";
+      durationMs: number;
+      advanceMode: "auto";
+    }
+  | {
+      id: string;
+      type: "fade";
+      direction: "in" | "out";
+      color?: string;
+      durationMs: number;
+      advanceMode: "auto";
+    }
+  | {
+      id: string;
+      type: "cameraPan";
+      x: number;
+      y: number;
+      zoom?: number;
+      durationMs: number;
+      advanceMode: "auto";
+    }
+  | {
+      id: string;
+      type: "cameraZoom";
+      zoom: number;
+      durationMs: number;
+      advanceMode: "auto";
+    }
+  | {
+      id: string;
+      type: "shake";
+      durationMs: number;
+      amplitude: number;
+      hideDialogue?: boolean;
+      advanceMode: "auto";
+    }
+  | {
+      id: string;
+      type: "npcWalk";
+      actorId: string;
+      fromX?: number;
+      toX: number;
+      y?: number;
+      facing: StoryFacing;
+      durationMs: number;
+      advanceMode: "auto";
+    }
+  | {
+      id: string;
+      type: "npcPose";
+      actorId: string;
+      pose: Exclude<StoryNpcPose, "Walking">;
+      facing?: StoryFacing;
+      x?: number;
+      y?: number;
+      advanceMode: "auto";
+    }
+  | {
+      id: string;
+      type: "illustOverlay";
+      imageUrl?: string;
+      visible: boolean;
+      fadeMs?: number;
+      crossFadeDelayMs?: number;
+      removeAfterFade?: boolean;
+      hideDialogue?: boolean;
+      waitForFade?: boolean;
+      /** Darken the current illustration (same image reused as a dimmed shot). */
+      dimmed?: boolean;
+      advanceMode: "auto";
+    }
+  | {
+      id: string;
+      type: "showBaseCamp";
+      mapId: string;
+      advanceMode: "auto";
+    }
+  | {
+      id: string;
+      type: "focusBaseCamp";
+      focusPointId: string;
+      durationMs: number;
+      advanceMode: "auto";
+    }
+  | {
+      id: string;
+      type: "highlightBaseCampTarget";
+      targetId: string;
+      advanceMode: "auto";
+    }
+  | {
+      id: string;
+      type: "clearBaseCampHighlight";
+      advanceMode: "auto";
+    }
+  | {
+      id: string;
+      type: "restoreBaseCampCamera";
+      durationMs: number;
+      advanceMode: "auto";
+    }
+  | {
+      id: string;
+      type: "changeScreen";
+      screen: ScreenId;
+      advanceMode: "auto";
+    };
+
+export type StoryChoiceOption = {
+  id: string;
+  label: string;
+  nextStepId?: string;
+  closeStory?: boolean;
+  actionId?: string;
+  hideWhenActionCompleted?: boolean;
+};
+
+export type StoryScene = {
+  id: string;
+  steps: StoryStep[];
+};
+
+export type StorySequence = {
+  id: string;
+  title: string;
+  scenes: StoryScene[];
+  backgrounds: Record<string, StoryVisualAsset>;
+  actors: Record<string, StoryActor>;
+  replayable: boolean;
+  skippable: boolean;
+  /** Optional data-driven destination used by StoryPlayer's skip control. */
+  skipTarget?: { stepId?: string; screen?: ScreenId; complete?: boolean };
+  /** Enables the in-dialogue skip control. Completion still uses the normal caller callback. */
+  dialogueSkip?: boolean;
+  /** Extra class on the StoryPlayer root (chapter-specific presentation). */
+  className?: string;
+  /** Minimum time a dialogue/narration/choice stays on screen before input is accepted (double-click guard). */
+  minInputDwellMs?: number;
+  /** Keep a solid viewport backdrop mounted independently of illustration fades. */
+  persistentIllustBackdrop?: boolean;
+  onCompleteScreen: ScreenId;
+};
+
+export type StoryDialogueState =
+  | {
+      kind: "dialogue";
+      speakerName: string;
+      text: string;
+      activeActorId?: string;
+      emphasis?: "danger" | "info";
+    }
+  | {
+      kind: "narration";
+      text: string;
+    }
+  | null;
+
+export type VisibleStoryPortrait = {
+  actorId: string;
+  portraitId: string;
+  position: StoryPortraitPosition;
+  transition: StoryTransition;
+  revision: number;
+};
+
+export type StoryRenderState = {
+  backgroundId: string | null;
+  backgroundTransition: StoryTransition;
+  backgroundRevision: number;
+  portraits: Record<string, VisibleStoryPortrait>;
+  dialogue: StoryDialogueState;
+  baseCampMapId: string | null;
+  fade: {
+    visible: boolean;
+    color: string;
+    durationMs: number;
+  };
+  camera: {
+    x: number;
+    y: number;
+    zoom: number;
+    durationMs: number;
+    shakeDurationMs: number;
+    shakeAmplitude: number;
+    shakeRevision: number;
+  };
+  storyNpcs: Record<string, {
+    actorId: string;
+    pose: StoryNpcPose;
+    facing: StoryFacing;
+    x: number;
+    y: number;
+    durationMs: number;
+  }>;
+  illust: {
+    imageUrl: string | null;
+    previousImageUrl: string | null;
+    visible: boolean;
+    fadeMs: number;
+    crossFadeDelayMs: number;
+    revision: number;
+    dimmed?: boolean;
+  };
+  stage: {
+    id: string | null;
+    phase: string;
+    revision: number;
+  };
+};
+
+export type IntroTextScene = {
+  id: string;
+  mode: "introText";
+  lines: string[];
+};
+
+export type StoryPlayerScene = {
+  id: string;
+  mode: "story";
+  sequence: StorySequence;
+};
+
+export type IntroScene = IntroTextScene | StoryPlayerScene;
+
+export type IntroSceneSequence = {
+  id: string;
+  scenes: IntroScene[];
+  onCompleteScreen: ScreenId;
+};

@@ -1,0 +1,117 @@
+/* ===== Unit 3: shared map stage (one map coordinate system for layers, actors, VFX, camera) ===== */
+.chapter3-stage { position: absolute; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; background: #000; }
+.map-stage { position: absolute; inset: 0; overflow: hidden; background: #000; }
+.map-stage-world { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
+.map-stage-layer { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: fill; pointer-events: none; user-select: none; }
+.map-stage-loop { background-position-y: 0; }
+.map-stage-group { position: absolute; inset: 0; pointer-events: none; }
+.map-stage-sheet { position: absolute; background-repeat: no-repeat; image-rendering: pixelated; pointer-events: none; }
+
+.stage-actor { position: absolute; transition-property: left; transition-timing-function: linear; }
+.stage-actor-body { position: absolute; inset: 0; }
+.stage-actor-body img { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+.stage-actor-walk {
+  position: absolute; inset: 0; background-repeat: no-repeat; image-rendering: pixelated;
+  background-size: calc(var(--walk-frames) * 100%) 100%;
+  animation: stage-walk var(--walk-duration) steps(var(--walk-frames)) infinite;
+}
+@keyframes stage-walk { from { background-position-x: 0%; } to { background-position-x: calc(var(--walk-frames) / (var(--walk-frames) - 1) * 100%); } }
+.stage-actor.is-enter-fade { animation: stage-fade-in 700ms ease-out both; }
+@keyframes stage-fade-in { from { opacity: 0; } to { opacity: 1; } }
+.stage-actor.is-enter-warp .stage-actor-body { animation: stage-warp-in 1000ms ease-out both; }
+.stage-actor.is-enter-warp::before {
+  content: ""; position: absolute; left: 50%; bottom: 2%; width: 120%; height: 150%; transform: translateX(-50%);
+  background: linear-gradient(to top, rgba(186, 244, 255, 0.95), rgba(186, 244, 255, 0) 92%);
+  filter: blur(4px); mix-blend-mode: screen; animation: stage-warp-column 1000ms ease-out both;
+}
+@keyframes stage-warp-in { 0%, 35% { opacity: 0; filter: brightness(3); } 70% { opacity: 1; filter: brightness(1.8); } 100% { opacity: 1; filter: none; } }
+@keyframes stage-warp-column { 0% { opacity: 0; transform: translateX(-50%) scaleX(0.3); } 30% { opacity: 1; transform: translateX(-50%) scaleX(1); } 100% { opacity: 0; transform: translateX(-50%) scaleX(0.2); } }
+
+.stage-exclaim {
+  position: absolute; left: 50%; width: 50px; height: 50px; transform: translateX(-50%);
+  background-repeat: no-repeat; background-position: 0 0; background-size: 1200% 100%; image-rendering: pixelated;
+  animation: stage-exclaim 1.714s steps(12) 1 both;
+}
+@keyframes stage-exclaim { from { background-position-x: 0%; opacity: 1; } 99.9% { background-position-x: 109.09%; opacity: 1; } to { opacity: 0; } }
+
+/* Transfer circles under the 7 travellers + light that grows until the white flash. */
+.stage-magic-circle { position: absolute; width: 150px; height: 150px; transform: translate(-50%, -50%); animation: stage-fade-in 600ms ease-out both; }
+.stage-magic-circle-plane { position: absolute; inset: 0; transform: scaleY(0.28); }
+.stage-magic-circle-svg { width: 100%; height: 100%; overflow: visible; animation: stage-circle-spin 6s linear infinite; filter: drop-shadow(0 0 4px #7fe9ff) drop-shadow(0 0 10px #39b6ff); }
+.stage-magic-circle-svg .ring { fill: none; stroke: #bdf6ff; stroke-width: 3; }
+.stage-magic-circle-svg .ring.dashed { stroke-dasharray: 10 7; stroke-width: 2.5; }
+.stage-magic-circle-svg .ring.tri { stroke-width: 1.8; opacity: 0.8; }
+.stage-magic-circle-svg .rune { fill: #fff1b8; }
+@keyframes stage-circle-spin { to { transform: rotate(360deg); } }
+.stage-warp-pillar {
+  position: absolute; left: 50%; bottom: 50%; width: 92px; height: 260px; transform: translateX(-50%);
+  background: linear-gradient(to top, rgba(170, 240, 255, 0.85), rgba(170, 240, 255, 0) 95%);
+  mix-blend-mode: screen; opacity: 0.25; filter: blur(3px); transition: opacity 1600ms ease-in, width 1600ms ease-in;
+}
+.chapter3-stage.is-warp-1 .stage-warp-pillar { opacity: 0.7; animation: stage-pillar-pulse 900ms ease-in-out infinite alternate; }
+.chapter3-stage.is-warp-2 .stage-warp-pillar { opacity: 1; width: 140px; background: linear-gradient(to top, rgba(255, 255, 255, 0.95), rgba(190, 245, 255, 0.6) 55%, rgba(170, 240, 255, 0) 100%); }
+.chapter3-stage.is-warp-2 .stage-magic-circle-svg { animation-duration: 1.6s; filter: drop-shadow(0 0 6px #fff) drop-shadow(0 0 18px #7fe9ff); }
+@keyframes stage-pillar-pulse { from { opacity: 0.4; } to { opacity: 0.7; } }
+.chapter3-warp-bloom {
+  position: absolute; inset: 0; z-index: 3; pointer-events: none; mix-blend-mode: screen;
+  background: radial-gradient(ellipse at 45% 72%, rgba(220, 250, 255, 0.9), rgba(150, 220, 255, 0.35) 45%, rgba(120, 200, 255, 0) 75%);
+  opacity: 0; transition: opacity 2400ms ease-in;
+}
+.chapter3-stage.is-warp-1 .chapter3-warp-bloom { opacity: 0.6; }
+.chapter3-stage.is-warp-2 .chapter3-warp-bloom { opacity: 1; background: radial-gradient(ellipse at 40% 80%, rgba(255, 255, 255, 0.95), rgba(190, 240, 255, 0.7) 40%, rgba(140, 215, 255, 0.25) 80%); }
+.chapter3-white-flash { position: absolute; inset: 0; z-index: 4; background: #fff; pointer-events: none; animation: chapter3-flash 700ms ease-out both; }
+@keyframes chapter3-flash { 0% { opacity: 0; } 14% { opacity: 1; } 34% { opacity: 1; } 100% { opacity: 0; } }
+.chapter3-stage-dim { position: absolute; inset: 0; z-index: 2; background: #000; opacity: 0; transition: opacity 600ms ease; pointer-events: none; }
+.chapter3-stage-dim.is-visible { opacity: 0.74; }
+
+/* Arrival: ground + foreground + party drop out of view; sky, crack and background stay. */
+.arrival-drop-group { transform: translateY(0); transition-property: transform; transition-timing-function: cubic-bezier(0.55, 0, 0.85, 0.35); will-change: transform; }
+.arrival-drop-group.is-dropping { transform: translateY(105%); }
+.stage-sky-crack { position: absolute; overflow: visible; pointer-events: none; }
+.stage-sky-crack .crack-glow { fill: none; stroke: #b56cff; stroke-width: 11; stroke-linecap: round; stroke-linejoin: round; filter: blur(4px); opacity: 0.85; animation: crack-pulse 2.6s ease-in-out infinite alternate; }
+.stage-sky-crack .crack-core { fill: none; stroke: #fff0ff; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.stage-sky-crack .crack-rift-glow { fill: none; stroke: #d79bff; stroke-width: 9; stroke-linejoin: round; filter: blur(5px); animation: crack-pulse 2.6s ease-in-out infinite alternate; }
+.stage-sky-crack .crack-rift { stroke: #f4dcff; stroke-width: 2.5; stroke-linejoin: round; }
+.stage-sky-crack .crack-haze { animation: crack-pulse 2.6s ease-in-out infinite alternate; }
+@keyframes crack-pulse { from { opacity: 0.55; } to { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-magic-circle-svg, .stage-sky-crack .crack-glow, .stage-sky-crack .crack-haze { animation: none; }
+}
+
+/* ===== Unit 3: story player presentation ===== */
+.story-player-chapter3 .story-illust-overlay { background: transparent; animation: none; }
+.story-player-chapter3 .story-illust-overlay img.is-current { transition: opacity var(--story-illust-fade) ease, filter 700ms ease; }
+.story-player-chapter3 .story-illust-overlay.is-dimmed img.is-current { filter: brightness(0.36) saturate(0.7); }
+.story-speaker-name.has-role { gap: 0.05rem; line-height: 1.1; }
+.story-speaker-role { display: block; color: #e6c873; font-size: 0.72em; font-weight: 700; letter-spacing: 0.06em; }
+.story-choice-popup-backdrop { position: absolute; inset: 0; z-index: 1003; display: grid; place-items: center; background: rgba(0, 0, 0, 0.35); }
+.story-choice-popup {
+  width: min(26rem, calc(100% - 2rem)); padding: 1.4rem 1.6rem 1.2rem; border: 2px solid #d8b66b; border-radius: 0.5rem;
+  color: #fff3d3; background: rgba(31, 25, 20, 0.96); box-shadow: 0 18px 46px rgba(0, 0, 0, 0.5); text-align: center;
+  animation: stage-fade-in 220ms ease-out both;
+}
+.story-choice-popup p { margin: 0 0 1.1rem; font-size: 1.08rem; font-weight: 700; line-height: 1.5; }
+.story-choice-popup-actions { display: flex; justify-content: center; gap: 0.8rem; }
+.story-choice-popup-actions button { min-width: 6rem; min-height: 2.6rem; border: 1px solid #d8b66b; border-radius: 0.2rem; color: #fff3d3; background: linear-gradient(#6c492e, #49301f); }
+.story-choice-popup-actions button:focus-visible { outline: 3px solid #fff2ad; outline-offset: 2px; }
+
+.chapter3-story-screen { position: relative; display: block; width: 100%; height: 100svh; min-height: 360px; padding: 0; overflow: hidden; background: #000; }
+.chapter3-title-return {
+  position: fixed; z-index: 1100; top: max(14px, env(safe-area-inset-top)); right: max(16px, env(safe-area-inset-right));
+  padding: 0.45rem 0.9rem; border: 1px solid rgba(243, 219, 162, 0.8); border-radius: 0.4rem; color: #fff4d2; background: rgba(24, 18, 13, 0.72); font-size: 0.85rem;
+}
+.chapter3-loading { display: grid; place-items: center; height: 100svh; color: #f5e6c4; background: #05070b; }
+
+/* ===== Unit 3: base camp ===== */
+.base-camp-npc-view-tag { position: absolute; pointer-events: none; }
+.base-camp-npc-art-container.is-mirrored .base-camp-npc-art { transform: scaleX(-1); }
+.base-camp-tram { position: absolute; image-rendering: pixelated; pointer-events: none; will-change: transform; user-select: none; }
+.chapter3-camp-hud { position: fixed; z-index: 60; left: max(16px, env(safe-area-inset-left)); bottom: max(14px, env(safe-area-inset-bottom)); width: min(22rem, calc(100% - 2rem)); }
+.chapter3-camp-arrival-fade { position: fixed; inset: 0; z-index: 90; background: #000; pointer-events: none; animation: chapter3-camp-in 1400ms ease-out 150ms both; }
+@keyframes chapter3-camp-in { from { opacity: 1; } to { opacity: 0; } }
+.story-player-chapter3 .story-background-shade { display: none; }
+
+/* Illustrations sit a little higher so the dialogue box does not cover their lower edge. */
+.story-player-chapter3 .story-illust-overlay img { top: 42%; max-height: min(58svh, calc(100% - 15rem)); }
+.chapter3-base-camp-screen .chapter3-camp-status { top: calc(max(14px, env(safe-area-inset-top)) + 2.8rem); }

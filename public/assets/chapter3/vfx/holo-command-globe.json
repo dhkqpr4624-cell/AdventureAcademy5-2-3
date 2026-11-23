@@ -1,0 +1,1105 @@
+{
+ "frames": [
+  {
+   "filename": "holo-command-globe 0",
+   "frame": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 1",
+   "frame": {
+    "x": 512,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 2",
+   "frame": {
+    "x": 1024,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 3",
+   "frame": {
+    "x": 1536,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 4",
+   "frame": {
+    "x": 2048,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 5",
+   "frame": {
+    "x": 2560,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 6",
+   "frame": {
+    "x": 3072,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 7",
+   "frame": {
+    "x": 3584,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 8",
+   "frame": {
+    "x": 0,
+    "y": 256,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 9",
+   "frame": {
+    "x": 512,
+    "y": 256,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 10",
+   "frame": {
+    "x": 1024,
+    "y": 256,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 11",
+   "frame": {
+    "x": 1536,
+    "y": 256,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 12",
+   "frame": {
+    "x": 2048,
+    "y": 256,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 13",
+   "frame": {
+    "x": 2560,
+    "y": 256,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 14",
+   "frame": {
+    "x": 3072,
+    "y": 256,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 15",
+   "frame": {
+    "x": 3584,
+    "y": 256,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 16",
+   "frame": {
+    "x": 0,
+    "y": 512,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 17",
+   "frame": {
+    "x": 512,
+    "y": 512,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 18",
+   "frame": {
+    "x": 1024,
+    "y": 512,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 19",
+   "frame": {
+    "x": 1536,
+    "y": 512,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 20",
+   "frame": {
+    "x": 2048,
+    "y": 512,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 21",
+   "frame": {
+    "x": 2560,
+    "y": 512,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 22",
+   "frame": {
+    "x": 3072,
+    "y": 512,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 23",
+   "frame": {
+    "x": 3584,
+    "y": 512,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 24",
+   "frame": {
+    "x": 0,
+    "y": 768,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 25",
+   "frame": {
+    "x": 512,
+    "y": 768,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 26",
+   "frame": {
+    "x": 1024,
+    "y": 768,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 27",
+   "frame": {
+    "x": 1536,
+    "y": 768,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 28",
+   "frame": {
+    "x": 2048,
+    "y": 768,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 29",
+   "frame": {
+    "x": 2560,
+    "y": 768,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 30",
+   "frame": {
+    "x": 3072,
+    "y": 768,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 31",
+   "frame": {
+    "x": 3584,
+    "y": 768,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 32",
+   "frame": {
+    "x": 0,
+    "y": 1024,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 33",
+   "frame": {
+    "x": 512,
+    "y": 1024,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 34",
+   "frame": {
+    "x": 1024,
+    "y": 1024,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 35",
+   "frame": {
+    "x": 1536,
+    "y": 1024,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 36",
+   "frame": {
+    "x": 2048,
+    "y": 1024,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 37",
+   "frame": {
+    "x": 2560,
+    "y": 1024,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 38",
+   "frame": {
+    "x": 3072,
+    "y": 1024,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 39",
+   "frame": {
+    "x": 3584,
+    "y": 1024,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 40",
+   "frame": {
+    "x": 0,
+    "y": 1280,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 41",
+   "frame": {
+    "x": 512,
+    "y": 1280,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 42",
+   "frame": {
+    "x": 1024,
+    "y": 1280,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 43",
+   "frame": {
+    "x": 1536,
+    "y": 1280,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 44",
+   "frame": {
+    "x": 2048,
+    "y": 1280,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 45",
+   "frame": {
+    "x": 2560,
+    "y": 1280,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 46",
+   "frame": {
+    "x": 3072,
+    "y": 1280,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  },
+  {
+   "filename": "holo-command-globe 47",
+   "frame": {
+    "x": 3584,
+    "y": 1280,
+    "w": 512,
+    "h": 256
+   },
+   "rotated": false,
+   "trimmed": false,
+   "spriteSourceSize": {
+    "x": 0,
+    "y": 0,
+    "w": 512,
+    "h": 256
+   },
+   "sourceSize": {
+    "w": 512,
+    "h": 256
+   },
+   "duration": 83
+  }
+ ],
+ "meta": {
+  "app": "https://github.com/patch-gg/pixelfx (0.3.1, 5294518) + scripts/fx/export-grid.mjs",
+  "version": "1",
+  "image": "holo-command-globe.png",
+  "format": "RGBA8888",
+  "size": {
+   "w": 4096,
+   "h": 1536
+  },
+  "scale": "1",
+  "frameTags": [
+   {
+    "name": "holo-command-globe",
+    "from": 0,
+    "to": 47,
+    "direction": "forward"
+   }
+  ],
+  "pixelfx": {
+   "id": "arcane/moonlight-holo-command",
+   "name": "Holo command globe",
+   "fps": 12,
+   "loop": true,
+   "frames": 48,
+   "frameSize": [
+    512,
+    256
+   ],
+   "columns": 8,
+   "rows": 6,
+   "artPixel": 1,
+   "artSize": [
+    512,
+    256
+   ],
+   "pivot": [
+    256.0,
+    132.0
+   ]
+  },
+  "sourceScale": {
+   "factor": 0.5,
+   "note": "repacked from the 8192x3072 artPixel=2 sheet; pivot/frames scaled by 0.5"
+  }
+ }
+}

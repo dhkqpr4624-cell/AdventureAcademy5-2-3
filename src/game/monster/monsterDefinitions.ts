@@ -1,0 +1,102 @@
+import floor1EliteImage from "../../assets/dungeon/monsters/floor1_elite.png";
+import floor1BoarImage from "../../assets/dungeon/monsters/floor1-boar.png";
+import floor1CaveBearImage from "../../assets/dungeon/monsters/floor1-cave-bear.png";
+import floor1MammothImage from "../../assets/dungeon/monsters/floor1-mammoth.png";
+
+export type MonsterVisualDefinition = {
+  id: string;
+  name: string;
+  image: string;
+  displayScale: number;
+  aspectRatio: number;
+  anchor: [number, number, number];
+};
+
+export const MONSTER_VISUAL_DEFINITIONS: Readonly<
+  Record<string, MonsterVisualDefinition>
+> = {
+  "chapter2-red-turban": { id: "chapter2-red-turban", name: "홍건적", image: `${import.meta.env.BASE_URL}assets/monsters/chapter2/red-turban.png`, displayScale: 1.08, aspectRatio: 1, anchor: [0, -0.03, 0] },
+  "chapter2-waegu": { id: "chapter2-waegu", name: "왜구", image: `${import.meta.env.BASE_URL}assets/monsters/chapter2/waegu.png`, displayScale: 1.08, aspectRatio: 1, anchor: [0, -0.03, 0] },
+  "chapter2-powerful-clan": { id: "chapter2-powerful-clan", name: "권문세족", image: `${import.meta.env.BASE_URL}assets/monsters/chapter2/powerful-clan.png`, displayScale: 1.16, aspectRatio: 1, anchor: [0, -0.03, 0] },
+  "chapter2-angry-yangin": { id: "chapter2-angry-yangin", name: "화난 양반", image: `${import.meta.env.BASE_URL}assets/monsters/chapter2/angry-yangin.png`, displayScale: 1.16, aspectRatio: 1, anchor: [0, -0.03, 0] },
+  "chapter2-angry-cheonin": { id: "chapter2-angry-cheonin", name: "화난 천인", image: `${import.meta.env.BASE_URL}assets/monsters/chapter2/angry-cheonin.png`, displayScale: 1.08, aspectRatio: 1, anchor: [0, -0.03, 0] },
+  "chapter2-broken-angbuilgu": { id: "chapter2-broken-angbuilgu", name: "부서진 앙부일구", image: `${import.meta.env.BASE_URL}assets/monsters/chapter2/broken-angbuilgu.png`, displayScale: 1.08, aspectRatio: 1, anchor: [0, -0.03, 0] },
+  "chapter2-corrupted-armillary-sphere": { id: "chapter2-corrupted-armillary-sphere", name: "오염된 혼천의", image: `${import.meta.env.BASE_URL}assets/monsters/chapter2/corrupted-armillary-sphere.png`, displayScale: 1.16, aspectRatio: 1, anchor: [0, -0.03, 0] },
+  "chapter2-imjin-japanese-soldier": { id: "chapter2-imjin-japanese-soldier", name: "임진왜란 일본군", image: `${import.meta.env.BASE_URL}assets/monsters/chapter2/imjin-japanese-soldier.png`, displayScale: 1.08, aspectRatio: 1, anchor: [0, -0.03, 0] },
+  "chapter2-qing-soldier": { id: "chapter2-qing-soldier", name: "병자호란 청나라 병사", image: `${import.meta.env.BASE_URL}assets/monsters/chapter2/qing-soldier.png`, displayScale: 1.16, aspectRatio: 1, anchor: [0, -0.03, 0] },
+  "chapter2-suwon-fortress-golem": { id: "chapter2-suwon-fortress-golem", name: "수원화성 성벽 골렘", image: `${import.meta.env.BASE_URL}assets/monsters/chapter2/suwon-fortress-golem.png`, displayScale: 1.16, aspectRatio: 1, anchor: [0, -0.03, 0] },
+  "chapter2-sinmungo-spirit": { id: "chapter2-sinmungo-spirit", name: "신문고 정령", image: `${import.meta.env.BASE_URL}assets/monsters/chapter2/sinmungo-spirit.png`, displayScale: 1.08, aspectRatio: 1, anchor: [0, -0.03, 0] },
+  "chapter2-east-west-factions": { id: "chapter2-east-west-factions", name: "사이 나쁜 동인 서인", image: `${import.meta.env.BASE_URL}assets/monsters/chapter2/east-west-factions.png`, displayScale: 1.08, aspectRatio: 1278 / 1230, anchor: [0, -0.03, 0] },
+  "garlic-king": {
+    id: "garlic-king",
+    name: "마늘킹",
+    image: `${import.meta.env.BASE_URL}assets/monsters/test-monster.png`,
+    displayScale: 1,
+    aspectRatio: 812 / 778,
+    anchor: [0, 0, 0],
+  },
+  "floor1-elite": {
+    id: "floor1-elite",
+    name: "고인돌 골렘",
+    image: floor1EliteImage,
+    displayScale: 1.16,
+    aspectRatio: 812 / 778,
+    anchor: [0, -0.03, 0],
+  },
+  "floor1-boar": { id: "floor1-boar", name: "멧돼지", image: floor1BoarImage, displayScale: 1.08, aspectRatio: 3 / 2, anchor: [0, -0.03, 0] },
+  "floor1-cave-bear": { id: "floor1-cave-bear", name: "동굴곰", image: floor1CaveBearImage, displayScale: 1.1, aspectRatio: 3 / 2, anchor: [0, -0.03, 0] },
+  "floor1-mammoth": { id: "floor1-mammoth", name: "매머드", image: floor1MammothImage, displayScale: 1.2, aspectRatio: 3 / 2, anchor: [0, -0.04, 0] },
+  "baekje-smile": {
+    id: "baekje-smile",
+    name: "백제의 미소",
+    image: `${import.meta.env.BASE_URL}assets/monsters/baekje-smile.png`,
+    displayScale: 1.08,
+    aspectRatio: 3 / 2,
+    anchor: [0, -0.03, 0],
+  },
+  "goguryeo-samjogo": {
+    id: "goguryeo-samjogo",
+    name: "고구려 삼족오",
+    image: `${import.meta.env.BASE_URL}assets/monsters/goguryeo-samjogo.png`,
+    displayScale: 1.08,
+    aspectRatio: 3 / 2,
+    anchor: [0, -0.03, 0],
+  },
+  "twisted-pensive-bodhisattva": {
+    id: "twisted-pensive-bodhisattva",
+    name: "뒤틀린 반가사유상",
+    image: `${import.meta.env.BASE_URL}assets/monsters/twisted-pensive-bodhisattva.png`,
+    displayScale: 1.14,
+    aspectRatio: 2 / 3,
+    anchor: [0, -0.04, 0],
+  },
+  "gold-crown-wraith": { id: "gold-crown-wraith", name: "금관의 원혼", image: `${import.meta.env.BASE_URL}assets/monsters/gold-crown-wraith.png`, displayScale: 1.08, aspectRatio: 1, anchor: [0, -0.03, 0] },
+  "corrupted-gaya-pottery": { id: "corrupted-gaya-pottery", name: "오염된 가야 토기", image: `${import.meta.env.BASE_URL}assets/monsters/corrupted-gaya-pottery.png`, displayScale: 1.08, aspectRatio: 2 / 3, anchor: [0, -0.03, 0] },
+  "silla-cheonma": { id: "silla-cheonma", name: "신라의 천마", image: `${import.meta.env.BASE_URL}assets/monsters/silla-cheonma.png`, displayScale: 1.14, aspectRatio: 3 / 2, anchor: [0, -0.04, 0] },
+  "baekje-archer": { id: "baekje-archer", name: "백제 궁병", image: `${import.meta.env.BASE_URL}assets/monsters/baekje-archer.png`, displayScale: 1.08, aspectRatio: 1, anchor: [0, -0.03, 0] },
+  "goguryeo-cavalry": { id: "goguryeo-cavalry", name: "고구려 기마병", image: `${import.meta.env.BASE_URL}assets/monsters/goguryeo-cavalry.png`, displayScale: 1.08, aspectRatio: 1, anchor: [0, -0.03, 0] },
+  "corrupted-munmu-wraith": { id: "corrupted-munmu-wraith", name: "오염된 문무왕의 망령", image: `${import.meta.env.BASE_URL}assets/monsters/corrupted-munmu-wraith.png`, displayScale: 1.14, aspectRatio: 1, anchor: [0, -0.04, 0] },
+  "balhae-refugee-spirit": { id: "balhae-refugee-spirit", name: "난폭한 동전 상평통보", image: `${import.meta.env.BASE_URL}assets/dungeon6/violent-sangpyeong-tongbo.png`, displayScale: 1.1, aspectRatio: 1254 / 1254, anchor: [0, -0.04, 0] },
+  "balhae-guardian-stone-lion": { id: "balhae-guardian-stone-lion", name: "민화 호랑이", image: `${import.meta.env.BASE_URL}assets/dungeon6/folk-painting-tiger.png`, displayScale: 1.12, aspectRatio: 1312 / 1199, anchor: [0, -0.04, 0] },
+  "corrupted-double-buddha": { id: "corrupted-double-buddha", name: "수상한 하회탈", image: `${import.meta.env.BASE_URL}assets/dungeon6/suspicious-hahoe-mask.png`, displayScale: 1.15, aspectRatio: 1, anchor: [0, -0.04, 0] },
+  "later-baekje-soldier-spirit": { id: "later-baekje-soldier-spirit", name: "병인양요 프랑스군", image: `${import.meta.env.BASE_URL}assets/dungeon7/french-soldier.png`, displayScale: 1.12, aspectRatio: 1, anchor: [0, -0.04, 0] },
+  "later-goguryeo-soldier-spirit": { id: "later-goguryeo-soldier-spirit", name: "강화도 조약 일본군", image: `${import.meta.env.BASE_URL}assets/dungeon7/ganghwa-japanese-soldier.png`, displayScale: 1.15, aspectRatio: 1, anchor: [0, -0.04, 0] },
+  "dungeon7-american-soldier": { id: "dungeon7-american-soldier", name: "신미양요 미군", image: `${import.meta.env.BASE_URL}assets/dungeon7/american-soldier.png`, displayScale: 1.12, aspectRatio: 1, anchor: [0, -0.04, 0] },
+  "khitan-soldier-spirit": { id: "khitan-soldier-spirit", name: "균열 침식 청나라 병사", image: `${import.meta.env.BASE_URL}assets/monsters/chapter2/corrupted-qing-soldier.png`, displayScale: 1.12, aspectRatio: 1, anchor: [0, -0.04, 0] },
+  "jurchen-soldier-spirit": { id: "jurchen-soldier-spirit", name: "균열 침식 청나라 병사", image: `${import.meta.env.BASE_URL}assets/monsters/chapter2/corrupted-qing-soldier.png`, displayScale: 1.12, aspectRatio: 1, anchor: [0, -0.04, 0] },
+  "mongol-general-armor": { id: "mongol-general-armor", name: "균열 침식 일반군 병사", image: `${import.meta.env.BASE_URL}assets/monsters/chapter2/corrupted-regular-army-soldier.png`, displayScale: 1.18, aspectRatio: 1, anchor: [0, -0.04, 0] },
+  "goryeo-spirit": { id: "goryeo-spirit", name: "균열 침식 대한 제국군", image: `${import.meta.env.BASE_URL}assets/dungeon9/corrupted-korean-empire-army.png`, displayScale: 1.12, aspectRatio: 1, anchor: [0, -0.04, 0] },
+  "dungeon9-seo-jae-pil": { id: "dungeon9-seo-jae-pil", name: "한 맺힌 독립협회 서재필의 영혼", image: `${import.meta.env.BASE_URL}assets/dungeon9/corrupted-seo-jae-pil.png`, displayScale: 1.12, aspectRatio: 1, anchor: [0, -0.04, 0] },
+  "vengeful-goryeo-spirit": { id: "vengeful-goryeo-spirit", name: "한 맺힌 명성황후", image: `${import.meta.env.BASE_URL}assets/dungeon9/vengeful-empress-myeongseong.png`, displayScale: 1.18, aspectRatio: 1086 / 1448, anchor: [0, -0.04, 0] },
+  "dungeon9-corrupted-citizen": { id: "dungeon9-corrupted-citizen", name: "균열 침식 대한제국 시민", image: `${import.meta.env.BASE_URL}assets/dungeon9/corrupted-korean-empire-citizen.png`, displayScale: 1.15, aspectRatio: 1774 / 887, anchor: [0, 0, 0] },
+};
+
+export function getMonsterVisualDefinition(
+  monsterId: string,
+): MonsterVisualDefinition {
+  const definition = MONSTER_VISUAL_DEFINITIONS[monsterId];
+  if (!definition) {
+    throw new Error(`[monsterDefinitions] Unknown monster: ${monsterId}`);
+  }
+  return definition;
+}

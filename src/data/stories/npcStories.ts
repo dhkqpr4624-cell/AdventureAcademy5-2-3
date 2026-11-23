@@ -1,0 +1,640 @@
+import type { StoryActor, StorySequence, StoryStep } from "../../types/story";
+import { NPC_PORTRAIT_REGISTRY } from "../../game/npc/npcPortraitRegistry";
+import { resolveNpcPresentation } from "../../game/npc/npcPresentationResolver";
+import type { NpcId } from "../../game/npc/npcTypes";
+import { createChapter2Actor } from "./chapter2Portraits";
+import { DUNGEON3_OFFER_STORY } from "./dungeon3Chapter2Stories";
+import { DUNGEON10_QUEST_ACTIVE_STORY, DUNGEON10_QUEST_OFFER_STORY } from "./dungeon10Stories";
+
+const chapter2Actors = {
+  luna: createChapter2Actor("luna", "루나", "정찰 담당", "#ff8b72"),
+  theo: createChapter2Actor("theo", "테오", "보급 담당", "#7fc8ff"),
+  aron: createChapter2Actor("aron", "아론", "지휘관", "#d9b6ff"),
+  kapp: createChapter2Actor("kapp", "카프", "부지휘관", "#ffcf80"),
+  deneb: createChapter2Actor("deneb", "데네브", "잊혀진 지휘관", "#bfe7ff"),
+};
+
+function chapter2DialogueSequence(id: string, entries: Array<{ actor: keyof typeof chapter2Actors; text: string; expression?: string; emphasis?: "danger" | "info" }>): StorySequence {
+  return { id, title: "2단원 대화", replayable: true, skippable: false, dialogueSkip: true, onCompleteScreen: "baseCamp", backgrounds: {}, actors: chapter2Actors,
+    scenes: [{ id: `${id}-scene`, steps: entries.map((entry, index): StoryStep => ({ id: `${id}-${index + 1}`, type: "dialogue", speakerId: entry.actor, speakerName: chapter2Actors[entry.actor].name, activeActorId: entry.actor, expression: entry.expression ?? "default", text: entry.text, ...(entry.emphasis ? { emphasis: entry.emphasis } : {}), advanceMode: "click" })) }] };
+}
+
+function sequence(
+  id: string,
+  npcId: NpcId,
+  portraitId: string,
+  lines: Array<string | { text: string; emphasis: "danger" | "info" }>,
+): StorySequence {
+  const npc = resolveNpcPresentation(npcId);
+  const steps: StoryStep[] = [
+    {
+      id: `${id}-portrait`,
+      type: "showPortrait",
+      actorId: npcId,
+      portraitId,
+      position: "left",
+      transition: "fade",
+    },
+    ...lines.map((entry, index): StoryStep => ({
+      id: `${id}-line-${index + 1}`,
+      type: "dialogue",
+      speakerId: npcId,
+      speakerName: npc.displayName,
+      activeActorId: npcId,
+      text: typeof entry === "string" ? entry : entry.text,
+      ...(typeof entry === "string" ? {} : { emphasis: entry.emphasis }),
+      advanceMode: "click",
+    })),
+  ];
+  return {
+    id,
+    title: `${npc.displayName} 대화`,
+    replayable: true,
+    skippable: false,
+    dialogueSkip: true,
+    onCompleteScreen: "baseCamp",
+    backgrounds: {},
+    actors: {
+      [npcId]: {
+        id: npcId,
+        name: npc.displayName,
+        role: npc.role,
+        portraits: {
+          [portraitId]: {
+            imageUrl:
+              NPC_PORTRAIT_REGISTRY[`${npcId}.${portraitId}`] ??
+              NPC_PORTRAIT_REGISTRY[`${npcId}.default`],
+            placeholder: {
+              label: npc.displayName,
+              subtitle: npc.role,
+              gradient: "linear-gradient(135deg, #30291f, #111)",
+            },
+          },
+        },
+      },
+    },
+    scenes: [{ id: `${id}-scene`, steps }],
+  };
+}
+
+function actor(npcId: NpcId, portraitId: string): StoryActor {
+  const npc = resolveNpcPresentation(npcId);
+  return {
+    id: npcId,
+    name: npc.displayName,
+    role: npc.role,
+    portraits: {
+      [portraitId]: {
+        imageUrl: NPC_PORTRAIT_REGISTRY[`${npcId}.${portraitId}`] ?? NPC_PORTRAIT_REGISTRY[`${npcId}.default`],
+        placeholder: { label: npc.displayName, subtitle: npc.role, gradient: "linear-gradient(135deg, #30291f, #111)" },
+      },
+    },
+  };
+}
+
+const COMPLETION_ACTOR_IDS: NpcId[] = ["luna", "theo", "kaiden", "jeon"];
+
+function singleSpeakerDialogue(
+  id: string,
+  npcId: NpcId,
+  portraitId: string,
+  text: string,
+): StoryStep[] {
+  const npc = resolveNpcPresentation(npcId);
+  return [
+    ...COMPLETION_ACTOR_IDS.map((actorId): StoryStep => ({
+      id: `${id}-hide-${actorId}`,
+      type: "hidePortrait",
+      actorId,
+    })),
+    {
+      id: `${id}-show`,
+      type: "showPortrait",
+      actorId: npcId,
+      portraitId,
+      position: "left",
+      transition: "fade",
+    },
+    {
+      id: `${id}-dialogue`,
+      type: "dialogue",
+      speakerId: npcId,
+      speakerName: npc.displayName,
+      activeActorId: npcId,
+      text,
+      advanceMode: "click",
+    },
+  ];
+}
+
+function floor5QuestDialogue(id: string, npcId: NpcId, portraitId: string, text: string): StoryStep[] {
+  return singleSpeakerDialogue(id, npcId, portraitId, text).map((step) =>
+    step.type === "hidePortrait" || step.type === "showPortrait"
+      ? { ...step, durationMs: 0 }
+      : step
+  );
+}
+
+export const NPC_STORY_SEQUENCES: Record<string, StorySequence> = {
+  [DUNGEON3_OFFER_STORY.id]: DUNGEON3_OFFER_STORY,
+  "npc-theo-emergency-potions": chapter2DialogueSequence("npc-theo-emergency-potions", [
+    { actor: "theo", text: " 이런, (플레이어 이름), 괜찮습니까? " },
+    { actor: "theo", text: " 포션이 없군요.. 어쩔 수 없죠. 제가 가지고 있는 비상 포션을 드리겠습니다. 부디 조심해주세요. " },
+  ]),
+  "npc-theo-floor-1-quest-available": chapter2DialogueSequence("npc-theo-floor-1-quest-available", [
+    { actor: "theo", text: " 어서오십시오, (플레이어 이름). " },
+    { actor: "theo", text: " 이 베이스 캠프.. 참으로 이상하지 않습니까? 던전 입구 앞에 <blue><b>마치 예전에 누군가가 있기라도 했던 것처럼</b></blue> 텐트가 세워져있더군요. " },
+    { actor: "theo", text: " 오래된 것처럼 보이는 텐트는 아론님과 카프님께서 살펴보고 계십니다. " },
+    { actor: "theo", text: " 그나저나.. 던전 1층 이야기를 하죠. 정찰 담당인 루나가 먼저 던전을 살펴보았는데.. " },
+    { actor: "luna", expression: "scared", text: " (플레이어 이름) !!!! 같이 가줘, 엉엉!!! 무서워!! " },
+    { actor: "theo", expression: "smile", text: " 보시다시피 저런 상태입니다. " },
+    { actor: "luna", expression: "scared", text: " 던전 1층에 들어갔는데, 갑자기 던전 안에 사는 사람이 말을 걸어왔어!! 이상하다니까! " },
+    { actor: "theo", text: " 음, 확실히 이상하긴 하군요. 던전 안에 주민들이 살고 있다는 뜻입니까..? " },
+    { actor: "luna", expression: "scared", text: " 모르겠어. 자세한 건 들어가봐야 알겠지. 으으.. 소름..! " },
+    { actor: "theo", text: " (플레이어이름), 부탁드립니다. 루나와 함께 던전 1층으로 들어가서 진상을 파악해주시고, 이 던전의 정체를 파악해주셨으면 합니다. " },
+    { actor: "theo", text: " 던전 안에서 오답을 선택하면 큰 피해를 입으니, 조심하셔야 합니다. ", emphasis: "danger" },
+  ]),
+  "npc-theo-floor-1-quest-accepted": chapter2DialogueSequence("npc-theo-floor-1-quest-accepted", [{ actor: "theo", text: " 부디 조심해서 다녀오십시오. " }]),
+  "npc-theo-floor-1-quest-active": chapter2DialogueSequence("npc-theo-floor-1-quest-active", [{ actor: "theo", text: " 루나와 함께 던전 1층의 진상을 파악해주십시오. " }]),
+  "npc-aron-floor-1-quest-complete": chapter2DialogueSequence("npc-aron-floor-1-quest-complete", [
+    { actor: "aron", text: " 돌아왔군요, (플레이어이름). 테오에게 대략적인 상황은 전해들었습니다. " },
+    { actor: "aron", text: " 던전 안에, 무엇이 있었습니까? " },
+    { actor: "luna", text: " 이 던전은 특이해요, 대장. 던전 안에는 역사 속 인물들이 살아 움직이고 있어요. " },
+    { actor: "luna", text: " 무엇이 원인인지는 차차 살펴봐야겠지만.. 그들의 고민을 해결해주면 그들이 다시 역사 속으로 사라지는 것 같았어요. " },
+    { actor: "luna", text: " 아마 그들의 고민을 해결해주며 앞으로 나아가야겠어요. " },
+    { actor: "kapp", expression: "surprised", text: " 던전 안에서 인물들이 살아 움직인다고요..? " },
+    { actor: "theo", text: " 카프님..? 뭔가 짐작 가는 바라도 있으십니까? " },
+    { actor: "kapp", expression: "surprised", text: " ... " },
+    { actor: "kapp", expression: "surprised", text: " 아뇨, 아무것도 아니에요.. " },
+    { actor: "theo", text: " 카프님..? " },
+    { actor: "aron", expression: "serious", text: " ... " },
+    { actor: "aron", expression: "serious", text: " 확실히 수상하군요. 어찌 되었든, 던전의 정체를 어느정도 파악했으니, 앞으로 나아가는 수밖에요. " },
+    { actor: "aron", expression: "serious", text: " 수고했습니다. 루나, (플레이어 이름). 이제 다음 계획을 세우죠. " },
+  ]),
+  "npc-luna-default": sequence("npc-luna-default", "luna", "happy", [
+    "{{playerName}}! 던전은 항상 내가 먼저 정찰하고 있어. 필요한 게 있으면 언제든지 말해!",
+  ]),
+  "npc-luna-floor-3-quest-available": sequence(
+    "npc-luna-floor-3-quest-available",
+    "luna",
+    "happy",
+    [
+      "{{playerName}}, 왔구나!",
+      "던전 2층에서의 활약은 역시 멋지던걸~",
+      "사실... 던전 3층을 조사해 봤는데, 던전 너머에서 뭔가의 기운이 느껴진단 말이지...",
+      "나는 전투 능력이 거의 없어서 가 볼 수 없으니, 네가 나 대신 조사해주었으면 해.",
+    ],
+  ),
+  "npc-luna-floor-3-quest-accepted": sequence(
+    "npc-luna-floor-3-quest-accepted",
+    "luna",
+    "happy",
+    ["좋아. 뭔가 있으면 알려줘!"],
+  ),
+  "npc-luna-floor-3-quest-active": sequence(
+    "npc-luna-floor-3-quest-active",
+    "luna",
+    "happy",
+    ["던전 3층 너머에서 느껴진 기운이 신경 쓰여. 조심해서 조사해줘!"],
+  ),
+  "npc-luna-floor-3-quest-complete": sequence(
+    "npc-luna-floor-3-quest-complete",
+    "luna",
+    "happy",
+    ["아, {{playerName}}! 왔구나!"],
+  ),
+  "npc-luna-floor-4-quest-available": sequence(
+    "npc-luna-floor-4-quest-available",
+    "luna",
+    "happy",
+    [
+      "{{playerName}}! 왔구나!",
+      "던전 3층에서 네가 찾아온 천조각 기억해? 아무래도 삼국 시대의 물건이 아니라서 혼란스러웠지..",
+      "던전 4층을 순찰하고 왔는데, 던전 너머에서 이것과 비슷한 수상한 낌새가 느껴져.",
+      "{{playerName}}, 던전 4층 너머에 있는 \"수상한 것\"을 찾아 줄래?",
+    ],
+  ),
+  "npc-luna-floor-4-quest-accepted": sequence(
+    "npc-luna-floor-4-quest-accepted",
+    "luna",
+    "happy",
+    ["화이팅이야. 위험하면 언제든 다시 베이스 캠프로 돌아와야 해."],
+  ),
+  "npc-luna-floor-4-quest-active": sequence(
+    "npc-luna-floor-4-quest-active",
+    "luna",
+    "happy",
+    ["던전 4층 너머의 수상한 낌새를 찾아줘. 위험하면 바로 돌아와야 해!"],
+  ),
+  "npc-theo-default": sequence("npc-theo-default", "theo", "default", [
+    "보급품은 차근차근 정리하고 있습니다. 출발 전에는 반드시 장비를 점검해 주십시오.",
+  ]),
+  "npc-kaiden-default": sequence("npc-kaiden-default", "kaiden", "default", [" ... "]),
+  "npc-kaiden-quest-available": sequence(
+    "npc-kaiden-quest-available",
+    "kaiden",
+    "serious",
+    [
+      "왔나, {{playerName}}.",
+      "이 던전에서 빠져나가려면, 우선 이 던전이 어떤 던전인지부터 파악해야겠지.",
+      "루나가 정찰하려 했지만, 몬스터가 많아 접근이 어렵다는군.",
+      "{{playerName}}. 네가 던전 1층을 살펴보고, 이 던전을 파악할 수 있는 물건들을 가져와주겠나?",
+    ],
+  ),
+  "npc-kaiden-quest-complete": sequence(
+    "npc-kaiden-quest-complete",
+    "kaiden",
+    "serious",
+    ["{{playerName}}. 돌아왔군. 그것은..?"],
+  ),
+  "npc-kaiden-quest-active": sequence(
+    "npc-kaiden-quest-active",
+    "kaiden",
+    "serious",
+    ["던전 1층에서 이 던전의 정체를 알려 줄 물건들을 찾아오도록."],
+  ),
+  "npc-kaiden-quest-accepted": sequence(
+    "npc-kaiden-quest-accepted",
+    "kaiden",
+    "serious",
+    [
+      "좋다. 준비가 된다면 던전 입구를 클릭하여 던전 1층에 다녀오도록.",
+      { text: "던전에서 오답을 선택하면 큰 피해를 입게 되니 조심하는 것도 명심해라.", emphasis: "danger" },
+    ],
+  ),
+  "npc-luna-floor-2-quest-available": chapter2DialogueSequence("npc-luna-floor-2-quest-available", [
+    { actor: "luna", text: " (플레이어 이름), 어서와. 다음 층으로 갈 준비는 됐어? " },
+    { actor: "theo", text: " 아론님과 카프님은 여전히 이 던전에 대해서 이야기를 나누시는 것 같습니다. 뭔가 분위기로 봐서는 저희가 모르는 중요한 것이 있는 것 같은데 도통 저희에게는 알려주지를 않으시네요.." },
+    { actor: "luna", text: " .... " },
+    { actor: "luna", expression: "smile", text: " 아~ 모르겠다! 때가 되면 알려주시겠지, 뭐! " },
+    { actor: "luna", text: " 아무튼, 대장님은 우리에게 2층으로 진입해서 수상한 물건이 있는지 살펴보고 회수해 오라고 말씀하셨어. " },
+    { actor: "luna", text: " 준비가 되면 출발하자, (플레이어 이름). " },
+  ]),
+  "npc-luna-floor-2-quest-accepted": chapter2DialogueSequence("npc-luna-floor-2-quest-accepted", [{ actor: "luna", text: " 준비가 되면 출발하자, (플레이어 이름). " }]),
+  "npc-luna-floor-2-quest-active": chapter2DialogueSequence("npc-luna-floor-2-quest-active", [{ actor: "luna", text: " 2층의 수상한 물건을 찾아보자. " }]),
+  "npc-aron-floor-2-quest-complete": chapter2DialogueSequence("npc-aron-floor-2-quest-complete", [
+    { actor: "aron", text: " 여러분, 오셨군요. 귀환이 늦어지셔서 걱정하던 참이었습니다. " },
+    { actor: "aron", text: " 그런데.. 손에 들고 있는 그것은..? " },
+    { actor: "theo", text: " 2층에서 있었던 일을 해결하고 나니 바닥에 떨어져 있었습니다. " },
+    { actor: "theo", text: " 오래된 오르골 같은데.. 이 시대의 물건은 아닌 것 같아서 말입니다. " },
+    { actor: "kapp", expression: "surprised", text: " ...! " },
+    { actor: "kapp", expression: "surprised", text: " 그 물건, 저에게 주세요. 제가 보관하죠. " },
+    { actor: "theo", expression: "worried", text: " ... " },
+    { actor: "theo", expression: "worried", text: " 그 물건이 무엇인지 자세히 살펴보지 않고 말입니까..? " },
+    { actor: "theo", expression: "worried", text: " 저에게 맡겨주시면, 그 물건에 대해 자세히 감정할 수 있습니다. " },
+    { actor: "aron", expression: "serious", text: " 아닙니다, 테오. " },
+    { actor: "aron", expression: "serious", text: " 이 물건은 오염된 물건이 틀림없습니다. " },
+    { actor: "aron", expression: "serious", text: " 저희가 담당하겠습니다. 신경쓰지 말고, 지금처럼 던전 토벌에 힘써주십시오. " },
+    { actor: "luna", expression: "angry", text: " 네? 잠시만요, 대장! " },
+    { actor: "luna", expression: "angry", text: " 그렇게 제대로 알아보지도 않고 어떻게..! " },
+    { actor: "aron", expression: "serious", text: " 미안합니다. " },
+    { actor: "aron", expression: "serious", text: " 제 말에 따라주십시오. " },
+    { actor: "theo", expression: "worried", text: " ... " },
+    { actor: "theo", expression: "worried", text: " 알겠습니다. " },
+  ]),
+  "npc-jeon-default": sequence("npc-jeon-default", "jeon", "default", [" ... "]),
+};
+
+NPC_STORY_SEQUENCES["npc-aron-post-dungeon3-default"] = chapter2DialogueSequence("npc-aron-post-dungeon3-default", [
+  { actor: "aron", expression: "default", text: " 이 던전은 매우 위험합니다. 조심해서 앞으로 나아갑시다. " },
+]);
+NPC_STORY_SEQUENCES["npc-kapp-post-dungeon3-default"] = chapter2DialogueSequence("npc-kapp-post-dungeon3-default", [
+  { actor: "kapp", expression: "default", text: " 위험한 것이 있다면 제가 먼저 살펴볼게요. 안심하고 앞으로 나아가세요. " },
+]);
+NPC_STORY_SEQUENCES["npc-aron-floor-4-quest-available"] = chapter2DialogueSequence("npc-aron-floor-4-quest-available", [
+  { actor: "aron", expression: "default", text: " (플레이어 이름), 오셨군요. " },
+  { actor: "aron", expression: "default", text: " 던전에서 나온 지 얼마 되지 않았는데 죄송하지만, 바로 4층으로 향하려고 합니다. " },
+  { actor: "aron", expression: "default", text: " 시간이 지날 수록 던전의 흐름이 불안정해지는 것이 느껴집니다.. 하루 빨리 데네브님을 구출하고 던전 포탈을 닫아야만 해요. " },
+  { actor: "aron", expression: "default", text: " 이번에는 제가 당신과 함께 가겠습니다. 잘 부탁합니다, (플레이어 이름). " },
+]);
+NPC_STORY_SEQUENCES["npc-theo-floor-4-quest-complete"] = chapter2DialogueSequence("npc-theo-floor-4-quest-complete", [
+  { actor: "theo", expression: "default", text: "오셨군요. 별 문제는 없었습니까? " },
+  { actor: "theo", expression: "default", text: " 데네브님의 목소리가 더욱 선명하게 들렸다고요? " },
+  { actor: "theo", expression: "default", text: " 데네브님과 가까워지고 있다는 뜻이군요! 하루 빨리 데네브님을 구출해야겠습니다. " },
+  { actor: "theo", expression: "default", text: " 카프님과 루나에게는 제가 알릴테니, 당신은 조금 휴식하고 계십시오. 얼마 안 가 다음 층으로 들어가야 할테니까요. " },
+]);
+
+NPC_STORY_SEQUENCES["npc-luna-floor-4-quest-complete"] = {
+  id: "npc-luna-floor-4-quest-complete",
+  title: "던전 4층 조사 완료",
+  replayable: false,
+  skippable: false,
+  onCompleteScreen: "baseCamp",
+  backgrounds: {},
+  actors: {
+    luna: actor("luna", "happy"),
+    theo: actor("theo", "default"),
+    kaiden: actor("kaiden", "serious"),
+    jeon: actor("jeon", "default"),
+  },
+  scenes: [{
+    id: "npc-luna-floor-4-quest-complete-scene",
+    steps: [
+      ...singleSpeakerDialogue("luna-1", "luna", "happy", "어라, 그 사람은..?"),
+      ...singleSpeakerDialogue("theo-1", "theo", "default", "던전 안에 사람이 있었습니까..?"),
+      ...singleSpeakerDialogue("luna-2", "luna", "happy", "틀림 없어. 수상한 냄새. 내가 말했던 수상한 것이 바로 이 사람이구나!"),
+      ...singleSpeakerDialogue("theo-2", "theo", "default", "3층에서 발견된 천조각은 이 분의 것이었나 보군요."),
+      ...singleSpeakerDialogue("kaiden-1", "kaiden", "serious", "당신, 이름이 뭐지?"),
+      ...singleSpeakerDialogue("jeon-1", "jeon", "default", "사실.. 기억이 온전치 않습니다. 기억하는 것은 오로지 '전'이라는 이름뿐이지요."),
+      ...singleSpeakerDialogue("luna-3", "luna", "happy", "전..? 전이라고? 사람 이름이 전?"),
+      ...singleSpeakerDialogue("theo-3", "theo", "default", "루나. 그만하십시오. 이름으로 놀리는 것은 굉장히 실례되는 일입니다."),
+      ...singleSpeakerDialogue("luna-4", "luna", "happy", "앗... 미안해요, 아저씨."),
+      ...singleSpeakerDialogue("jeon-2", "jeon", "default", "괜찮습니다. 저도 제 이름 같지 않은걸요."),
+      ...singleSpeakerDialogue("kaiden-2", "kaiden", "serious", "전. 당신이 누구인지는 모르겠으나 우선 이 베이스캠프에서 지내도록. 던전은 위험하니 우리와 함께하는 것이 좋을 테지."),
+      ...singleSpeakerDialogue("luna-5", "luna", "happy", "헤헤. 잘 부탁해요, 아저씨."),
+      ...singleSpeakerDialogue("theo-4", "theo", "default", "잘 부탁드립니다. 이 던전을 함께 탈출합시다."),
+      ...singleSpeakerDialogue("jeon-3", "jeon", "default", "예. 감사합니다. 잘 부탁드립니다."),
+    ],
+  }],
+};
+
+NPC_STORY_SEQUENCES["npc-luna-floor-5-quest-available"] = chapter2DialogueSequence("npc-luna-floor-5-quest-available", [
+  { actor: "luna", text: "(플레이어 이름)! 소식은 테오에게 들었어." },
+  { actor: "luna", text: "데네브님의 목소리가 더 크게 들렸다고..! 그렇다는 건 데네브님과 가까워졌다는 말이겠지!" },
+  { actor: "luna", text: "하루빨리 데네브님을 찾아야만 해. 그러기 위해서는 계속 앞으로 나아가야겠지!" },
+  { actor: "theo", text: "맞는 말씀입니다. 하지만 다급해져서는 안 됩니다." },
+  { actor: "theo", text: "주위에는 위험이 도사리고 있으니까요." },
+  { actor: "luna", text: "이번에는 나와 테오가 함께 가기로 했어." },
+  { actor: "luna", text: "하지만 조심해야 해, (플레이어 이름)." },
+  { actor: "luna", text: "아론 대장이 먼저 던전 5층을 살펴보셨는데, 데네브님과 가까워진 탓일지, 던전 곳곳에 균열이 보이기 시작한다 했어." },
+  { actor: "theo", expression: "worried", text: "이런.." },
+  { actor: "theo", text: "들으셨죠, (플레이어 이름). 균열에 발이 빠지지 않도록 조심해서 나아가야겠습니다." },
+  { actor: "theo", text: "준비가 되면 어서 출발하시지요." },
+]);
+NPC_STORY_SEQUENCES["npc-luna-floor-5-quest-accepted"] = chapter2DialogueSequence("npc-luna-floor-5-quest-accepted", [{ actor: "luna", text: "조심해서 다녀오자, (플레이어 이름)." }]);
+NPC_STORY_SEQUENCES["npc-luna-floor-5-quest-active"] = chapter2DialogueSequence("npc-luna-floor-5-quest-active", [{ actor: "luna", text: "준비가 되면 던전 5층으로 출발하자." }]);
+NPC_STORY_SEQUENCES["npc-aron-floor-5-quest-complete"] = {
+  id: "npc-aron-floor-5-quest-complete", title: "던전 5층 조사 완료", replayable: false, skippable: false,
+  dialogueSkip: true, onCompleteScreen: "baseCamp", backgrounds: {}, actors: chapter2Actors,
+  scenes: [{ id: "npc-aron-floor-5-quest-complete-scene", steps: [
+    { id: "d5-complete-1", type: "dialogue", speakerId: "aron", speakerName: "아론", activeActorId: "aron", expression: "default", text: "돌아왔군요. 별일은 없었습니까?", advanceMode: "click" },
+    { id: "d5-complete-2", type: "dialogue", speakerId: "aron", speakerName: "아론", activeActorId: "aron", expression: "default", text: "..루나 경?! 무슨 일이 있으셨습니까?", advanceMode: "click" },
+    { id: "d5-complete-3", type: "dialogue", speakerId: "luna", speakerName: "루나", activeActorId: "luna", expression: "smile", text: "헤헤, 아니에요! 발목을 살짝 삐끗한 것 뿐이니 걱정하지 마세요.", advanceMode: "click" },
+    { id: "d5-complete-4", type: "dialogue", speakerId: "luna", speakerName: "루나", activeActorId: "luna", expression: "smile", text: "대장, 그나저나 그것보다 중요한게 있어요.", advanceMode: "click" },
+    { id: "d5-complete-5", type: "narration", text: "당신은 모두에게 던전 속에서 들린 목소리에 대해 설명했다.", advanceMode: "click" },
+    { id: "d5-complete-6", type: "dialogue", speakerId: "aron", speakerName: "아론", activeActorId: "aron", expression: "serious", text: "데네브님께서 그런 말씀을 하셨다고요.", advanceMode: "click" },
+    { id: "d5-complete-7", type: "dialogue", speakerId: "theo", speakerName: "테오", activeActorId: "theo", expression: "serious", text: "저희에게는 아무것도 들리지 않았는데..", advanceMode: "click" },
+    { id: "d5-complete-8", type: "dialogue", speakerId: "kapp", speakerName: "카프", activeActorId: "kapp", expression: "default", text: "데네브는 이미 많이 약해져 있어. 애초에 데네브가 이 던전을 막는 힘이 약해졌기 때문에 이 포탈이 열렸을테니까.", advanceMode: "click" },
+    { id: "d5-complete-9", type: "dialogue", speakerId: "kapp", speakerName: "카프", activeActorId: "kapp", expression: "default", text: "아마도.. 마지막 힘을 쥐어짜내서 (플레이어이름)에게 말을 전한 거겠지.", advanceMode: "click" },
+    { id: "d5-complete-10", type: "dialogue", speakerId: "luna", speakerName: "루나", activeActorId: "luna", expression: "serious", text: "데네브님은 우리에게 어서 피하라고 했지만, 우리는 도망가지 않을 거예요. 그렇죠, 대장?!", advanceMode: "click" },
+    { id: "d5-complete-11", type: "dialogue", speakerId: "theo", speakerName: "테오", activeActorId: "theo", expression: "smile", text: "여기까지 와서 데네브님을 두고 갈 순 없습니다.", advanceMode: "click" },
+    { id: "d5-complete-12", type: "dialogue", speakerId: "aron", speakerName: "아론", activeActorId: "aron", expression: "default", text: "...", advanceMode: "click" },
+    { id: "d5-complete-13", type: "dialogue", speakerId: "aron", speakerName: "아론", activeActorId: "aron", expression: "default", text: "물론입니다.", advanceMode: "click" },
+    { id: "d5-complete-14", type: "dialogue", speakerId: "aron", speakerName: "아론", activeActorId: "aron", expression: "default", text: "자, 다음 계획을 세우죠. 앞으로는 더더욱 신중해야 할 겁니다.", advanceMode: "click" },
+    { id: "d5-complete-15", type: "dialogue", speakerId: "aron", speakerName: "아론", activeActorId: "aron", expression: "smile", text: "그리고, 루나 경. 잊지 말고 발목을 치료하십시오.", advanceMode: "click" },
+    { id: "d5-complete-16", type: "dialogue", speakerId: "aron", speakerName: "아론", activeActorId: "aron", expression: "smile", text: "귀찮다고 미루면 더 심해질 수 있으니까요.", advanceMode: "click" },
+    { id: "d5-complete-17", type: "dialogue", speakerId: "luna", speakerName: "루나", activeActorId: "luna", expression: "scared", text: "어, 어떻게 알았지..", advanceMode: "click" },
+    { id: "d5-complete-18", type: "dialogue", speakerId: "luna", speakerName: "루나", activeActorId: "luna", expression: "scared", text: "알겠어요, 대장..", advanceMode: "click" },
+  ] }],
+};
+
+NPC_STORY_SEQUENCES["npc-kaiden-floor-6-quest-available"] = {
+  id: "npc-kaiden-floor-6-quest-available", title: "던전 6층 의뢰", replayable: true, skippable: false,
+  dialogueSkip: true, onCompleteScreen: "baseCamp", backgrounds: {}, actors: chapter2Actors,
+  scenes: chapter2DialogueSequence("npc-kaiden-floor-6-quest-available", [
+    { actor: "aron", expression: "smile", text: "어서오십시오, (플레이어 이름). 조금 휴식하셨습니까?" },
+    { actor: "aron", expression: "smile", text: "여러분이 휴식하는 사이, 저와 카프가 다음 층 입구 부분을 정찰하러 다녀왔습니다." },
+    { actor: "theo", text: "아론님과 카프님, 단 둘이서 말입니까? 위험합니다!" },
+    { actor: "kapp", expression: "smile", text: "이런, 아무래도 잊으셨나 보군요. 아론은 원래 정찰을 담당합니다. 저 또한 어느 정도 전투가 가능하기도 하고요." },
+    { actor: "kapp", expression: "smile", text: "여러분이 조금이라도 휴식하셨으면 했어요." },
+    { actor: "luna", expression: "scared", text: "으으.." },
+    { actor: "theo", text: "루나, 발목은 조금 어떻습니까?" },
+    { actor: "luna", expression: "scared", text: "카프 부대장이 치료해주셔서 이제는 괜찮아. 그치만 부대장이 준 약은 정말이지 너무 써!!" },
+    { actor: "luna", expression: "scared", text: "부대장, 나 이제 괜찮은데 약 안 먹으면 안돼요?!" },
+    { actor: "kapp", expression: "smile", text: "안돼요. 통증을 줄여주는 약인걸요. 혹시 모르니 꼬박 꼬박 먹도록 해요." },
+    { actor: "aron", expression: "smile", text: "이제 모두 모였으니 다음층에 대한 이야기를 하죠." },
+    { actor: "aron", expression: "smile", text: "예상했던대로, 던전의 균열이 더욱 심해졌습니다. 아마 바로 근처에 데네브님이 있다는 거겠죠." },
+    { actor: "aron", expression: "smile", text: "그렇지만 6층 입구에서는 눈에 띄는 위협을 발견하지 못했습니다. 오히려 축제 분위기였다고나 해야 할까요.." },
+    { actor: "theo", text: "축제 말씀입니까..?" },
+    { actor: "aron", expression: "smile", text: "예.. 아마 들어가보면 바로 이해되실겁니다." },
+    { actor: "aron", expression: "smile", text: "주의해야 할 점은, 저희가 외부인인것을 들켜선 안 된다는 것입니다." },
+    { actor: "aron", expression: "smile", text: "던전 6층에 있는 인물들에게 우리의 정체를 들켰다간, 오히려 더 위험해질 수 있으니까요." },
+    { actor: "luna", expression: "smile", text: "한 마디로 스파이 작전이라는 거네요!" },
+    { actor: "kapp", expression: "smile", text: "후후, 정확해요." },
+    { actor: "kapp", expression: "smile", text: "(플레이어 이름), 준비되면 던전에 들어갑시다. 조심해서 나아가도록 하죠." },
+  ]).scenes,
+};
+NPC_STORY_SEQUENCES["npc-kaiden-floor-6-quest-accepted"] = chapter2DialogueSequence("npc-kaiden-floor-6-quest-accepted", [{ actor: "aron", text: "조심해서 다녀오십시오." }]);
+NPC_STORY_SEQUENCES["npc-kaiden-floor-6-quest-active"] = chapter2DialogueSequence("npc-kaiden-floor-6-quest-active", [{ actor: "aron", expression: "serious", text: "외부인이라는 사실을 들키지 않도록 조심하십시오." }]);
+NPC_STORY_SEQUENCES["npc-kaiden-floor-6-quest-complete"] = chapter2DialogueSequence("npc-kaiden-floor-6-quest-complete", [
+  { actor: "kapp", expression: "serious", text: "정말로 데네브가 있는 곳까지 왔네요. 당신 덕분이겠죠, (플레이어 이름)." },
+  { actor: "kapp", expression: "serious", text: "하지만 아직 안심하긴 일러요. 아직 데네브를 구하지 못했고, 이 포탈도 아직 해결하지 못했으니까요." },
+  { actor: "kapp", expression: "serious", text: "이 뒤도 평소처럼 잘 부탁해요, (플레이어 이름)." },
+]);
+
+NPC_STORY_SEQUENCES["npc-theo-floor-7-quest-available"] = {
+  id: "npc-theo-floor-7-quest-available",
+  title: "던전 7층 의뢰",
+  replayable: true,
+  skippable: false,
+  onCompleteScreen: "baseCamp",
+  backgrounds: {},
+  actors: {
+    theo: actor("theo", "default"),
+    kaiden: actor("kaiden", "serious"),
+    luna: actor("luna", "happy"),
+    jeon: actor("jeon", "default"),
+  },
+  scenes: [{ id: "npc-theo-floor-7-quest-available-scene", steps: [
+    ...floor5QuestDialogue("floor7-theo-1", "theo", "default", "(플레이어 이름), 어서 오십시오."),
+    ...floor5QuestDialogue("floor7-theo-2", "theo", "default", "전과 당신이 노력해주신 덕분에, 다음 층이 열렸지요. 정말 감사합니다."),
+    ...floor5QuestDialogue("floor7-theo-3", "theo", "default", "이번에도 루나가 먼저 다녀왔습니다만.. 우선 이 사진을 함께 보시지요."),
+    { id: "floor7-broken-door-in", type: "illustOverlay", imageUrl: `${import.meta.env.BASE_URL}assets/dungeon7/broken-door.png`, visible: true, fadeMs: 350, hideDialogue: true, waitForFade: true, advanceMode: "auto" },
+    { id: "floor7-broken-door-pause", type: "wait", durationMs: 1500, advanceMode: "auto" },
+    ...floor5QuestDialogue("floor7-theo-4", "theo", "default", "이 문이 다음 층으로 가는 입구를 가로막고 있었다고 합니다."),
+    ...floor5QuestDialogue("floor7-theo-5", "theo", "default", "문에는 이렇게 적혀있습니다."),
+    ...floor5QuestDialogue("floor7-theo-6", "theo", "default", "...을 한데 모아 고려의 기둥을 바로 세워라.").map((step) => step.type === "dialogue" ? { ...step, emphasis: "info" as const } : step),
+    ...floor5QuestDialogue("floor7-theo-7", "theo", "default", "문제는 무엇을 한데 모으라는 것인지 나와 있지 않는다는 것입니다."),
+    ...floor5QuestDialogue("floor7-kaiden-1", "kaiden", "serious", "아마도 호족과 관련 있을 것이다."),
+    ...floor5QuestDialogue("floor7-theo-8", "theo", "default", "...! 그렇군요."),
+    ...floor5QuestDialogue("floor7-theo-9", "theo", "default", "고려 건국에서 호족이 빠질 수는 없으니까요."),
+    ...floor5QuestDialogue("floor7-theo-10", "theo", "default", "고려 건국 이후에도 호족을 포섭하려 노력했었고요."),
+    { id: "floor7-broken-door-out", type: "illustOverlay", visible: false, fadeMs: 350, hideDialogue: true, waitForFade: true, advanceMode: "auto" },
+    { id: "floor7-broken-door-out-pause", type: "wait", durationMs: 1500, advanceMode: "auto" },
+    ...floor5QuestDialogue("floor7-luna-1", "luna", "happy", "그렇다면 모으라는 것은 호족의 증표 같은 것이겠네!"),
+    ...floor5QuestDialogue("floor7-theo-11", "theo", "default", "분명 그럴 것입니다."),
+    ...floor5QuestDialogue("floor7-theo-12", "theo", "default", "(플레이어 이름), 이번에도 부탁드려도 괜찮겠습니까?"),
+    ...floor5QuestDialogue("floor7-jeon-1", "jeon", "default", "잠깐... 이번에도 저를 데려가 주십시오!... <red><b>윽!</b></red>"),
+    ...floor5QuestDialogue("floor7-theo-13", "theo", "default", "전?! 무슨 일입니까?"),
+    ...floor5QuestDialogue("floor7-jeon-2", "jeon", "default", "갑작스럽게 죄송합니다..사실 아까부터 가벼운 두통이 있어서요...별일 아닙니다."),
+    ...floor5QuestDialogue("floor7-luna-2", "luna", "happy", "두통이요? 전 아저씨, 아플 땐 쉬어야 해요. 무리하지 말고요!"),
+    ...floor5QuestDialogue("floor7-theo-14", "theo", "default", "루나 말이 맞습니다."),
+    ...floor5QuestDialogue("floor7-jeon-3", "jeon", "default", "하지만...여러분의 도움만 받기는..."),
+    ...floor5QuestDialogue("floor7-kaiden-2", "kaiden", "serious", "..그렇게 하지. 전도 데려가도록 해."),
+    ...floor5QuestDialogue("floor7-kaiden-3", "kaiden", "serious", "6층에서도 전이 옛 문서를 해석해준 덕분에 쉽게 문을 열 수 있지 않았나. 이번에도 도움이 될 지도 모르니."),
+    ...floor5QuestDialogue("floor7-theo-15", "theo", "default", "대장..."),
+    ...floor5QuestDialogue("floor7-theo-16", "theo", "default", "알겠습니다. (플레이어 이름), 부탁드려도 괜찮겠습니까?"),
+  ] }],
+};
+NPC_STORY_SEQUENCES["npc-theo-floor-7-quest-accepted"] = sequence("npc-theo-floor-7-quest-accepted", "theo", "default", [
+  "이번에도 기다리고 있겠습니다. 부디 무리는 하지 마시길.",
+]);
+NPC_STORY_SEQUENCES["npc-theo-floor-7-quest-active"] = sequence("npc-theo-floor-7-quest-active", "theo", "default", [
+  "전과 함께 던전 7층에서 호족의 증표를 찾아주십시오.",
+]);
+NPC_STORY_SEQUENCES["npc-theo-floor-7-quest-active"].scenes[0].steps.push({
+  id: "npc-theo-floor-7-quest-active-choice",
+  type: "choice",
+  prompt: "무엇을 하시겠습니까?",
+  advanceMode: "click",
+  options: [
+    { id: "buy-items", label: "아이템 사기", actionId: "open-theo-shop", closeStory: true },
+    { id: "end-dialogue", label: "대화 끝내기", closeStory: true },
+  ],
+});
+NPC_STORY_SEQUENCES["npc-theo-floor-7-quest-complete"] = {
+  id: "npc-theo-floor-7-quest-complete",
+  title: "던전 7층 조사 완료",
+  replayable: true,
+  skippable: false,
+  onCompleteScreen: "baseCamp",
+  backgrounds: {},
+  actors: { theo: actor("theo", "default"), luna: actor("luna", "happy") },
+  scenes: [{ id: "npc-theo-floor-7-quest-complete-scene", steps: [
+    ...floor5QuestDialogue("floor7-complete-theo-1", "theo", "default", "아, (플레이어 이름), 어서 오십시오."),
+    ...floor5QuestDialogue("floor7-complete-theo-2", "theo", "default", "...전?! 대체 무슨 일이 있었던 겁니까?!"),
+    ...floor5QuestDialogue("floor7-complete-theo-3", "theo", "default", "그런... 문이 열리자마자 갑자기 쓰러졌다고요."),
+    ...floor5QuestDialogue("floor7-complete-theo-4", "theo", "default", "루나, 응급처치를 부탁합니다."),
+    ...floor5QuestDialogue("floor7-complete-luna-1", "luna", "happy", "맡겨줘!"),
+    ...floor5QuestDialogue("floor7-complete-theo-5", "theo", "default", "후...루나 덕분에 한시름 덜었군요."),
+    ...floor5QuestDialogue("floor7-complete-theo-6", "theo", "default", "수고하셨습니다, (플레이어 이름). 덕분에 다음 층이 열렸습니다. 이제 다음 계획을 세우도록 하지요."),
+  ] }],
+};
+
+NPC_STORY_SEQUENCES["npc-deneb-floor-8-quest-available"] = {
+  id: "npc-deneb-floor-8-quest-available", title: "던전 8층 의뢰", replayable: true,
+  skippable: false, dialogueSkip: true, onCompleteScreen: "baseCamp", backgrounds: {}, actors: chapter2Actors,
+  scenes: [{ id: "npc-deneb-floor-8-quest-available-scene", steps: [
+    { id: "floor8-offer-1", type: "dialogue", speakerId: "deneb", speakerName: "데네브", activeActorId: "deneb", expression: "smile", text: "오셨군요, (플레이어 이름).", advanceMode: "click" },
+    { id: "floor8-offer-2", type: "dialogue", speakerId: "deneb", speakerName: "데네브", activeActorId: "deneb", expression: "smile", text: "실제로 만난지 얼마 되지도 않았는데, 바로 다음 층 공략을 부탁드려야 한다니 마음이 편치 않네요.", advanceMode: "click" },
+    { id: "floor8-offer-3", type: "dialogue", speakerId: "luna", speakerName: "루나", activeActorId: "luna", expression: "smile", text: "오, 데네브님~! 8층부터 지휘는 데네브님이 하는거예요? 부상은 어때요?", advanceMode: "click" },
+    { id: "floor8-offer-4", type: "dialogue", speakerId: "deneb", speakerName: "데네브", activeActorId: "deneb", expression: "smile", text: "덕분에 조금씩 괜찮아지고 있어요. 지휘에 관련해서는-...", advanceMode: "click" },
+    { id: "floor8-offer-5", type: "dialogue", speakerId: "aron", speakerName: "아론", activeActorId: "aron", expression: "smile", text: "지휘권은 데네브님께 넘겨드렸습니다. 이 던전에 대해서 가장 잘 알고계신 것은 데네브님이기도 하고, 애초부터 지휘관님이셨으니까요.", advanceMode: "click" },
+    { id: "floor8-offer-6", type: "dialogue", speakerId: "theo", speakerName: "테오", activeActorId: "theo", expression: "smile", text: "그러시리라 생각했습니다.", advanceMode: "click" },
+    { id: "floor8-offer-7", type: "dialogue", speakerId: "kapp", speakerName: "카프", activeActorId: "kapp", expression: "smile", text: "지휘권을 데네브에게 일임한 이후에 아론과 제가 던전 8층 입구를 살펴봤어요.", advanceMode: "click" },
+    { id: "floor8-offer-8", type: "dialogue", speakerId: "kapp", speakerName: "카프", activeActorId: "kapp", expression: "serious", text: "데네브를 구출한 영향인지.. 던전 이곳저곳에 균열이 가득하더군요.. 확실히 이번 층부터는 더더욱 위험한 일이 많을 거예요.", advanceMode: "click" },
+    { id: "floor8-offer-9", type: "dialogue", speakerId: "deneb", speakerName: "데네브", activeActorId: "deneb", expression: "angry", text: "이 던전의 중심부에 무엇이 있는지는 저 또한 모릅니다. 유일하게 아는 것은··· 이 던전이 현실 세계까지 잡아먹으려고 하는 것입니다.", advanceMode: "click" },
+    { id: "floor8-portal-in", type: "illustOverlay", imageUrl: `${import.meta.env.BASE_URL}assets/dungeon8/giant-portal.png`, visible: true, fadeMs: 700, hideDialogue: true, waitForFade: true, advanceMode: "auto" },
+    { id: "floor8-portal-hold", type: "wait", durationMs: 1500, advanceMode: "auto" },
+    { id: "floor8-offer-10", type: "dialogue", speakerId: "deneb", speakerName: "데네브", activeActorId: "deneb", expression: "angry", text: "이 포탈이 처음 생겨났을 때에는 이미 현실세계의 힘을 어느정도 빼앗은 뒤였어요.", advanceMode: "click" },
+    { id: "floor8-offer-11", type: "dialogue", speakerId: "deneb", speakerName: "데네브", activeActorId: "deneb", expression: "angry", text: "현실세계에서 시간의 힘을 삼킨 던전 속에는··· 여러분도 아시다시피 과거의 인물들이 살아 움직이고 있었죠.", advanceMode: "click" },
+    { id: "floor8-offer-12", type: "dialogue", speakerId: "deneb", speakerName: "데네브", activeActorId: "deneb", expression: "angry", text: "지금까진 제 힘으로 던전이 현실을 집어삼키는 것을 막고 있었습니다. 하지만 제 영향력이 약해진 지금, 던전은 다시 한 번 현실을 집어삼키려고 할 게 분명해요.", advanceMode: "click" },
+    { id: "floor8-offer-13", type: "dialogue", speakerId: "deneb", speakerName: "데네브", activeActorId: "deneb", expression: "angry", text: "그렇게 되면··· 던전의 힘이 더욱 강해질겁니다. 어쩌면 절대로 반복되어서는 안 되는 일이 반복될지도 몰라요···.", advanceMode: "click" },
+    { id: "floor8-portal-out", type: "illustOverlay", visible: false, fadeMs: 700, removeAfterFade: true, hideDialogue: true, waitForFade: true, advanceMode: "auto" },
+    { id: "floor8-offer-14", type: "dialogue", speakerId: "theo", speakerName: "테오", activeActorId: "theo", expression: "serious", text: "한시가 급하군요.", advanceMode: "click" },
+    { id: "floor8-offer-15", type: "dialogue", speakerId: "theo", speakerName: "테오", activeActorId: "theo", expression: "serious", text: "데네브님, 포탈이 현실세계를 완전히 집어삼키기까지 남은 시간은 얼마나 됩니까?", advanceMode: "click" },
+    { id: "floor8-offer-16", type: "dialogue", speakerId: "deneb", speakerName: "데네브", activeActorId: "deneb", expression: "angry", text: "빠르면 반나절 안에도 가능합니다. 제 남은 힘으로 최대한 늦춰보아도, 앞으로 하루밖에 남지 않았겠지요.", advanceMode: "click" },
+    { id: "floor8-offer-17", type: "dialogue", speakerId: "theo", speakerName: "테오", activeActorId: "theo", expression: "angry", text: "이런··· 지체할 시간이 없습니다.", advanceMode: "click" },
+    { id: "floor8-offer-18", type: "dialogue", speakerId: "kapp", speakerName: "카프", activeActorId: "kapp", expression: "angry", text: "(플레이어이름), 들으셔서 잘 아시겠지요. 하루빨리 던전의 중심부로 내려가야 해요.", advanceMode: "click" },
+    { id: "floor8-offer-19", type: "dialogue", speakerId: "deneb", speakerName: "데네브", activeActorId: "deneb", expression: "angry", text: "저희 모두가 함께하겠습니다. 이번에도 전투를 잘 부탁드리겠습니다, (플레이어이름).", advanceMode: "click" },
+  ] }],
+};
+NPC_STORY_SEQUENCES["npc-deneb-floor-8-quest-accepted"] = sequence("npc-deneb-floor-8-quest-accepted", "denebCommander", "default", ["무리하지 말고 조심해서 나아가요."]);
+NPC_STORY_SEQUENCES["npc-deneb-floor-8-quest-active"] = sequence("npc-deneb-floor-8-quest-active", "denebCommander", "default", ["던전 8층의 균열을 조심하면서 중심부로 향해주세요."]);
+NPC_STORY_SEQUENCES["npc-deneb-floor-8-quest-complete"] = chapter2DialogueSequence("npc-deneb-floor-8-quest-complete", [
+  { actor: "deneb", expression: "smile", text: "눈부신 활약이었습니다, (플레이어이름)." },
+  { actor: "deneb", expression: "smile", text: "당신 덕분에, 아무도 다치지 않고 순조롭게 다음 층으로 향하는 길을 열 수 있었어요." },
+  { actor: "deneb", expression: "smile", text: "다음 계획은 제가 고민하고 있을테니, 잠시동안 휴식하면서 정비해주세요." },
+  { actor: "deneb", expression: "smile", text: "아무리 당신이라도 무적은 아니니까요." },
+]);
+
+NPC_STORY_SEQUENCES["npc-deneb-floor-9-quest-available"] = chapter2DialogueSequence("npc-deneb-floor-9-quest-available", [
+  { actor: "deneb", expression: "angry", text: "(플레이어 이름), 이전 층을 공략한 지 얼마 되지 않았지만 바로 다음 층에 관련해서 논의해 보아야겠습니다." },
+  { actor: "deneb", expression: "angry", text: "제가 아직까지는 던전의 힘을 막고 있다고 말씀드렸었죠···. 그래서 지금까지는 괜찮았지만···" },
+  { actor: "deneb", expression: "angry", text: "던전 8층의 문제를 해결한 직후부터 던전의 힘이 강하게 요동치고 있습니다. 더 이상 시간을 끄는 것은 힘들어요." },
+  { actor: "deneb", expression: "angry", text: "다른 분들께는 베이스캠프의 안정화를 부탁드렸습니다. 던전이 요동치면, 저희가 지내는 이 베이스캠프도 어떻게 될지 모르니까요." },
+  { actor: "deneb", expression: "angry", text: "따라서 이번 던전에는··· (플레이어 이름)님과 저, 단 둘이 진입합니다." },
+  { actor: "deneb", expression: "angry", text: "부디, 조심하세요···." },
+]);
+NPC_STORY_SEQUENCES["npc-deneb-floor-9-quest-accepted"] = sequence(
+  "npc-deneb-floor-9-quest-accepted", "denebCommander", "default", ["준비가 끝나면 저와 함께 9층으로 들어가요."],
+);
+NPC_STORY_SEQUENCES["npc-deneb-floor-9-quest-active"] = sequence(
+  "npc-deneb-floor-9-quest-active", "denebCommander", "default", ["균열의 영향이 큽니다. 저와 떨어지지 말고 조심해서 나아가요."],
+);
+NPC_STORY_SEQUENCES["npc-deneb-floor-9-quest-complete"] = chapter2DialogueSequence("npc-deneb-floor-9-quest-complete", [
+  { actor: "luna", expression: "serious", text: "(플레이어 이름), 데네브 대장! 돌아왔구나!" },
+  { actor: "luna", expression: "serious", text: "대장이랑 (플레이어 이름)이 돌아오기 바로 전에 베이스캠프가 크게 흔들렸어!" },
+  { actor: "luna", expression: "serious", text: "아직 이곳은 괜찮지만, 아론님 말로는 갈라지거나 침식된 곳도 있대!" },
+  { actor: "luna", expression: "serious", text: "던전 안은 괜찮았어?! 던전에서 대체 무슨 일이 있었던 거야?" },
+  { actor: "luna", expression: "serious", text: "잠깐··· 데네브 대장, 표정이 어두운데···" },
+  { actor: "kapp", expression: "angry", text: "데네브···? 괜찮아요?" },
+  { actor: "kapp", expression: "angry", text: "안색이 좋지 않아요." },
+  { actor: "deneb", expression: "hurt", text: "전 괜찮습니다. 단순히 힘을 많이 써서 어지러울 뿐이예요." },
+  { actor: "deneb", expression: "hurt", text: "던전에서 저희는 균열에 침식되어 이성을 잃은 과거의 인물들을 만났습니다." },
+  { actor: "deneb", expression: "hurt", text: "(플레이어 이름) 덕분에 무사히 빠져 나올 수 있었지만···" },
+  { actor: "deneb", expression: "hurt", text: "그 과정에서 제 힘을 다 써 버렸고, 결국 던전과 저의 연결이 끊겨버리고 말았어요···" },
+  { actor: "theo", expression: "surprised", text: "그 말은···." },
+  { actor: "deneb", expression: "angry", text: "네, 맞아요. 이제 더 이상 던전의 흐름을 늦출 수 없습니다." },
+  { actor: "deneb", expression: "angry", text: "그러나, 던전 9층의 문제를 해결한 직후에 저는 직감적으로 알 수 있었어요" },
+  { actor: "deneb", expression: "angry", text: "바로 아래층에, 이 던전의 원흉이 기다리고 있다는 것을요.", emphasis: "danger" },
+  { actor: "aron", expression: "shouting", text: "그렇다는 건···!" },
+  { actor: "luna", expression: "angry", text: "이제 보스전만 남았다는 거지···!" },
+  { actor: "luna", expression: "angry", text: "이이익!!! 우리를 이렇게나 고생시키고!!" },
+  { actor: "luna", expression: "angry", text: "정말 혼쭐을 내 주겠어!" },
+  { actor: "kapp", expression: "angry", text: "이제 정말 최종 결전이군요." },
+  { actor: "kapp", expression: "angry", text: "모두, 최고의 장비를 갖추도록 하죠." },
+  { actor: "kapp", expression: "angry", text: "이 앞에 있는 원흉이라는 것이, 어떤 힘을 갖추고 있을지는 미지수이니까요." },
+]);
+NPC_STORY_SEQUENCES["npc-deneb-floor-9-quest-complete"].dialogueSkip = false;
+
+const theo = NPC_STORY_SEQUENCES["npc-theo-default"];
+theo.scenes[0].steps.push(
+  {
+    id: "npc-theo-default-choice",
+    type: "choice",
+    prompt: "무엇을 하시겠습니까?",
+    advanceMode: "click",
+    options: [
+      { id: "buy-items", label: "아이템 사기", actionId: "open-theo-shop", closeStory: true },
+      { id: "end-dialogue", label: "대화 끝내기", closeStory: true },
+    ],
+  },
+);
+
+NPC_STORY_SEQUENCES["npc-aron-floor-7-quest-available"] = chapter2DialogueSequence("npc-aron-floor-7-quest-available", [
+  { actor: "aron", expression: "serious", text: "(플레이어이름), 어서오십시오." },
+  { actor: "aron", expression: "serious", text: "...드디어 데네브님이 계신 곳으로 들어가게 되는군요." },
+  { actor: "aron", expression: "serious", text: "하지만 데네브님이 계신다는 것은, 이 포탈의 중심과 가까워졌다는 뜻이기도 합니다." },
+  { actor: "aron", expression: "serious", text: "그만큼 위험해질 수도 있다는 뜻이죠." },
+  { actor: "aron", expression: "serious", text: "...신중히 나아갑시다. 잊지 마십시오. 모두의 안전이 최우선입니다." },
+]);
+NPC_STORY_SEQUENCES["npc-aron-floor-7-quest-accepted"] = chapter2DialogueSequence("npc-aron-floor-7-quest-accepted", [{ actor: "aron", expression: "serious", text: "모두의 안전을 최우선으로, 조심히 나아갑시다." }]);
+NPC_STORY_SEQUENCES["npc-aron-floor-7-quest-active"] = chapter2DialogueSequence("npc-aron-floor-7-quest-active", [{ actor: "aron", expression: "serious", text: "데네브님이 계신 곳이 가까워졌습니다. 조심하십시오." }]);
+NPC_STORY_SEQUENCES["npc-deneb-default"] = sequence("npc-deneb-default", "denebCommander", "default", ["여러분과 다시 함께할 수 있어 다행이에요."]);
+NPC_STORY_SEQUENCES["npc-deneb-floor-7-quest-complete"] = chapter2DialogueSequence("npc-deneb-floor-7-quest-complete", [
+  { actor: "deneb", text: "..." },
+  { actor: "aron", expression: "shouting", text: "데네브님, 정신이 드십니까?" },
+  { actor: "luna", expression: "shout", text: "데네브님, 데네브님! 괜찮아요?!" },
+  { actor: "deneb", expression: "smile", text: "... 네, 여러분 덕분에요." },
+  { actor: "kapp", expression: "smile", text: "다행이다.." },
+  { actor: "kapp", expression: "smile", text: "정말, 다시는 못 보는 줄 알고..!" },
+  { actor: "deneb", expression: "smile", text: "아론, 카프. 고생시켜서 미안해요." },
+  { actor: "deneb", expression: "smile", text: "시간이 얼마나 흘렀나요..?" },
+  { actor: "aron", expression: "smile", text: "..7년입니다. 꽤 긴 시간이었군요." },
+  { actor: "aron", expression: "smile", text: "데네브님, 아시겠지만 이번에는 저희 말고 다른 분들이 도움을 주셔서 데네브님을 구출할 수 있었습니다." },
+  { actor: "theo", expression: "smile", text: "지휘관님을 뵙습니다. 저는 -" },
+  { actor: "deneb", text: "알고 있어요. 테오와 루나, 그리고 (플레이어 이름)이죠?" },
+  { actor: "deneb", expression: "smile", text: "던전에서 들려오는 소리로 여러분의 목소리를 들었답니다." },
+  { actor: "deneb", expression: "smile", text: "정말, 정말로 고마워요." },
+  { actor: "luna", expression: "smile", text: "응?! 헤헤헤.. 별말씀을요!" },
+  { actor: "luna", expression: "smile", text: "이거 왠지 쑥쓰러운걸!!" },
+  { actor: "deneb", expression: "angry", text: "하지만... 여러분들도 아시겠죠." },
+  { actor: "deneb", expression: "angry", text: "저와 던전의 연결이 끊겼으니, 던전의 균열은 빠른 속도로 심해질거예요." },
+  { actor: "deneb", expression: "angry", text: "제게 남은 힘으로 던전의 침식 속도를 늦출 수는 있겠지만, 효과는 희미할 겁니다." },
+  { actor: "deneb", expression: "angry", text: "(플레이어 이름), 앞으로는 더욱 신중해야 할 거예요. 준비는 되었나요?" },
+]);
+NPC_STORY_SEQUENCES["npc-deneb-floor-7-quest-complete"].scenes[0].steps.push(
+  { id: "d7-complete-choice", type: "choice", advanceMode: "click", options: [
+    { id: "ready", label: "준비됐다.", nextStepId: "d7-ready-a1" },
+    { id: "afraid", label: "조금 무서운데요.", nextStepId: "d7-ready-b1" },
+  ] },
+  { id: "d7-ready-a1", type: "dialogue", speakerId: "deneb", speakerName: "데네브", activeActorId: "deneb", expression: "smile", text: "... 그래요.", advanceMode: "click" },
+  { id: "d7-ready-a2", type: "dialogue", speakerId: "deneb", speakerName: "데네브", activeActorId: "deneb", expression: "smile", text: "당신을 믿어요, (플레이어 이름).", nextStepId: "d7-complete-end", advanceMode: "click" },
+  { id: "d7-ready-b1", type: "dialogue", speakerId: "deneb", speakerName: "데네브", activeActorId: "deneb", expression: "smile", text: "... 후후, 사실 저도 그래요.", advanceMode: "click" },
+  { id: "d7-ready-b2", type: "dialogue", speakerId: "deneb", speakerName: "데네브", activeActorId: "deneb", expression: "smile", text: "그래도 함께라면 해낼 수 있겠죠. 당신을 믿어요, (플레이어 이름).", nextStepId: "d7-complete-end", advanceMode: "click" },
+  { id: "d7-complete-end", type: "wait", durationMs: 0, advanceMode: "auto" },
+);
+
+NPC_STORY_SEQUENCES[DUNGEON10_QUEST_OFFER_STORY.id] = DUNGEON10_QUEST_OFFER_STORY;
+NPC_STORY_SEQUENCES[DUNGEON10_QUEST_ACTIVE_STORY.id] = DUNGEON10_QUEST_ACTIVE_STORY;
