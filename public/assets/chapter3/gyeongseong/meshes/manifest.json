@@ -1,0 +1,321 @@
+{
+ "timber-shop": {
+  "vertices": 2502,
+  "materials": [
+   {
+    "name": "tripo_mat_81a61b6e",
+    "color": "cccccc"
+   }
+  ],
+  "bbox": [
+   [
+    -3,
+    0,
+    -2
+   ],
+   [
+    3,
+    8,
+    2
+   ]
+  ]
+ },
+ "brick-corner-shop": {
+  "vertices": 2823,
+  "materials": [
+   {
+    "name": "tripo_mat_28a5d8b2",
+    "color": "cccccc"
+   }
+  ],
+  "bbox": [
+   [
+    -3,
+    0,
+    -3
+   ],
+   [
+    3,
+    9,
+    3
+   ]
+  ]
+ },
+ "hanok-courtyard": {
+  "vertices": 2199,
+  "materials": [
+   {
+    "name": "tripo_mat_d35628b8",
+    "color": "cccccc"
+   }
+  ],
+  "bbox": [
+   [
+    -5,
+    0,
+    -4
+   ],
+   [
+    5,
+    6,
+    4
+   ]
+  ]
+ },
+ "brick-arch": {
+  "vertices": 2895,
+  "materials": [
+   {
+    "name": "tripo_mat_da85c751",
+    "color": "cccccc"
+   }
+  ],
+  "bbox": [
+   [
+    -3,
+    0,
+    -4
+   ],
+   [
+    3,
+    7,
+    4
+   ]
+  ]
+ },
+ "railway-station": {
+  "vertices": 2517,
+  "materials": [
+   {
+    "name": "tripo_mat_65b8bcdc",
+    "color": "cccccc"
+   }
+  ],
+  "bbox": [
+   [
+    -7,
+    0,
+    -3
+   ],
+   [
+    7,
+    12,
+    3
+   ]
+  ]
+ },
+ "platform-canopy": {
+  "vertices": 3576,
+  "materials": [
+   {
+    "name": "tripo_mat_30b6fa78",
+    "color": "cccccc"
+   }
+  ],
+  "bbox": [
+   [
+    -4,
+    0,
+    -2
+   ],
+   [
+    4,
+    6.5,
+    2
+   ]
+  ]
+ },
+ "school": {
+  "vertices": 2574,
+  "materials": [
+   {
+    "name": "tripo_mat_8f8879dd",
+    "color": "cccccc"
+   }
+  ],
+  "bbox": [
+   [
+    -6,
+    0,
+    -4
+   ],
+   [
+    6,
+    10,
+    4
+   ]
+  ]
+ },
+ "newspaper-office": {
+  "vertices": 2547,
+  "materials": [
+   {
+    "name": "tripo_mat_d349023e",
+    "color": "cccccc"
+   }
+  ],
+  "bbox": [
+   [
+    -4,
+    0,
+    -3
+   ],
+   [
+    4,
+    7.5,
+    3
+   ]
+  ]
+ },
+ "road-tram": {
+  "vertices": 2340,
+  "materials": [
+   {
+    "name": "Rail steel",
+    "color": "544736"
+   },
+   {
+    "name": "Dark mortar",
+    "color": "151216"
+   },
+   {
+    "name": "Granite 2",
+    "color": "47424f"
+   },
+   {
+    "name": "Granite 5",
+    "color": "574f5e"
+   },
+   {
+    "name": "Granite 4",
+    "color": "4f4f57"
+   },
+   {
+    "name": "Granite 0",
+    "color": "473d4a"
+   },
+   {
+    "name": "Granite 1",
+    "color": "594d54"
+   },
+   {
+    "name": "Granite 3",
+    "color": "665957"
+   },
+   {
+    "name": "Cast iron",
+    "color": "131210"
+   }
+  ],
+  "bbox": [
+   [
+    -1,
+    -0.11,
+    -1
+   ],
+   [
+    1,
+    0.015,
+    1
+   ]
+  ]
+ },
+ "road-paving": {
+  "vertices": 2196,
+  "materials": [
+   {
+    "name": "Dark mortar",
+    "color": "151216"
+   },
+   {
+    "name": "Granite 2",
+    "color": "47424f"
+   },
+   {
+    "name": "Granite 5",
+    "color": "574f5e"
+   },
+   {
+    "name": "Granite 4",
+    "color": "4f4f57"
+   },
+   {
+    "name": "Granite 0",
+    "color": "473d4a"
+   },
+   {
+    "name": "Granite 1",
+    "color": "594d54"
+   },
+   {
+    "name": "Granite 3",
+    "color": "665957"
+   }
+  ],
+  "bbox": [
+   [
+    -1,
+    -0.11,
+    -1
+   ],
+   [
+    1,
+    0,
+    1
+   ]
+  ]
+ },
+ "road-curb": {
+  "vertices": 2844,
+  "materials": [
+   {
+    "name": "Rail steel",
+    "color": "544736"
+   },
+   {
+    "name": "Dark mortar",
+    "color": "151216"
+   },
+   {
+    "name": "Granite 3",
+    "color": "665957"
+   },
+   {
+    "name": "Granite 0",
+    "color": "473d4a"
+   },
+   {
+    "name": "Granite 5",
+    "color": "574f5e"
+   },
+   {
+    "name": "Granite 2",
+    "color": "47424f"
+   },
+   {
+    "name": "Granite 4",
+    "color": "4f4f57"
+   },
+   {
+    "name": "Granite 1",
+    "color": "594d54"
+   },
+   {
+    "name": "Cast iron",
+    "color": "131210"
+   }
+  ],
+  "bbox": [
+   [
+    -1,
+    -0.11,
+    -1
+   ],
+   [
+    1,
+    0.09,
+    1
+   ]
+  ]
+ }
+}

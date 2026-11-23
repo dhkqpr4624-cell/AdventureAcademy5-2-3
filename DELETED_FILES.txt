@@ -1,0 +1,3 @@
+# 삭제할 파일 (기준 커밋 449922a5c2e9b8eb83ffd410be1cf1db036ee2be 대비)
+public/assets/chapter3/actors/player-standing.png
+scripts/chapter3/make_player_silhouette.py

@@ -107,10 +107,10 @@ const HQ_STEPS: StoryStep[] = [
   d("kaiden", "smile", "선배님과 함께라니, 든든하군요."),
   d("luna", "default", "어? 카이든 대장님이 후배였어요?"),
   d("deneb", "smile", "후후. 처음에는 제 뒤를 아주 조용히 따라다녔답니다."),
-  d("kaiden", "default", "…그 이야기는 하지 않으셔도 됩니다."),
+  d("kaiden", "shame", "…그 이야기는 하지 않으셔도 됩니다."),
   d("kapp", "smile", "흥미로운 이야기인데요? 조금 더 듣고 싶어졌어요."),
   d("aron", "smile", "임무가 끝난 뒤에 들려주시면 좋겠습니다."),
-  d("kaiden", "default", "아론, 자네까지 그러는 건가."),
+  d("kaiden", "shame", "아론, 자네까지 그러는 건가."),
 
   // 연구원 등장과 포탈 현황 (본부 BGM → 긴장 BGM)
   stage("hq-researcher", 1200),
@@ -236,7 +236,10 @@ export const CHAPTER3_INTRO_SEQUENCE: StorySequence = {
   backgrounds: {},
   actors: CHAPTER3_STORY_ACTORS,
   replayable: false,
-  skippable: false,
+  skippable: true,
+  // Phase 2: "건너뛰기" (next to "처음 화면") completes the intro — same completion flag/save as playing it
+  // to the end — and opens the base camp. The intro has no rewards or required choices.
+  skipTarget: { complete: true },
   onCompleteScreen: "baseCamp",
   scenes: [
     { id: "chapter3-hq", steps: HQ_STEPS },

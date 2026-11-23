@@ -1,18 +1,22 @@
 import type { StoryActor, StoryVisualAsset } from "../../types/story";
 import { createChapter2Actor } from "../stories/chapter2Portraits";
-import lunaL from "../../assets/story/npcs/chapter2/luna/standing_L.png";
-import lunaR from "../../assets/story/npcs/chapter2/luna/standing_R.png";
-import theoL from "../../assets/story/npcs/chapter2/theo/standing_L.png";
-import theoR from "../../assets/story/npcs/chapter2/theo/standing_R.png";
+import lunaL from "../../assets/story/npcs/chapter3/luna/standing_L.png";
+import lunaR from "../../assets/story/npcs/chapter3/luna/standing_R.png";
+import lunaBlinkL from "../../assets/story/npcs/chapter3/luna/blink_L.png";
+import lunaBlinkR from "../../assets/story/npcs/chapter3/luna/blink_R.png";
+import theoL from "../../assets/story/npcs/chapter3/theo/standing_L.png";
+import theoR from "../../assets/story/npcs/chapter3/theo/standing_R.png";
+import theoBlinkL from "../../assets/story/npcs/chapter3/theo/blink_L.png";
+import theoBlinkR from "../../assets/story/npcs/chapter3/theo/blink_R.png";
 import aronL from "../../assets/story/npcs/chapter2/aron/standing_L.png";
 import aronR from "../../assets/story/npcs/chapter2/aron/standing_R.png";
 import kappL from "../../assets/story/npcs/chapter2/kapp/standing_L.png";
 import kappR from "../../assets/story/npcs/chapter2/kapp/standing_R.png";
 import researcherL from "../../assets/story/npcs/chapter2/researcher/standing_L.png";
-import kaidenL from "../../assets/story/npcs/kaiden/standing_L.png";
-import kaidenR from "../../assets/story/npcs/kaiden/standing_R.png";
-import kaidenWalkL from "../../assets/story/npcs/kaiden/walk_L.png";
-import kaidenWalkR from "../../assets/story/npcs/kaiden/walk_R.png";
+import kaidenL from "../../assets/story/npcs/chapter3/kaiden/standing_L.png";
+import kaidenR from "../../assets/story/npcs/chapter3/kaiden/standing_R.png";
+import kaidenBlinkL from "../../assets/story/npcs/chapter3/kaiden/blink_L.png";
+import kaidenBlinkR from "../../assets/story/npcs/chapter3/kaiden/blink_R.png";
 import kaidenDefault from "../../assets/portraits/chapter3/kaiden/default.png";
 import kaidenSmile from "../../assets/portraits/chapter3/kaiden/smile.png";
 import kaidenAngry from "../../assets/portraits/chapter3/kaiden/angry.png";
@@ -38,6 +42,8 @@ export type StageSprite = {
   /** Image per facing. A missing facing is drawn by mirroring the other one. */
   images: Partial<Record<Facing, string>>;
   walk?: { images: Record<Facing, string>; frames: number; fps: number };
+  /** Horizontal blink sheet (frame 0 = standing). Played at random intervals while idle. */
+  blink?: { images: Record<Facing, string>; frames: number; frameMs: number };
 };
 
 export const STAGE_SPRITE_SCALE = 0.3;
@@ -45,16 +51,18 @@ export const STAGE_SPRITE_SCALE = 0.3;
 const deneb = `${import.meta.env.BASE_URL}assets/npcs/chapter2/deneb/standing_R.png`;
 
 export const CHAPTER3_STAGE_SPRITES: Record<Chapter3ActorId, StageSprite> = {
-  theo: { frameWidth: 380, frameHeight: 600, foot: 0.985, cx: 0.509, head: 0.017, images: { L: theoL, R: theoR } },
-  luna: { frameWidth: 380, frameHeight: 600, foot: 0.98, cx: 0.5, head: 0.01, images: { L: lunaL, R: lunaR } },
+  // Phase 2: Theo, Luna and Kaiden use the supplied 600x700 standing frames and 4-frame blink sheets
+  // (foot/cx/head measured from the PNG bounding boxes). No walk sheet exists for the new designs:
+  // PixelFX generation was not available in this environment, so moves glide the standing frame.
+  theo: { frameWidth: 600, frameHeight: 700, foot: 0.95, cx: 0.5, head: 0.146, images: { L: theoL, R: theoR }, blink: { images: { L: theoBlinkL, R: theoBlinkR }, frames: 4, frameMs: 90 } },
+  luna: { frameWidth: 600, frameHeight: 700, foot: 0.953, cx: 0.5, head: 0.073, images: { L: lunaL, R: lunaR }, blink: { images: { L: lunaBlinkL, R: lunaBlinkR }, frames: 4, frameMs: 90 } },
   aron: { frameWidth: 400, frameHeight: 700, foot: 0.9814, cx: 0.525, head: 0.137, images: { L: aronL, R: aronR } },
   kapp: { frameWidth: 400, frameHeight: 700, foot: 0.9729, cx: 0.5, head: 0.189, images: { L: kappL, R: kappR } },
   deneb: { frameWidth: 400, frameHeight: 700, foot: 0.9743, cx: 0.499, head: 0.054, images: { R: deneb } },
-  // kaiden/standing_R.png was truncated in the source repository (76,800 bytes); it is now regenerated as a mirror of standing_L.
   kaiden: {
-    frameWidth: 380, frameHeight: 600, foot: 0.985, cx: 0.5, head: 0.012,
+    frameWidth: 600, frameHeight: 700, foot: 0.959, cx: 0.5, head: 0.033,
     images: { L: kaidenL, R: kaidenR },
-    walk: { images: { L: kaidenWalkL, R: kaidenWalkR }, frames: 4, fps: 6 },
+    blink: { images: { L: kaidenBlinkL, R: kaidenBlinkR }, frames: 4, frameMs: 90 },
   },
   researcher: { frameWidth: 400, frameHeight: 700, foot: 0.99, cx: 0.479, head: 0.157, images: { L: researcherL } },
 };

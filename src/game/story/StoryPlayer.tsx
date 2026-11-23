@@ -136,25 +136,45 @@ function StoryAsset({
   );
 }
 
-function DialogueText({
-  text,
-  playerName,
-}: {
-  text: string;
-  playerName: string;
-}) {
+/** Structured player-name token markers. Only explicit placeholders are converted into these. */
+export const PLAYER_NAME_TOKEN_START = "\uE000";
+export const PLAYER_NAME_TOKEN_END = "\uE001";
+const PLAYER_NAME_TOKEN_PATTERN = /\uE000([^\uE001]*)\uE001/g;
+
+export function stripPlayerNameTokens(text: string): string {
+  return text.replace(PLAYER_NAME_TOKEN_PATTERN, "$1");
+}
+
+/** Replaces explicit player-name placeholders with structured, highlightable tokens. */
+export function resolvePlayerNamePlaceholders(text: string, playerName: string): string {
+  const normalizedName = playerName.trim() || "플레이어";
+  const lastCharacter = Array.from(normalizedName).at(-1) ?? "어";
+  const token = `${PLAYER_NAME_TOKEN_START}${normalizedName}${PLAYER_NAME_TOKEN_END}`;
+  return text
+    .replaceAll("{{playerNameLastCharacter}}", lastCharacter)
+    .replaceAll("{{playerName}}", token)
+    .replaceAll("(플레이어 이름)", token)
+    .replaceAll("(플레이어이름)", token);
+}
+
+function DialogueText({ text }: { text: string }) {
   const renderPlayerName = (part: string, keyPrefix: string): ReactNode[] => {
-    if (!playerName || !part.includes(playerName)) return [part];
-    return part.split(playerName).flatMap((segment, index, segments) => [
-      segment,
-      ...(index < segments.length - 1
-        ? [
-            <strong className="story-player-name" key={`${keyPrefix}-player-name-${index}`}>
-              {playerName}
-            </strong>,
-          ]
-        : []),
-    ]);
+    const nodes: ReactNode[] = [];
+    let cursor = 0;
+    let tokenIndex = 0;
+    for (const match of part.matchAll(PLAYER_NAME_TOKEN_PATTERN)) {
+      const start = match.index ?? 0;
+      if (start > cursor) nodes.push(part.slice(cursor, start));
+      nodes.push(
+        <strong className="story-player-name" key={`${keyPrefix}-player-name-${tokenIndex}`}>
+          {match[1]}
+        </strong>,
+      );
+      tokenIndex += 1;
+      cursor = start + match[0].length;
+    }
+    if (cursor < part.length) nodes.push(part.slice(cursor));
+    return nodes;
   };
 
   const inlineStylePattern = /<(red|blue)><b>(.*?)<\/b><\/(?:red|blue)>/g;
@@ -164,7 +184,7 @@ function DialogueText({
   let index = 0;
   while ((match = inlineStylePattern.exec(text)) !== null) {
     result.push(...renderPlayerName(text.slice(cursor, match.index), `text-${index}`));
-    result.push(<strong className={match[1] === "blue" ? "story-inline-info" : "story-inline-danger"} key={`emphasis-${index}`}>{match[2]}</strong>);
+    result.push(<strong className={match[1] === "blue" ? "story-inline-info" : "story-inline-danger"} key={`emphasis-${index}`}>{stripPlayerNameTokens(match[2])}</strong>);
     cursor = match.index + match[0].length;
     index += 1;
   }
@@ -329,14 +349,7 @@ export function StoryPlayer({
             await controller?.restore(durationMs, signal);
           },
           checkpoint: (checkpointId) => onCheckpointReached?.(sequence.id, checkpointId),
-          resolveText: (text) => {
-            const normalizedName = playerName.trim() || "플레이어";
-            const lastCharacter = Array.from(normalizedName).at(-1) ?? "어";
-            return text
-              .replaceAll("{{playerNameLastCharacter}}", lastCharacter)
-              .replaceAll("(플레이어 이름)", normalizedName)
-              .replaceAll("(플레이어이름)", normalizedName);
-          },
+          resolveText: (text) => resolvePlayerNamePlaceholders(text, playerName),
           resolveExpression: (actorId, requestedExpression) => {
             const actor = sequence.actors[actorId];
             const fallbackExpression = actor?.defaultExpression ?? "default";
@@ -687,7 +700,7 @@ export function StoryPlayer({
                   })}
                 </div>
                 <p className={`story-speaker-name ${dialogueActor?.displayRole ? "has-role" : ""}`}>
-                  {renderState.dialogue.speakerName}
+                  {stripPlayerNameTokens(renderState.dialogue.speakerName)}
                   {dialogueActor?.displayRole && <small className="story-speaker-role">{dialogueActor.displayRole}</small>}
                 </p>
               </div>
@@ -700,10 +713,7 @@ export function StoryPlayer({
                     : ""
                 }`}
               >
-                <DialogueText
-                  text={renderState.dialogue.text}
-                  playerName={playerName}
-                />
+                <DialogueText text={renderState.dialogue.text} />
               </p>
             </div>
           </div>

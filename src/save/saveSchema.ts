@@ -56,6 +56,11 @@ export function validateCurrentSave(value: unknown): CurrentSaveData | null {
     if (!STATUSES.has(status as QuestStatus)) return null;
     statuses[quest.id] = status as QuestStatus;
   }
+  // Quests outside the Unit 2 definitions (e.g. Unit 3 "quest-unit3-floor-1") are kept when their status
+  // is valid; unknown/invalid entries are dropped instead of rejecting the whole save.
+  for (const [questId, status] of Object.entries(value.quests.statuses)) {
+    if (!(questId in statuses) && STATUSES.has(status as QuestStatus)) statuses[questId] = status as QuestStatus;
+  }
   const activeQuestId = value.quests.activeQuestId;
   if (activeQuestId !== null && typeof activeQuestId !== "string") return null;
   const checkpointByStoryId: Record<string, string> = {};

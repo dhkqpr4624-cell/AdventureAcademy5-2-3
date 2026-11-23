@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
   type PointerEvent,
+  type ReactNode,
 } from "react";
 import type {
   BaseCampFocusPoint,
@@ -70,6 +71,10 @@ type BaseCampViewportProps = {
   visibleNpcIds?: readonly string[];
   jeonSick?: boolean;
   npcViews?: readonly BaseCampNpcView[];
+  /** Unit 3: id of the npc view / "dungeonEntrance" currently hovered (white pixel outline). */
+  viewHighlightId?: string | null;
+  /** Unit 3: clickable hitboxes rendered in world coordinates above the NPC layer. */
+  worldOverlay?: ReactNode;
 };
 
 const MIN_ZOOM = 1;
@@ -144,6 +149,8 @@ export const BaseCampViewport = forwardRef<BaseCampViewportController, BaseCampV
   visibleNpcIds,
   jeonSick = false,
   npcViews,
+  viewHighlightId = null,
+  worldOverlay,
 }, forwardedRef) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const animationFrameRef = useRef<number | null>(null);
@@ -454,6 +461,8 @@ export const BaseCampViewport = forwardRef<BaseCampViewportController, BaseCampV
         visibleNpcIds={visibleNpcIds}
         jeonSick={jeonSick}
         npcViews={npcViews}
+        viewHighlightId={viewHighlightId}
+        worldOverlay={worldOverlay}
         />
         {import.meta.env.DEV && mode === "play" && devDraft && (
           <span

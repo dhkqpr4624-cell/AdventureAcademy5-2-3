@@ -1,0 +1,41 @@
+<!doctype html><html><body><script type="importmap">{"imports":{"three":"./three/build/three.module.js","three/addons/":"./three/examples/jsm/"}}</script>
+<script type="module">
+// FBX → compact "GSM1" binary meshes for the Gyeongseong dungeon (see scripts/chapter3/convert-gyeongseong-fbx.mjs).
+import * as THREE from "three";
+import { FBXLoader } from "three/addons/loaders/FBXLoader.js";
+const loader = new FBXLoader();
+const out = {};
+const toB64 = (buffer) => { let s = ""; const bytes = new Uint8Array(buffer); for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(s); };
+const jobs = JSON.parse(decodeURIComponent(location.hash.slice(1)));
+for (const job of jobs) {
+  const o = await loader.loadAsync(`models/${job.source}.fbx`); o.updateMatrixWorld(true);
+  let mesh = null; o.traverse((m) => { if (m.isMesh && !mesh) mesh = m; });
+  const g = mesh.geometry.clone().applyMatrix4(mesh.matrixWorld);
+  const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+  const pos = g.attributes.position, nor = g.attributes.normal, uv = g.attributes.uv;
+  const groups = g.groups.length ? g.groups : [{ start: 0, count: pos.count, materialIndex: 0 }];
+  // keep material slots by name; drop excluded ones
+  const keepNames = []; const remap = new Map();
+  mats.forEach((m, i) => { if (!job.drop?.includes(m.name)) { if (!keepNames.includes(m.name)) keepNames.push(m.name); remap.set(i, keepNames.indexOf(m.name)); } });
+  // sort vertices by kept material so each material is one contiguous group
+  const buckets = keepNames.map(() => []);
+  for (const gr of groups) { const slot = remap.get(gr.materialIndex); if (slot === undefined) continue; for (let i = gr.start; i < gr.start + gr.count; i++) buckets[slot].push(i); }
+  const order = buckets.flat();
+  const n = order.length; const P = new Float32Array(n * 3), N = new Float32Array(n * 3), U = uv ? new Float32Array(n * 2) : null;
+  const rot = job.rotateY ?? 0, c = Math.cos(rot), s = Math.sin(rot);
+  order.forEach((v, k) => {
+    let x = pos.getX(v), y = pos.getY(v), z = pos.getZ(v); let nx = nor.getX(v), ny = nor.getY(v), nz = nor.getZ(v);
+    [x, z] = [x * c + z * s, -x * s + z * c]; [nx, nz] = [nx * c + nz * s, -nx * s + nz * c];
+    P.set([x * job.scale, y * job.scale, z * job.scale], k * 3); N.set([nx, ny, nz], k * 3);
+    if (U) U.set([uv.getX(v), uv.getY(v)], k * 2);
+  });
+  const header = new Uint32Array([0x314d5347, n, buckets.length, U ? 1 : 0]);
+  const counts = new Uint32Array(buckets.map((b) => b.length));
+  const parts = [header, counts, P, N]; if (U) parts.push(U);
+  const total = parts.reduce((a, p) => a + p.byteLength, 0); const buf = new Uint8Array(total); let off = 0;
+  for (const p of parts) { buf.set(new Uint8Array(p.buffer, p.byteOffset, p.byteLength), off); off += p.byteLength; }
+  const bb = new THREE.Box3().setFromArray(P);
+  out[job.id] = { b64: toB64(buf.buffer), vertices: n, materials: keepNames.map((name) => { const m = mats.find((x) => x.name === name); return { name, color: m.color.getHexString() }; }), bbox: [bb.min.toArray(), bb.max.toArray()] };
+}
+window.__out = out; window.__done = true;
+</script></body></html>

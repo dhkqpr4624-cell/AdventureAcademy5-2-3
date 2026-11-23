@@ -8,6 +8,12 @@ export type DungeonFloorTitle = {
 export const DUNGEON_FLOOR_TITLES: DungeonFloorTitle[] = [
   {
     floor: 1,
+    floorId: "unit3-floor-1",
+    title: "던전 1층",
+    subtitle: "빼앗긴 외교권, 꺼지지 않는 의지",
+  },
+  {
+    floor: 1,
     floorId: "floor-1",
     title: "던전 1층",
     subtitle: "조선의 건국과 발전",

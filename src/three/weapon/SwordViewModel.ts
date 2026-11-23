@@ -93,6 +93,13 @@ export const CHOE_MUSEON_CANNON_DEFINITION: SwordDefinition = {
   textureUrl: `${import.meta.env.BASE_URL}assets/swords/donghak-bamboo-spear.png`,
 };
 
+/** Unit 3 Floor 1 reward skin: reuses the basic sword model/animation with the supplied hwando texture. */
+export const UIBYEONG_HWANDO_DEFINITION: SwordDefinition = {
+  ...BASIC_SWORD_DEFINITION,
+  id: "uibyeong-hwando",
+  textureUrl: `${import.meta.env.BASE_URL}assets/swords/uibyeong-hwando.png`,
+};
+
 export function getSwordDefinitionForEquippedItem(
   equippedItemId: string | null | undefined,
 ): SwordDefinition {
@@ -103,6 +110,7 @@ export function getSwordDefinitionForEquippedItem(
   if (equippedItemId === "weapon-chiljido") return CHILJIDO_DEFINITION;
   if (equippedItemId === "weapon-silla-ring-pommel-sword") return SILLA_RING_POMMEL_SWORD_DEFINITION;
   if (equippedItemId === "weapon-choe-museon-cannon") return CHOE_MUSEON_CANNON_DEFINITION;
+  if (equippedItemId === "weapon-uibyeong-hwando") return UIBYEONG_HWANDO_DEFINITION;
   return BASIC_SWORD_DEFINITION;
 }
 

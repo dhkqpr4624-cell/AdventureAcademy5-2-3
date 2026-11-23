@@ -9,7 +9,7 @@ export function NpcNameTag({
 }: NpcNameTagProps) {
   return (
     <span className="base-camp-npc-name-tag" aria-hidden="true">
-      <small>&lt;{displayRole}&gt;</small>
+      {displayRole && <small>&lt;{displayRole}&gt;</small>}
       <strong>{displayName}</strong>
     </span>
   );

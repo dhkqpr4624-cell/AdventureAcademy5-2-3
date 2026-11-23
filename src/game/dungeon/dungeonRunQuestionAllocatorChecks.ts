@@ -103,6 +103,7 @@ export function runDungeonRunQuestionAllocatorChecks() {
     "floor-7": 20,
     "floor-8": 20,
     "floor-9": 20,
+    "unit3-floor-1": 20,
   };
   for (const [floorId, expectedPoolCount] of Object.entries(expectedPoolCounts) as Array<[Exclude<FloorId, "floor-10">, number]>) {
     const pool = FLOOR_QUESTION_POOLS[floorId];

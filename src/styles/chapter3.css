@@ -115,3 +115,113 @@
 /* Illustrations sit a little higher so the dialogue box does not cover their lower edge. */
 .story-player-chapter3 .story-illust-overlay img { top: 42%; max-height: min(58svh, calc(100% - 15rem)); }
 .chapter3-base-camp-screen .chapter3-camp-status { top: calc(max(14px, env(safe-area-inset-top)) + 2.8rem); }
+
+/* ===== Phase 2: narration / recap dialogue uses the full box width =====
+   The narration text previously stayed at the 44rem dialogue column and ran underneath the
+   absolutely positioned "다음" button. Narration now spans the whole box and the box reserves a
+   dedicated strip for the button, so text never overlaps it at any viewport size. */
+.story-player-chapter3 .story-dialogue-box.is-narration {
+  width: min(70rem, calc(100% - 2 * max(3vw, env(safe-area-inset-left))));
+  min-height: clamp(7.5rem, 16vh, 9.5rem);
+  padding-bottom: calc(clamp(0.75rem, 2vw, 1.1rem) + 3.6rem);
+}
+.story-player-chapter3 .story-dialogue-box.is-narration .story-dialogue-layout { min-height: 0; }
+.story-player-chapter3 .story-dialogue-box.is-narration .story-dialogue-content { padding-top: 0.35rem; }
+.story-player-chapter3 .story-dialogue-box.is-narration .story-dialogue-text {
+  width: 100%;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+@media (max-width: 680px) {
+  .story-player-chapter3 .story-dialogue-box.is-narration {
+    width: auto;
+    padding: 0.9rem 1rem calc(0.6rem + 3.6rem);
+  }
+  .story-player-chapter3 .story-dialogue-box.is-narration .story-dialogue-text { width: 100%; }
+}
+
+/* Phase 2: blink sheets and glide-moves for actors without a walk sheet. */
+.stage-actor-blink { position: absolute; inset: 0; background-repeat: no-repeat; image-rendering: pixelated; }
+.stage-actor.is-gliding .stage-actor-body { animation: stage-glide-bob 420ms ease-in-out infinite; }
+@keyframes stage-glide-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.5%); } }
+@media (prefers-reduced-motion: reduce) { .stage-actor.is-gliding .stage-actor-body { animation: none; } }
+
+/* ===== Phase 2: Unit 3 Floor 1 illustration stage (events B–H) ===== */
+.u3f1-stage { position: fixed; inset: 0; z-index: 10; pointer-events: none; background: rgba(4, 5, 9, 0.82); opacity: 0; transition: opacity 600ms ease; }
+.u3f1-stage.is-visible { opacity: 1; }
+.u3f1-stage-frame {
+  position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);
+  width: min(64vw, calc((100svh - 18rem) * 1.777), 1100px); aspect-ratio: 1672 / 941;
+}
+.u3f1-stage-illust { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; opacity: 0; transition: opacity 750ms ease; border-radius: 4px; }
+.u3f1-stage-illust.is-current { opacity: 1; box-shadow: 0 18px 46px rgba(0, 0, 0, 0.55); }
+.u3f1-stage-fog {
+  position: absolute; inset: 0; border-radius: 4px; transition: opacity 2000ms ease; mix-blend-mode: normal;
+  background:
+    radial-gradient(ellipse 70% 55% at 30% 70%, rgba(24, 12, 38, 0.95), transparent 70%),
+    radial-gradient(ellipse 65% 50% at 75% 55%, rgba(16, 8, 28, 0.9), transparent 72%),
+    linear-gradient(180deg, rgba(10, 6, 18, 0.35), rgba(10, 6, 18, 0.85));
+  animation: u3f1-fog-drift 9s ease-in-out infinite alternate;
+}
+@keyframes u3f1-fog-drift { from { background-position: 0 0, 0 0, 0 0; transform: translateX(-1%); } to { transform: translateX(1%); } }
+.u3f1-stage-card {
+  position: absolute; top: 42%; left: 50%; transform: translate(-50%, -50%) scale(0.94);
+  width: min(46vw, calc((100svh - 15rem) * 1.2), 720px); aspect-ratio: 1536 / 1024; opacity: 0;
+  transition: opacity 700ms ease, transform 700ms ease;
+}
+.u3f1-stage-card.is-shown { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.u3f1-stage-card img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; filter: drop-shadow(0 14px 28px rgba(0, 0, 0, 0.6)); }
+.u3f1-card-revealed { opacity: 0; transition: opacity 1600ms ease 300ms; }
+.u3f1-stage-card.is-revealed .u3f1-card-revealed { opacity: 1; }
+.u3f1-stage-card.is-revealed { animation: u3f1-card-glow 2000ms ease-out both; }
+@keyframes u3f1-card-glow { 0% { filter: brightness(1); } 35% { filter: brightness(1.45) drop-shadow(0 0 24px rgba(255, 230, 160, 0.75)); } 100% { filter: brightness(1); } }
+@media (prefers-reduced-motion: reduce) { .u3f1-stage-fog, .u3f1-stage-card.is-revealed { animation: none; } }
+
+/* ===== Phase 2: Unit 3 Floor 1 monster attack VFX (8 frames) ===== */
+.unit3-monster-vfx {
+  position: fixed; z-index: 40; left: 50%; top: 44%; width: min(62vmin, 560px); aspect-ratio: 1;
+  transform: translate(-50%, -50%); pointer-events: none; image-rendering: pixelated;
+  background-repeat: no-repeat; background-size: 800% 100%;
+  animation-name: unit3-monster-vfx-frames; animation-timing-function: steps(7); animation-fill-mode: both;
+}
+@keyframes unit3-monster-vfx-frames { from { background-position: 0% 0; } to { background-position: 100% 0; } }
+.unit3-monster-vfx.vfx-sabre-slash { width: min(80vmin, 720px); }
+
+/* ===== Phase 2: base camp interactions ===== */
+.chapter3-world-overlay { pointer-events: none; }
+.chapter3-camp-hitbox,
+.chapter3-camp-hitbox:hover,
+.chapter3-camp-hitbox:active,
+.chapter3-camp-hitbox:disabled {
+  position: absolute; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none;
+  transform: none; cursor: pointer; pointer-events: auto; outline: none; -webkit-tap-highlight-color: transparent;
+}
+.chapter3-camp-hitbox:disabled { cursor: default; }
+.chapter3-camp-hitbox:focus-visible { outline: 2px dashed rgba(255, 255, 255, 0.85); outline-offset: 2px; }
+.chapter3-camp-hitbox .base-camp-npc-quest-marker { top: -9.4rem; pointer-events: none; }
+/* White pixel outline on the hovered gate (NPC sprites use .is-interaction-highlighted). */
+.dungeon-entrance-layer.is-hover-outlined {
+  filter:
+    drop-shadow(2px 0 0 rgba(255, 255, 255, 0.98)) drop-shadow(-2px 0 0 rgba(255, 255, 255, 0.98))
+    drop-shadow(0 2px 0 rgba(255, 255, 255, 0.98)) drop-shadow(0 -2px 0 rgba(255, 255, 255, 0.98));
+}
+.chapter3-camp-notice {
+  position: fixed; z-index: 120; left: 50%; bottom: max(28px, env(safe-area-inset-bottom)); transform: translateX(-50%);
+  padding: 0.7rem 1.2rem; border: 1px solid rgba(243, 219, 162, 0.8); border-radius: 0.5rem; color: #fff4d2; background: rgba(24, 18, 13, 0.9);
+}
+.chapter3-utility-buttons { z-index: 70; }
+/* Quest reward: four rewards in one row on wide screens; the dialog scrolls instead of overflowing. */
+.chapter3-reward-popup { width: min(860px, calc(100vw - 2rem)); max-height: calc(100svh - 1.5rem); overflow-y: auto; }
+.chapter3-reward-popup .quest-reward-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 14px; }
+.chapter3-reward-popup .quest-reward-grid article { padding: 10px 8px; gap: 6px; }
+.chapter3-reward-popup .quest-reward-grid small { font-size: 0.75rem; line-height: 1.35; }
+@media (max-width: 720px) { .chapter3-reward-popup .quest-reward-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.chapter3-camp-story-overlay { z-index: 110; }
+
+/* ===== Phase 2: story skip next to "처음 화면" ===== */
+.story-player-chapter3 .story-skip-button {
+  position: fixed; z-index: 1100; top: max(14px, env(safe-area-inset-top));
+  right: calc(max(16px, env(safe-area-inset-right)) + 6.4rem);
+  padding: 0.45rem 0.9rem; border: 1px solid rgba(243, 219, 162, 0.8); border-radius: 0.4rem; color: #fff4d2;
+  background: rgba(24, 18, 13, 0.72); font-size: 0.85rem; cursor: pointer;
+}
