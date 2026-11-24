@@ -52,29 +52,33 @@ const ARRIVAL_HOME = { x: 660, y: 600, zoom: 1.6 } as const;
  * left of the command table (facing it); Deneb and Kaiden join directly to the right of the four, and the
  * researcher enters on the far side of the table, facing the party.
  */
+// Phase 2: x re-spaced for the wider 600x700 Theo/Luna/Kaiden frames so no two sprites overlap.
 const four = (exclaim = false): StageActorState[] => [
-  { id: "theo", x: 230, facing: "R", exclaim },
-  { id: "luna", x: 330, facing: "R", exclaim },
+  { id: "theo", x: 220, facing: "R", exclaim },
+  { id: "luna", x: 328, facing: "R", exclaim },
   { id: "aron", x: 430, facing: "R", exclaim },
   { id: "kapp", x: 530, facing: "R", exclaim },
 ];
+// Phase 2: Kaiden first appears with standing_L; once the researcher arrives (far right) Deneb and Kaiden turn to standing_R.
 const commanders: StageActorState[] = [
-  { id: "deneb", x: 630, facing: "L", enter: "fade" },
-  { id: "kaiden", x: 730, facing: "R", enter: "fade" },
+  { id: "deneb", x: 636, facing: "L", enter: "fade" },
+  { id: "kaiden", x: 750, facing: "L", enter: "fade" },
 ];
+const commandersFacingResearcher: StageActorState[] = commanders.map((actor) => ({ ...actor, facing: "R" }));
 const researcher: StageActorState = { id: "researcher", x: 1020, facing: "L", enter: "fade" };
 /** Transfer circles under the six travelling NPCs (the researcher stays at HQ). */
 const withCircle = (actors: StageActorState[]) => actors.map((actor) => actor.id === "researcher" ? actor : { ...actor, circle: true });
-const hqFull = [...four(), ...commanders, researcher];
+const hqFull = [...four(), ...commandersFacingResearcher, researcher];
 
 const arrivalKaiden: StageActorState = { id: "kaiden", x: 540, facing: "R", enter: "warp" };
-const arrivalDeneb: StageActorState = { id: "deneb", x: 650, facing: "L", enter: "warp" };
+const arrivalDeneb: StageActorState = { id: "deneb", x: 655, facing: "L", enter: "warp" };
 
 export const CHAPTER3_INTRO_PHASES: Record<string, StagePhase> = {
   "hq-gather": { map: "hq", actors: four(), camera: HQ_CAMERA, audio: ["bgm-hq"] },
   "hq-exclaim": { map: "hq", actors: four(true), camera: HQ_CAMERA },
   "hq-commanders": { map: "hq", actors: [...four(), ...commanders], camera: HQ_CAMERA },
-  "hq-researcher": { map: "hq", actors: hqFull, camera: HQ_CAMERA, audio: ["bgm-tension"] },
+  // The HQ theme carries on through the researcher's briefing (Hotfix 2: no switch to the tension theme).
+  "hq-researcher": { map: "hq", actors: hqFull, camera: HQ_CAMERA },
   "hq-portal-dim": { map: "hq", actors: hqFull, camera: HQ_CAMERA, dim: true },
   "hq-briefing": { map: "hq", actors: hqFull, camera: HQ_CAMERA },
   "hq-warp-charge": { map: "hq", actors: withCircle(hqFull), camera: HQ_CAMERA, warp: 1, audio: ["warp-start"] },

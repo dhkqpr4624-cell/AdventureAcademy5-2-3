@@ -1,6 +1,6 @@
 import { CHAPTER3_INTRO_SEQUENCE, CHAPTER3_STAGE_ID } from "./data/chapter3/chapter3IntroScript";
 import { CHAPTER3_INTRO_PHASES, STAGE_FOOT_Y } from "./data/chapter3/chapter3IntroStage";
-import { CHAPTER3_STAGE_SPRITES, CHAPTER3_STORY_ACTORS, STAGE_SPRITE_SCALE } from "./data/chapter3/chapter3Actors";
+import { CHAPTER3_STAGE_SPRITES, CHAPTER3_STORY_ACTORS } from "./data/chapter3/chapter3Actors";
 import { RECAP_IMAGES, CHAPTER3_MAP_SIZE } from "./data/chapter3/chapter3Assets";
 import { CHAPTER3_BASE_CAMP_MAP, createChapter3BaseCampNpcs } from "./data/chapter3/chapter3BaseCamp";
 import { completeChapter3Intro, isChapter3IntroCompleted, resolveContinueScreen } from "./app/chapter3Flow";
@@ -98,14 +98,16 @@ export function runChapter3Checks() {
 
   // HQ: Deneb/Kaiden right of the four, no sprite overlap (visible pixel widths), no gaps in the line
   const hq = CHAPTER3_INTRO_PHASES["hq-researcher"].actors;
-  const span = (id: string) => { const actor = hq.find((a) => a.id === id)!; const width = CHAPTER3_STAGE_SPRITES[actor.id].frameWidth * STAGE_SPRITE_SCALE * 0.82; return [actor.x - width / 2, actor.x + width / 2]; };
-  for (const id of ["deneb", "kaiden"]) for (const other of hq.filter((a) => a.id !== id)) {
+  // Visible pixel extents (map px, relative to the foot centre) measured from the standing PNGs (Phase 2 sprites).
+  const VISIBLE: Record<string, [number, number]> = { theo: [-45.6, 44.4], luna: [-63.3, 51], aron: [-49.2, 48.9], kapp: [-47.4, 47.4], deneb: [-56.3, 56.2], kaiden: [-55.5, 55.2], researcher: [-60, 60] };
+  const span = (id: string) => { const actor = hq.find((a) => a.id === id)!; return [actor.x + VISIBLE[id][0], actor.x + VISIBLE[id][1]]; };
+  for (const id of ["theo", "luna", "aron", "kapp", "deneb", "kaiden"]) for (const other of hq.filter((a) => a.id !== id)) {
     const [a0, a1] = span(id); const [b0, b1] = span(other.id);
     assert(a1 <= b0 || b1 <= a0, `${id} overlaps ${other.id}`);
   }
   const four = ["theo", "luna", "aron", "kapp"].map((id) => hq.find((a) => a.id === id)!.x);
   const line = [...four, hq.find((a) => a.id === "deneb")!.x, hq.find((a) => a.id === "kaiden")!.x];
-  assert(line.every((x, index) => index === 0 || (x > line[index - 1] && x - line[index - 1] <= 110)), "party line: four, then Deneb, Kaiden, evenly spaced");
+  assert(line.every((x, index) => index === 0 || (x > line[index - 1] && x - line[index - 1] <= 115)), "party line: four, then Deneb, Kaiden, evenly spaced");
 
   // camera: never shows outside the map for common viewports and every phase
   for (const [w, h] of [[1280, 720], [1366, 768], [1024, 768], [820, 1180], [2560, 1080], [390, 844]]) {
@@ -126,8 +128,8 @@ export function runChapter3Checks() {
   assert(tramLeftAt(0, tram, CHAPTER3_BASE_CAMP_MAP.worldWidth) === CHAPTER3_BASE_CAMP_MAP.worldWidth, "tram enters from off-screen right");
   assert(tramLeftAt(tram.crossingSeconds * 1000, tram, CHAPTER3_BASE_CAMP_MAP.worldWidth) + tram.width === 0, "tram leaves fully on the left");
   assert(tram.crossingSeconds >= 10 && tram.crossingSeconds <= 15, "tram crossing 10–15 s");
-  assert(CHAPTER3_BASE_CAMP_MAP.interactionRegions.length === 0 && !CHAPTER3_BASE_CAMP_MAP.layers.dungeonEntranceButton, "Phase 1: entrance is scenery only");
-  assert(createChapter3BaseCampNpcs().map((npc) => npc.id).sort().join() === "deneb,kaiden", "base camp NPCs (player not drawn)");
+  assert(CHAPTER3_BASE_CAMP_MAP.interactionRegions.length === 0 && !CHAPTER3_BASE_CAMP_MAP.layers.dungeonEntranceButton, "no Unit 2 interaction regions (Unit 3 hitboxes are used)");
+  assert(createChapter3BaseCampNpcs().map((npc) => npc.id).sort().join() === "deneb,kaiden,supply", "base camp NPCs + supply crates (player not drawn)");
 
   // save: separate keys, completion + name persisted, continue goes to the base camp
   assert(Object.values(SAVE_STORAGE_KEYS).every((key) => !UNIT2_SAVE_STORAGE_KEYS.includes(key as never)), "unit3 keys differ from unit2");

@@ -11,17 +11,15 @@ permissions:
   pages: write
   id-token: write
 
+# Allow only one Pages deployment at a time, but never cancel a deployment
+# that is already in progress (a cancelled build leaves deploy with no artifact).
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -38,16 +36,36 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
+      - name: Build (tsc -b && vite build)
         env:
           VITE_BASE_PATH: ${{ github.event.repository.name }}
         run: npm run build
+
+      - name: Verify dist output
+        env:
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          set -euo pipefail
+          test -f dist/index.html || { echo "::error::dist/index.html was not produced"; exit 1; }
+          if grep -q 'src="/src/main.tsx"' dist/index.html; then
+            echo "::error::dist/index.html still references the unbuilt /src/main.tsx entry"; exit 1
+          fi
+          grep -q "/${REPO_NAME}/assets/" dist/index.html || { echo "::error::dist/index.html does not use base /${REPO_NAME}/"; exit 1; }
+          du -sh dist
+          ls dist
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v4
         with:
           path: dist
 
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

@@ -35,6 +35,8 @@ export const FLOOR_DEFINITIONS: readonly FloorDefinition[] = [
   { id: "floor-8", order: 8, title: "8층", questId: "quest-floor-8-goryeo-relations", questionCount: 10 },
   { id: "floor-9", order: 9, title: "9층", questId: "quest-floor-9-goryeo-society-culture", questionCount: 10 },
   { id: "floor-10", order: 10, title: "10층", questId: "quest-floor-10-final-source", questionCount: 0 },
+  // Unit 3 floors are listed after the Unit 2 floors so Unit 2 ordering/unlock logic is unchanged.
+  { id: "unit3-floor-1", order: 101, title: "3단원 1층", questId: "quest-unit3-floor-1", questionCount: 10 },
 ];
 
 export const INITIAL_FLOOR_UNLOCK_STATE: FloorUnlockState = {

@@ -38,6 +38,7 @@ export type BaseCampNpcView = {
   id: string;
   displayName: string;
   displayRole: string;
+  nameTagVariant?: "npc" | "shop";
   placement: { x: number; y: number; width: number; height: number };
   idle: {
     standingImage: string;

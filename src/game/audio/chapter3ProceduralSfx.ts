@@ -192,3 +192,57 @@ export function stopAllChapter3Sfx(fadeMs = 200): void {
 export function getActiveChapter3VoiceCount(): number {
   return voices.size;
 }
+
+/**
+ * Phase 2: a cart tipping over (no audio asset was supplied). Wooden thumps (decaying low sines)
+ * plus a short scatter of filtered noise; nodes are released automatically after ~1.4 s.
+ */
+export function playCartCrash(level = 0.55): void {
+  const ctx = getContext();
+  if (!ctx || !master || !noise) return;
+  const now = ctx.currentTime;
+  const out = ctx.createGain();
+  out.gain.value = level;
+  out.connect(master);
+  const nodes: AudioNode[] = [];
+  const sources: AudioScheduledSourceNode[] = [];
+  [0, 0.11, 0.27, 0.46].forEach((offset, index) => {
+    const thump = ctx.createOscillator();
+    thump.type = "triangle";
+    thump.frequency.setValueAtTime(150 - index * 18, now + offset);
+    thump.frequency.exponentialRampToValueAtTime(48, now + offset + 0.22);
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0.0001, now);
+    env.gain.setValueAtTime(index === 0 ? 1 : 0.7 - index * 0.12, now + offset);
+    env.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.3);
+    thump.connect(env);
+    env.connect(out);
+    thump.start(now + offset);
+    thump.stop(now + offset + 0.35);
+    nodes.push(thump, env);
+    sources.push(thump);
+  });
+  const scatter = ctx.createBufferSource();
+  scatter.buffer = noise;
+  const band = ctx.createBiquadFilter();
+  band.type = "bandpass";
+  band.frequency.value = 1800;
+  band.Q.value = 0.9;
+  const scatterEnv = ctx.createGain();
+  scatterEnv.gain.setValueAtTime(0.0001, now);
+  scatterEnv.gain.linearRampToValueAtTime(0.35, now + 0.05);
+  scatterEnv.gain.exponentialRampToValueAtTime(0.0001, now + 0.9);
+  scatter.connect(band);
+  band.connect(scatterEnv);
+  scatterEnv.connect(out);
+  scatter.start(now);
+  scatter.stop(now + 1);
+  nodes.push(scatter, band, scatterEnv);
+  sources.push(scatter);
+  const voice: Voice = { nodes, sources, out, timer: null };
+  voices.add(voice);
+  voice.timer = window.setTimeout(() => {
+    [...voice.nodes, voice.out].forEach((node) => node.disconnect());
+    voices.delete(voice);
+  }, 1400);
+}

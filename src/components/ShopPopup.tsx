@@ -4,15 +4,17 @@ import { getShopProductMaxQuantity, SHOP_PRODUCTS } from "../game/inventory/shop
 import { ItemIcon } from "./ItemIcon";
 
 export function ShopPopup({
-  inventory, gold, message, onBuy, onClose,
+  inventory, gold, message, onBuy, onClose, eyebrow = "THEO'S SHOP", title = "보급품 상점",
 }: {
   inventory: InventoryState; gold: number; message: string;
   onBuy: (itemId: string) => void; onClose: () => void;
+  /** Header texts (defaults keep the Unit 2 shop unchanged). */
+  eyebrow?: string; title?: string;
 }) {
   return (
     <div className="pixel-popup-backdrop" role="presentation" onMouseDown={onClose}>
       <section className="pixel-rpg-popup shop-popup" role="dialog" aria-modal="true" aria-labelledby="shop-title" onMouseDown={(event) => event.stopPropagation()}>
-        <header><p className="eyebrow">THEO'S SHOP</p><h2 id="shop-title">보급품 상점</h2><button className="pixel-popup-close-button" type="button" onClick={onClose} aria-label="상점 닫기">×</button></header>
+        <header><p className="eyebrow">{eyebrow}</p><h2 id="shop-title">{title}</h2><button className="pixel-popup-close-button" type="button" onClick={onClose} aria-label="상점 닫기">×</button></header>
         <div className="shop-products">
           {SHOP_PRODUCTS.map((product) => {
             const item = getItemDefinition(product.itemId)!;

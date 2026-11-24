@@ -242,6 +242,8 @@ export type StorySequence = {
   skippable: boolean;
   /** Optional data-driven destination used by StoryPlayer's skip control. */
   skipTarget?: { stepId?: string; screen?: ScreenId; complete?: boolean };
+  /** Ignore the skip control for this long after the sequence starts (prevents a double click skipping twice). */
+  skipDelayMs?: number;
   /** Enables the in-dialogue skip control. Completion still uses the normal caller callback. */
   dialogueSkip?: boolean;
   /** Extra class on the StoryPlayer root (chapter-specific presentation). */

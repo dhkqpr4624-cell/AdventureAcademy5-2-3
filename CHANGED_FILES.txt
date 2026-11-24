@@ -1,0 +1,15 @@
+# 추가/수정된 파일 (기준 커밋 651969319cac476a27d88eee6824e676d6cbf0f7 대비, Phase 2 Hotfix 2)
+.github/workflows/deploy.yml
+CHANGED_FILES.txt
+DELETED_FILES.txt
+docs/chapter3/PHASE2_HOTFIX2_REPORT.md
+public/assets/audio/bgm/intro-adventureacademy.wav
+public/assets/audio/bgm/unit3-basecamp.wav
+scripts/bgm-asset-checks.mjs
+src/app/App.tsx
+src/bgmFollowupChecks.ts
+src/data/chapter3/chapter3IntroScript.ts
+src/data/chapter3/chapter3IntroStage.ts
+src/game/audioBgm.ts
+src/game/chapter3/Chapter3IntroPlayer.tsx
+src/game/chapter3/Chapter3IntroStage.tsx

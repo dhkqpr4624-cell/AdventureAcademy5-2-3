@@ -7,6 +7,9 @@ const EXPECTED = [
   { file: "public/assets/audio/bgm/basecamp-bgm.wav", sha256: "6611da1958c7b334995bafb7edd145f90e4aa4002cf77b107322c9105d5fcd23", size: 22233166 },
   { file: "public/assets/audio/bgm/revive-ending-scene.wav", sha256: "197f6b571f14fd89f77f7f883c13f105b63e441e9779c678a113800e43849418", size: 22712398 },
   { file: "public/assets/audio/bgm/save-deneb-dungeon7.wav", sha256: "f9cfb77aa37af96d906cf0591a4713b52c427a2fb649b4d6495538a1877fe430", size: 19062862 },
+  // Phase 2 Hotfix 2: Unit 3 HQ (INTRO_ADVENTUREACADEMY.wav) and base camp (BASECAMP.wav), byte-identical to the supplied masters.
+  { file: "public/assets/audio/bgm/intro-adventureacademy.wav", sha256: "5942121e35a23405b285019fbc8f7c7250445b1cf64d78b992a904ddd5d09cce", size: 23121998 },
+  { file: "public/assets/audio/bgm/unit3-basecamp.wav", sha256: "0b722872966674e83fe303ab34fbcf992afca3b1a4802743e498103b9b23991c", size: 23212110 },
 ];
 
 function check(condition, message) {

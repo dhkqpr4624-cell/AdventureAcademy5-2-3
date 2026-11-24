@@ -9,7 +9,8 @@ export type BgmTrackId =
   | "ending-credit"
   | "save-deneb"
   | "unit3-hq"
-  | "unit3-tension";
+  | "unit3-tension"
+  | "unit3-basecamp";
 
 export type BgmOptions = {
   loop?: boolean;
@@ -31,10 +32,34 @@ export const BGM_URLS: Readonly<Record<BgmTrackId, string>> = {
   reminiscence: `${import.meta.env.BASE_URL}assets/audio/bgm/revive-ending-scene.wav`,
   "ending-credit": `${import.meta.env.BASE_URL}assets/audio/bgm/revive-ending-scene.wav`,
   "save-deneb": `${import.meta.env.BASE_URL}assets/audio/bgm/save-deneb-dungeon7.wav`,
-  // Unit 3 intro: academy HQ theme (Unit 1 academy village theme) and the tense portal theme.
-  "unit3-hq": `${import.meta.env.BASE_URL}assets/audio/village-theme.wav`,
+  // Unit 3 intro: Adventure Academy HQ theme (whole HQ map, through the warp) and the legacy tense portal theme.
+  "unit3-hq": `${import.meta.env.BASE_URL}assets/audio/bgm/intro-adventureacademy.wav`,
   "unit3-tension": `${import.meta.env.BASE_URL}assets/audio/intro-story-theme.wav`,
+  // Unit 3 base camp theme.
+  "unit3-basecamp": `${import.meta.env.BASE_URL}assets/audio/bgm/unit3-basecamp.wav`,
 };
+
+/**
+ * Per-track loudness trim, multiplied into the requested volume. The WAV files stay byte-identical;
+ * the trim brings each master to the integrated loudness of the existing BGM set (basecamp-bgm.wav,
+ * -25.5 LUFS) so every scene keeps its SFX balance at the shared 0.42 volume.
+ *   intro-adventureacademy.wav  -12.2 LUFS  ->  10^((-25.5 + 12.2) / 20) = 0.216
+ *   unit3-basecamp.wav          -19.0 LUFS  ->  10^((-25.5 + 19.0) / 20) = 0.473
+ */
+export const BGM_LOUDNESS_TRIM: Readonly<Partial<Record<BgmTrackId, number>>> = {
+  "unit3-hq": 0.216,
+  "unit3-basecamp": 0.473,
+};
+
+/** When another track replaces one of these, the outgoing track fades out over this many ms instead of cutting. */
+const BGM_RELEASE_MS: Readonly<Partial<Record<BgmTrackId, number>>> = {
+  "unit3-hq": 1000,
+  "unit3-basecamp": 1000,
+};
+
+export function effectiveBgmVolume(id: BgmTrackId, volume = 0.42): number {
+  return Math.max(0, Math.min(1, volume * (BGM_LOUDNESS_TRIM[id] ?? 1)));
+}
 
 type ActiveBgm = {
   id: BgmTrackId;
@@ -45,9 +70,13 @@ type ActiveBgm = {
   restartTimer: number | null;
   rampTimer: number | null;
   targetVolume: number;
+  /** true while fadeOutBgm() ramps this entry to silence (it will be disposed at the end). */
+  fadingOut: boolean;
 };
 
 let activeBgm: ActiveBgm | null = null;
+/** Replaced tracks that are still releasing (fading out). Never more than a short tail; stopBgm() kills them. */
+const releasing = new Set<ActiveBgm>();
 let gestureListenersInstalled = false;
 
 function tryPlayActive(): void {
@@ -63,14 +92,36 @@ function installGestureRetry(): void {
   document.addEventListener("keydown", retry);
 }
 
-function disposeActive(): void {
-  if (!activeBgm) return;
-  if (activeBgm.restartTimer !== null) window.clearTimeout(activeBgm.restartTimer);
-  if (activeBgm.rampTimer !== null) window.clearInterval(activeBgm.rampTimer);
-  activeBgm.audio.onended = null;
-  activeBgm.audio.pause();
-  activeBgm.audio.currentTime = 0;
+function disposeEntry(entry: ActiveBgm): void {
+  if (entry.restartTimer !== null) window.clearTimeout(entry.restartTimer);
+  if (entry.rampTimer !== null) window.clearInterval(entry.rampTimer);
+  entry.restartTimer = null;
+  entry.rampTimer = null;
+  entry.audio.onended = null;
+  entry.audio.pause();
+  entry.audio.currentTime = 0;
+  releasing.delete(entry);
+}
+
+function disposeReleasing(): void {
+  for (const entry of [...releasing]) disposeEntry(entry);
+}
+
+/** Drops the active track: cut, or — for tracks with a release time — a short fade-out tail. */
+function disposeActive(allowRelease = false): void {
+  const entry = activeBgm;
+  if (!entry) return;
   activeBgm = null;
+  const releaseMs = allowRelease ? BGM_RELEASE_MS[entry.id] ?? 0 : 0;
+  if (releaseMs > 0 && !entry.audio.paused) {
+    if (entry.restartTimer !== null) window.clearTimeout(entry.restartTimer);
+    entry.restartTimer = null;
+    entry.audio.onended = null;
+    releasing.add(entry);
+    rampVolume(entry, 0, releaseMs, () => disposeEntry(entry));
+    return;
+  }
+  disposeEntry(entry);
 }
 
 export function playBgm(
@@ -81,19 +132,24 @@ export function playBgm(
   if (typeof Audio === "undefined") return;
   if (activeBgm?.exclusive && activeBgm.id !== id) return;
   if (activeBgm?.id === id) {
+    // Requested again while it fades out (e.g. re-entering a scene mid-fade): keep the same element and bring it back.
+    if (activeBgm.fadingOut) {
+      activeBgm.fadingOut = false;
+      rampVolume(activeBgm, activeBgm.targetVolume, Math.max(300, options.fadeInMs ?? 600));
+    }
     tryPlayActive();
     return;
   }
 
-  disposeActive();
+  disposeActive(true);
   const audio = new Audio(url);
   const restartDelayMs = Math.max(0, options.restartDelayMs ?? 0);
   const restartDelayRangeMs = options.restartDelayRangeMs;
   audio.preload = "auto";
-  const targetVolume = Math.max(0, Math.min(1, options.volume ?? 0.42));
+  const targetVolume = effectiveBgmVolume(id, options.volume ?? 0.42);
   audio.volume = options.fadeInMs ? 0 : targetVolume;
   audio.loop = Boolean(options.loop) && restartDelayMs === 0;
-  activeBgm = { id, audio, restartDelayMs, restartDelayRangeMs, exclusive: Boolean(options.exclusive), restartTimer: null, rampTimer: null, targetVolume };
+  activeBgm = { id, audio, restartDelayMs, restartDelayRangeMs, exclusive: Boolean(options.exclusive), restartTimer: null, rampTimer: null, targetVolume, fadingOut: false };
   if (options.fadeInMs) rampVolume(activeBgm, targetVolume, options.fadeInMs);
 
   if (restartDelayMs > 0 || restartDelayRangeMs) {
@@ -134,12 +190,23 @@ function rampVolume(entry: ActiveBgm, to: number, durationMs: number, onDone?: (
 export function fadeOutBgm(durationMs: number, id?: BgmTrackId): Promise<void> {
   const entry = activeBgm;
   if (!entry || (id && entry.id !== id)) return Promise.resolve();
+  entry.fadingOut = true;
   return new Promise((resolve) => {
     rampVolume(entry, 0, durationMs, () => {
-      if (activeBgm === entry) disposeActive();
+      if (activeBgm === entry && entry.fadingOut) disposeActive();
       resolve();
     });
   });
+}
+
+/**
+ * Temporarily lowers the active track to `factor` x its target volume (e.g. under an important effect).
+ * It keeps playing; the next fadeOutBgm() / track change takes it from there.
+ */
+export function duckBgm(factor: number, durationMs: number, id?: BgmTrackId): void {
+  const entry = activeBgm;
+  if (!entry || entry.fadingOut || (id && entry.id !== id)) return;
+  rampVolume(entry, Math.max(0, Math.min(1, entry.targetVolume * factor)), durationMs);
 }
 
 /** Lower the active BGM, then start `id` with a fade-in (one track at a time, never overlapping twice). */
@@ -149,10 +216,43 @@ export function crossfadeBgm(id: BgmTrackId, fadeOutMs: number, options: BgmOpti
 }
 
 export function stopBgm(id?: BgmTrackId): void {
+  if (!id) disposeReleasing();
   if (!activeBgm || (id && activeBgm.id !== id)) return;
   disposeActive();
 }
 
 export function getActiveBgmId(): BgmTrackId | null {
   return activeBgm?.id ?? null;
+}
+
+export type BgmDebugState = {
+  id: BgmTrackId | null;
+  src: string | null;
+  paused: boolean | null;
+  loop: boolean | null;
+  volume: number | null;
+  targetVolume: number | null;
+  currentTime: number | null;
+  fadingOut: boolean;
+  releasing: { id: BgmTrackId; volume: number; paused: boolean }[];
+};
+
+/** Read-only snapshot of the BGM manager (used by the browser regression scripts). */
+export function getBgmDebugState(): BgmDebugState {
+  const entry = activeBgm;
+  return {
+    id: entry?.id ?? null,
+    src: entry?.audio.src ?? null,
+    paused: entry ? entry.audio.paused : null,
+    loop: entry ? entry.audio.loop : null,
+    volume: entry ? entry.audio.volume : null,
+    targetVolume: entry?.targetVolume ?? null,
+    currentTime: entry ? entry.audio.currentTime : null,
+    fadingOut: entry?.fadingOut ?? false,
+    releasing: [...releasing].map((item) => ({ id: item.id, volume: item.audio.volume, paused: item.audio.paused })),
+  };
+}
+
+if (typeof window !== "undefined") {
+  (window as unknown as { __aaBgmDebug?: () => BgmDebugState }).__aaBgmDebug = getBgmDebugState;
 }

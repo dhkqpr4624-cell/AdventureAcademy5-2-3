@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type {
   BaseCampInteractionRegion,
   BaseCampMapDefinition,
@@ -33,6 +33,8 @@ type BaseCampWorldProps = {
   jeonSick?: boolean;
   /** Replace the Unit 2 NPC roster with scenery NPCs (no dialogue / quest wiring). */
   npcViews?: readonly BaseCampNpcView[];
+  viewHighlightId?: string | null;
+  worldOverlay?: ReactNode;
 };
 
 type LayerName = keyof BaseCampMapDefinition["layers"];
@@ -65,6 +67,8 @@ export function BaseCampWorld({
   visibleNpcIds,
   jeonSick = false,
   npcViews,
+  viewHighlightId = null,
+  worldOverlay,
 }: BaseCampWorldProps) {
   const [highlightedNpcId, setHighlightedNpcId] = useState<string | null>(null);
   const [dungeonEntranceHighlighted, setDungeonEntranceHighlighted] =
@@ -166,7 +170,7 @@ export function BaseCampWorld({
         {renderLayerImage("foreground")}
       </div>
       <div
-        className="base-camp-layer dungeon-entrance-layer"
+        className={`base-camp-layer dungeon-entrance-layer ${viewHighlightId === "dungeonEntrance" ? "is-hover-outlined" : ""}`}
         style={{ zIndex: BASE_CAMP_LAYER.structures }}
         aria-hidden="true"
       >
@@ -199,9 +203,9 @@ export function BaseCampWorld({
       >
         {npcViews?.map((npc) => (
           <div key={npc.id} className="base-camp-npc-view" data-npc={npc.id}>
-            <NpcIdleSprite npc={npc} selected={false} interactionHighlighted={false} mirrored={npc.mirrored} />
+            <NpcIdleSprite npc={npc} selected={false} interactionHighlighted={viewHighlightId === npc.id} mirrored={npc.mirrored} />
             <span className="base-camp-npc-view-tag" style={{ left: npc.placement.x, top: npc.placement.y, width: npc.placement.width, height: npc.placement.height }}>
-              <NpcNameTag displayName={npc.displayName} displayRole={npc.displayRole} />
+              <NpcNameTag displayName={npc.displayName} displayRole={npc.displayRole} variant={npc.nameTagVariant} />
             </span>
           </div>
         ))}
@@ -326,6 +330,7 @@ export function BaseCampWorld({
           ),
         )}
       </div>
+      {worldOverlay && <div className="base-camp-layer chapter3-world-overlay" style={{ zIndex: BASE_CAMP_LAYER.interactionOverlay + 1 }}>{worldOverlay}</div>}
       <div
         className="base-camp-layer highlight-layer"
         style={{ zIndex: BASE_CAMP_LAYER.highlight }}

@@ -1,5 +1,5 @@
 import type { StorySequence, StoryStep } from "../../types/story";
-import { CHAPTER3_STORY_ACTORS } from "./chapter3Actors";
+import { CHAPTER3_STAGE_SPRITES, CHAPTER3_STORY_ACTORS } from "./chapter3Actors";
 import { CHAPTER3_ASSETS, RECAP_IMAGES } from "./chapter3Assets";
 import { ARRIVAL_DROP_MS } from "./chapter3IntroStage";
 
@@ -107,12 +107,12 @@ const HQ_STEPS: StoryStep[] = [
   d("kaiden", "smile", "선배님과 함께라니, 든든하군요."),
   d("luna", "default", "어? 카이든 대장님이 후배였어요?"),
   d("deneb", "smile", "후후. 처음에는 제 뒤를 아주 조용히 따라다녔답니다."),
-  d("kaiden", "default", "…그 이야기는 하지 않으셔도 됩니다."),
+  d("kaiden", "shame", "…그 이야기는 하지 않으셔도 됩니다."),
   d("kapp", "smile", "흥미로운 이야기인데요? 조금 더 듣고 싶어졌어요."),
   d("aron", "smile", "임무가 끝난 뒤에 들려주시면 좋겠습니다."),
-  d("kaiden", "default", "아론, 자네까지 그러는 건가."),
+  d("kaiden", "shame", "아론, 자네까지 그러는 건가."),
 
-  // 연구원 등장과 포탈 현황 (본부 BGM → 긴장 BGM)
+  // 연구원 등장과 포탈 현황 (본부 BGM 유지)
   stage("hq-researcher", 1200),
   d("researcher", "serious", "모두 모이셨군요. 바로 상황을 설명하겠습니다."),
   d("deneb", "default", "무슨 일이 생겼나요?"),
@@ -162,6 +162,8 @@ const HQ_STEPS: StoryStep[] = [
 ];
 
 const ARRIVAL_STEPS: StoryStep[] = [
+  // Starts on black — the HQ ends faded out, and a skip from the HQ lands here with the same first frame.
+  fade("out", 0),
   wait(500),
   stage("arrival-landing", 0, true, "arrival-start"),
   wait(1300),
@@ -228,16 +230,39 @@ const ARRIVAL_STEPS: StoryStep[] = [
   fade("out", 700),
 ];
 
-export const CHAPTER3_INTRO_SEQUENCE: StorySequence = {
-  id: CHAPTER3_INTRO_STORY_ID,
-  title: "3단원 인트로",
+/**
+ * Intro states: HQ_INTRO → ARRIVAL_INTRO → BASE_CAMP. Each map is its own sequence, so "건너뛰기"
+ * moves exactly one state forward:
+ *   HQ_INTRO      → ARRIVAL_INTRO (the arrival map from its first step: black, landing, wind, warp-in…)
+ *   ARRIVAL_INTRO → BASE_CAMP     (intro completion is recorded exactly as when it is played to the end)
+ */
+export type Chapter3IntroState = "HQ_INTRO" | "ARRIVAL_INTRO" | "BASE_CAMP";
+export const CHAPTER3_INTRO_HQ_STORY_ID = "chapter3-intro-hq";
+export const CHAPTER3_INTRO_ARRIVAL_STORY_ID = "chapter3-intro-arrival";
+/** A skip right after a map starts is ignored (no double-click skipping two states at once). */
+export const CHAPTER3_INTRO_SKIP_GUARD_MS = 900;
+
+const introPart = (storyId: string, title: string, sceneId: string, steps: StoryStep[]): StorySequence => ({
+  id: storyId,
+  title,
   className: "story-player-chapter3",
   minInputDwellMs: 280,
   backgrounds: {},
   actors: CHAPTER3_STORY_ACTORS,
   replayable: false,
-  skippable: false,
+  skippable: true,
+  skipTarget: { complete: true },
+  skipDelayMs: CHAPTER3_INTRO_SKIP_GUARD_MS,
   onCompleteScreen: "baseCamp",
+  scenes: [{ id: sceneId, steps }],
+});
+
+export const CHAPTER3_INTRO_HQ_SEQUENCE: StorySequence = introPart(CHAPTER3_INTRO_HQ_STORY_ID, "3단원 인트로 — 작전본부", "chapter3-hq", HQ_STEPS);
+export const CHAPTER3_INTRO_ARRIVAL_SEQUENCE: StorySequence = introPart(CHAPTER3_INTRO_ARRIVAL_STORY_ID, "3단원 인트로 — 던전 도착", "chapter3-arrival", ARRIVAL_STEPS);
+
+/** The whole intro as one sequence (data view used by the checks; the player runs the two parts). */
+export const CHAPTER3_INTRO_SEQUENCE: StorySequence = {
+  ...introPart(CHAPTER3_INTRO_STORY_ID, "3단원 인트로", "chapter3-hq", HQ_STEPS),
   scenes: [
     { id: "chapter3-hq", steps: HQ_STEPS },
     { id: "chapter3-arrival", steps: ARRIVAL_STEPS },
@@ -253,4 +278,9 @@ export const CHAPTER3_INTRO_IMAGE_URLS: string[] = [
   CHAPTER3_ASSETS.vfx.exclamationSheet,
   CHAPTER3_ASSETS.illust.nationSwallowingPortal,
   ...Object.values(RECAP_IMAGES),
+  // standing frames and blink sheets of every stage actor (decoded before the first frame — no blank blink)
+  ...Object.values(CHAPTER3_STAGE_SPRITES).flatMap((sprite) => [
+    ...Object.values(sprite.images),
+    ...(sprite.blink ? Object.values(sprite.blink.images) : []),
+  ]),
 ];

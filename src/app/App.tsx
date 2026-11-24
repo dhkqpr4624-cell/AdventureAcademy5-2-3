@@ -8,19 +8,22 @@ import { applySaveDataToGameState, createInitialGameSaveState, createSaveDataFro
 import type { SaveReason } from "../save/saveTypes";
 import { PlayerNamePopup } from "../components/PlayerNamePopup";
 import { playRandomizedOneShot } from "../game/audioOneShot";
-import { playBgm, stopBgm } from "../game/audioBgm";
+import { fadeOutBgm, playBgm, stopBgm } from "../game/audioBgm";
 import { stopAllChapter3Sfx } from "../game/audio/chapter3ProceduralSfx";
 import { completeChapter3Intro, resolveContinueScreen } from "./chapter3Flow";
+import type { SetStateAction } from "react";
+import { UNIT3_FLOOR1_FLAGS, UNIT3_FLOOR1_ID, UNIT3_FLOOR1_QUEST_ID, finishUnit3Floor1Run, markUnit3Flag } from "../game/chapter3/unit3Floor1";
 
 const StoryScreen = lazy(() => import("../screens/StoryScreen/StoryScreen").then((module) => ({ default: module.StoryScreen })));
+const DungeonScreen = lazy(() => import("../screens/DungeonScreen/DungeonScreen").then((module) => ({ default: module.DungeonScreen })));
 const Chapter3BaseCampScreen = lazy(() => import("../screens/Chapter3BaseCamp/Chapter3BaseCampScreen").then((module) => ({ default: module.Chapter3BaseCampScreen })));
 
 const BUTTON_CLICK_SFX_URL = `${import.meta.env.BASE_URL}assets/audio/button-clicked-sfx.mp3`;
 
 /**
- * Unit 3 (5학년 2학기 3단원) — Phase 1 flow:
- * title → new game → name → intro (작전본부 → 던전 도착) → base camp.
- * Dungeon / question / boss screens are kept in the codebase as reusable systems but are not routed in Phase 1.
+ * Unit 3 (5학년 2학기 3단원) — Phase 2 flow:
+ * title → new game → name → intro (작전본부 → 던전 도착) → base camp ⇄ dungeon Floor 1.
+ * Unit 2 floors stay in the codebase as reusable systems but are not routed from the Unit 3 base camp.
  */
 export function App() {
   const loaded = useRef(SaveManager.load());
@@ -48,10 +51,15 @@ export function App() {
     gameRef.current = next;
     setGame(next);
   }, []);
+  /** Functional update against the latest state (ref first, so an immediate save sees it). */
+  const updateGame = useCallback((update: (current: GameSaveState) => GameSaveState) => {
+    commitGame(update(gameRef.current));
+  }, [commitGame]);
   const navigate = useCallback((screen: ScreenId) => {
     if (screen !== "story") stopAllChapter3Sfx(250);
-    // Phase 1 has no dungeon/question route: anything else falls back to the title.
-    setCurrentScreen(screen === "story" || screen === "baseCamp" ? screen : "title");
+    // Unit 3 routes: intro story, base camp and the Floor 1 dungeon; anything else falls back to the title.
+    const dungeonAllowed = screen === "dungeon" && gameRef.current.floorUnlockState.unlockedFloorIds.includes(UNIT3_FLOOR1_ID);
+    setCurrentScreen(screen === "story" || screen === "baseCamp" || dungeonAllowed ? screen : "title");
     if (screen === "baseCamp") requestSave("baseCampEntered");
   }, [requestSave]);
   const hydrate = (data: ReturnType<typeof snapshot>) => {
@@ -93,13 +101,18 @@ export function App() {
 
   useEffect(() => {
     if (currentScreen === "baseCamp") {
-      playBgm("village", undefined, { loop: true, volume: 0.42, fadeInMs: 1500 });
+      // Base camp theme: loops through NPC talk, the shop and quest dialogue (all overlays on this screen).
+      // Entering the dungeon fades it out (1.2 s, below); returning / continuing starts it again.
+      playBgm("unit3-basecamp", undefined, { loop: true, volume: 0.42, fadeInMs: 1500 });
       return;
     }
     if (currentScreen === "title") {
       stopBgm();
       stopAllChapter3Sfx(200);
+      return;
     }
+    // Leaving the base camp (dungeon entry): the camp theme fades out instead of carrying into the dungeon.
+    void fadeOutBgm(1200, "unit3-basecamp");
     // The intro (story) drives its own BGM / ambience through the chapter3 stage.
   }, [currentScreen]);
 
@@ -118,7 +131,43 @@ export function App() {
           setCurrentScreen("baseCamp");
         }}
       />;
-      case "baseCamp": return <Chapter3BaseCampScreen playerState={game.playerState} onNavigate={navigate} />;
+      case "baseCamp": return <Chapter3BaseCampScreen game={game} updateGame={updateGame} requestSave={requestSave} onNavigate={navigate} />;
+      case "dungeon": {
+        const applyState = <T,>(value: SetStateAction<T>, current: T): T => typeof value === "function" ? (value as (previous: T) => T)(current) : value;
+        return <DungeonScreen
+          key="unit3-floor-1"
+          floorId={UNIT3_FLOOR1_ID}
+          onNavigate={navigate}
+          playerState={game.playerState}
+          setPlayerState={(value) => updateGame((current) => ({ ...current, playerState: applyState(value, current.playerState) }))}
+          inventoryState={game.inventoryState}
+          setInventoryState={(value) => updateGame((current) => ({ ...current, inventoryState: applyState(value, current.inventoryState) }))}
+          onInventoryChanged={() => requestSave("itemAcquired")}
+          onGoldAwarded={() => requestSave("itemAcquired")}
+          onDungeonEntered={() => { updateGame((current) => ({ ...current, currentFloorId: UNIT3_FLOOR1_ID })); requestSave("dungeonEntered"); }}
+          onDungeonAbandoned={(reason) => updateGame((current) => ({
+            ...current,
+            currentFloorId: null,
+            currentFloorRun: null,
+            playerState: reason === "defeat" ? { ...current.playerState, currentHp: current.playerState.maxHp } : current.playerState,
+          }))}
+          // Every entry starts a fresh run; persisted story flags keep finished events from replaying.
+          savedFloorRun={null}
+          onFloorRunChanged={() => undefined}
+          firstObjectiveEventSeen={Boolean(game.firstObjectiveEventSeen[UNIT3_FLOOR1_FLAGS.finalStory])}
+          floor1StartStorySeen
+          storyFlags={game.firstObjectiveEventSeen}
+          onStoryEventSeen={(eventId) => { updateGame((current) => markUnit3Flag(current, eventId)); requestSave("storyCompleted", true); }}
+          onCollectionRunReset={() => undefined}
+          onObjectiveAcquired={(correctCount) => updateGame((current) => ({ ...current, floorBestCorrect: { ...current.floorBestCorrect, [UNIT3_FLOOR1_ID]: Math.max(current.floorBestCorrect[UNIT3_FLOOR1_ID] ?? 0, correctCount) } }))}
+          onBestCorrect={(correctCount) => updateGame((current) => ({ ...current, floorBestCorrect: { ...current.floorBestCorrect, [UNIT3_FLOOR1_ID]: Math.max(current.floorBestCorrect[UNIT3_FLOOR1_ID] ?? 0, correctCount) } }))}
+          floorQuestStarted={game.questState[UNIT3_FLOOR1_QUEST_ID] === "active" || game.questState[UNIT3_FLOOR1_QUEST_ID] === "completed"}
+          floorQuestStatus={game.questState[UNIT3_FLOOR1_QUEST_ID] ?? "locked"}
+          onFloorCleared={() => { updateGame((current) => finishUnit3Floor1Run(current)); requestSave("floorCleared", true); }}
+          onDungeon10EndingStarted={() => undefined}
+          onDungeon10EndingComplete={() => undefined}
+        />;
+      }
       default: return <TitleScreen
         onOpenSettings={() => setSettingsOpen(true)}
         hasSave={SaveManager.load().success}

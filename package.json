@@ -1,7 +1,7 @@
 {
   "name": "adventure-academy",
   "private": true,
-  "version": "0.3.0-unit3-phase1",
+  "version": "0.4.0-unit3-phase2",
   "type": "module",
   "scripts": {
     "dev": "vite",
