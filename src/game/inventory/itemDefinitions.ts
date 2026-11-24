@@ -28,6 +28,12 @@ export const ITEM_DEFINITION_REGISTRY: Record<string, ItemDefinition> = {
     rarity: "common", description: "아카데미에서 지급한 기본 목검이다.",
     icon: `${import.meta.env.BASE_URL}assets/items/basic-sword.png`, stackable: false,
   },
+  // Unit 3 Floor 1 quest reward: cosmetic only (no stats), default physical hit VFX (no attackVfxId).
+  "weapon-uibyeong-hwando": {
+    id: "weapon-uibyeong-hwando", name: "의병의 환도", type: "weaponSkin",
+    rarity: "rare", description: "나라를 지키려고 모인 의병들이 사용하던 칼을 본뜬 무기.",
+    icon: `${import.meta.env.BASE_URL}assets/items/uibyeong-hwando.png`, stackable: false,
+  },
   "weapon-gojoseon-bronze-dagger": {
     id: "weapon-gojoseon-bronze-dagger", name: "고조선 비파형 동검", type: "weaponSkin",
     rarity: "rare", description: "고조선의 비파형 동검을 본뜬 희귀 무기 스킨이다.",

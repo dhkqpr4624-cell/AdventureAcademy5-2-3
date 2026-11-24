@@ -10,7 +10,7 @@ import { runNormalCombatChecks } from "../../game/combat/normalCombatChecks";
 import { runCriticalChecks } from "../../game/combat/criticalChecks";
 import { runPotionChecks } from "../../game/combat/potionChecks";
 import { runEliteCombatChecks } from "../../game/combat/eliteCombatChecks";
-import { POWERFUL_IMPACT_VFX } from "../../game/combat/attackVfxDefinitions";
+import { POWERFUL_IMPACT_VFX, UIBYEONG_HWANDO_SLASH_VFX } from "../../game/combat/attackVfxDefinitions";
 import { runDungeonMapChecks } from "../../game/dungeon/dungeonMapChecks";
 import { runDungeonCameraChecks } from "../../game/dungeon/dungeonCameraChecks";
 import { runDungeonCompletionChecks } from "../../game/dungeon/dungeonCompletionChecks";
@@ -155,6 +155,8 @@ import {
 } from "../../game/quest/itemCollectionQuestRules";
 import type { QuestStatus } from "../../game/quest/questTypes";
 import { createDungeon4SeaEnvironment } from "../../three/dungeon/Dungeon4SeaEnvironment";
+import { createGyeongseongEnvironment, GYEONGSEONG_CAMERA_FAR } from "../../three/dungeon/gyeongseong/GyeongseongEnvironment";
+import { toGyeongseongVisualMap } from "../../three/dungeon/gyeongseong/gyeongseongLayout";
 import { StoryPlayer } from "../../game/story/StoryPlayer";
 import { DUNGEON5_ENTRY_STORY, DUNGEON5_FINAL_STORY } from "../../data/stories/dungeon5Stories";
 import { DUNGEON6_CLUE_STORIES, DUNGEON6_ENTRY_STORY, DUNGEON6_FINAL_STORY } from "../../data/stories/dungeon6Stories";
@@ -175,6 +177,17 @@ import {
 } from "../../game/dungeon/dungeon10Map";
 import { Dungeon10BossPresentation } from "../../three/dungeon/Dungeon10BossPresentation";
 import { selectRequiredStoryRoomIds } from "../../game/dungeon/generation/DungeonGenerator";
+import {
+  UNIT3_FLOOR1_FLAGS, UNIT3_FLOOR1_ID, UNIT3_FLOOR1_STORY_FLAGS, allStoryEventsDone, applyUnit3Floor1Progress,
+  findCartRoomId, getStoryIndexForRoom, hasFlag, prepareUnit3Floor1Map,
+} from "../../game/chapter3/unit3Floor1";
+import {
+  UNIT3_FLOOR1_CART_AFTER_STORY, UNIT3_FLOOR1_CART_CRASH_CHECKPOINT, UNIT3_FLOOR1_CART_INTRO_STORY, UNIT3_FLOOR1_FINAL_STORY,
+  UNIT3_FLOOR1_POST_EVENTS_STORY, UNIT3_FLOOR1_STAGE_ID, UNIT3_FLOOR1_START_STORY, UNIT3_FLOOR1_STORY_ROOM_STORIES,
+} from "../../data/chapter3/floor1Stories";
+import { Unit3Floor1Stage } from "../../game/chapter3/Unit3Floor1Stage";
+import { playCartCrash } from "../../game/audio/chapter3ProceduralSfx";
+import { getUnit3MonsterAttackVfx, Unit3MonsterAttackVfx, UNIT3_MONSTER_ATTACK_LEAD_MS } from "../../game/chapter3/Unit3MonsterAttackVfx";
 import { BossCombatScreen } from "../BossCombatScreen/BossCombatScreen";
 import { Dungeon10FinalSequence } from "../Dungeon10Final/Dungeon10FinalSequence";
 import { Dungeon10BossRoomCollapse } from "../../three/dungeon/Dungeon10BossRoomCollapse";
@@ -206,6 +219,8 @@ type DungeonScreenProps = {
   onFloorRunChanged: (run: DungeonFloorRunState) => void;
   onDungeon10EndingStarted: () => void;
   onDungeon10EndingComplete: () => void;
+  /** Unit 3: persisted story flags (firstObjectiveEventSeen). */
+  storyFlags?: Readonly<Record<string, boolean>>;
 };
 
 const HIT_SFX_URL = `${import.meta.env.BASE_URL}assets/audio/hit-sfx.mp3`;
@@ -284,6 +299,9 @@ export function prepareFloorDungeonMap(
   floorId: FloorId,
   seed: string,
 ): DungeonMapDefinition {
+  // Logical layout (events/gates) first, then the visual spread for the wide Gyeongseong streets —
+  // only positions change, so the room graph and every story condition stay identical.
+  if (floorId === UNIT3_FLOOR1_ID) return toGyeongseongVisualMap(prepareUnit3Floor1Map(map, seed));
   const baseMap = floorId === "floor-1" || floorId === "floor-2" || floorId === "floor-6" || floorId === "floor-7" || floorId === "floor-8" || floorId === "floor-9" ? map : {
     ...map,
     rooms: map.rooms.filter((room) => !room.id.startsWith("room-story-")),
@@ -442,7 +460,9 @@ export function DungeonScreen({
   onFloorRunChanged,
   onDungeon10EndingStarted,
   onDungeon10EndingComplete,
+  storyFlags = {},
 }: DungeonScreenProps) {
+  const isUnit3Floor1 = floorId === UNIT3_FLOOR1_ID;
   const activeFloorNumber = getFloorNumber(floorId);
   const questStoryEnabled = floorQuestStatus !== "completed";
   const shouldRestoreSavedFloorRun =
@@ -540,6 +560,9 @@ export function DungeonScreen({
         }
       });
     }
+    if (floorId === UNIT3_FLOOR1_ID) {
+      return applyUnit3Floor1Progress(dungeonMap, restored, storyFlags);
+    }
     if ((floorId === "floor-2" || floorId === "floor-3" || floorId === "floor-4" || floorId === "floor-5" || floorId === "floor-6" || floorId === "floor-7" || floorId === "floor-8" || floorId === "floor-10") && !shouldRestoreSavedFloorRun && restored[dungeonMap.startRoomId]) {
       restored[dungeonMap.startRoomId] = { roomId: dungeonMap.startRoomId, eventCompleted: false };
     }
@@ -547,6 +570,17 @@ export function DungeonScreen({
   })());
 
   const [phase, setPhase] = useState<NormalCombatPhase>("intro");
+  /** Unit 3 Floor 1 event overlay currently playing (null = none). */
+  const [u3Story, setU3Story] = useState<{ kind: "start" | "cartIntro" | "cartAfter" | "room" | "postEvents" | "final"; index?: number; roomId?: string } | null>(null);
+  /** Flags written during this run (the prop updates asynchronously after onStoryEventSeen). */
+  const u3FlagsRef = useRef<Record<string, boolean>>({ ...storyFlags });
+  const u3Flag = (flag: string) => hasFlag(u3FlagsRef.current, flag);
+  const setU3Flag = (flag: string) => {
+    if (u3FlagsRef.current[flag]) return;
+    u3FlagsRef.current = { ...u3FlagsRef.current, [flag]: true };
+    onStoryEventSeen(flag);
+  };
+  const [u3MonsterVfx, setU3MonsterVfx] = useState<{ id: string; key: number } | null>(null);
   const [floorIntroVisible, setFloorIntroVisible] = useState(true);
   const [floor5EntryStoryVisible, setFloor5EntryStoryVisible] = useState(false);
   const [floor1EntryStoryVisible, setFloor1EntryStoryVisible] = useState(false);
@@ -618,7 +652,7 @@ export function DungeonScreen({
   );
   const [floatingText, setFloatingText] = useState<string | null>(null);
   const [damageFlash, setDamageFlash] = useState(false);
-  const [attackVfxVisible, setAttackVfxVisible] = useState<"fire-attack" | "water-thunderbolt" | "ink-brush-attack" | "powerful-impact" | null>(null);
+  const [attackVfxVisible, setAttackVfxVisible] = useState<"fire-attack" | "water-thunderbolt" | "ink-brush-attack" | "powerful-impact" | "uibyeong-hwando-slash" | null>(null);
   const [resolution, setResolution] =
     useState<CombatResolution | null>(null);
   const [goldDrop, setGoldDrop] = useState(0);
@@ -653,7 +687,7 @@ export function DungeonScreen({
     const weaponDefinition = weaponId ? getItemDefinition(weaponId) : null;
     if (!weaponDefinition || weaponDefinition.type !== "weaponSkin") return;
     const attackVfxId = weaponDefinition.attackVfxId ?? "fire-attack";
-    if (attackVfxId !== "fire-attack" && attackVfxId !== "water-thunderbolt" && attackVfxId !== "ink-brush-attack" && attackVfxId !== "powerful-impact") return;
+    if (attackVfxId !== "fire-attack" && attackVfxId !== "water-thunderbolt" && attackVfxId !== "ink-brush-attack" && attackVfxId !== "powerful-impact" && attackVfxId !== UIBYEONG_HWANDO_SLASH_VFX.id) return;
     setAttackVfxVisible(attackVfxId);
     await new Promise<void>((resolve) => {
       fireAttackResolveRef.current = resolve;
@@ -661,7 +695,7 @@ export function DungeonScreen({
         fireAttackTimerRef.current = null;
         fireAttackResolveRef.current = null;
         resolve();
-      }, attackVfxId === "powerful-impact" ? POWERFUL_IMPACT_VFX.durationMs : 1000);
+      }, attackVfxId === "powerful-impact" ? POWERFUL_IMPACT_VFX.durationMs : attackVfxId === UIBYEONG_HWANDO_SLASH_VFX.id ? UIBYEONG_HWANDO_SLASH_VFX.durationMs : 1000);
     });
     if (!mountedRef.current) return;
     setAttackVfxVisible(null);
@@ -748,6 +782,16 @@ export function DungeonScreen({
         setDungeonMode("roomEvent");
         setFloor8EntryStoryVisible(true);
       }
+      if (questStoryEnabled && floorId === UNIT3_FLOOR1_ID && floorQuestStarted && currentRoomId === dungeonMap.startRoomId) {
+        if (!u3Flag(UNIT3_FLOOR1_FLAGS.startEvent)) {
+          setDungeonMode("roomEvent");
+          setU3Story({ kind: "start" });
+        } else if (allStoryEventsDone(u3FlagsRef.current) && !u3Flag(UNIT3_FLOOR1_FLAGS.postEventTalk)) {
+          // A reload interrupted the post-event talk: play it on the next exploration screen.
+          setDungeonMode("roomEvent");
+          setU3Story({ kind: "postEvents" });
+        }
+      }
       if (questStoryEnabled && floorId === "floor-10" && floorQuestStarted && currentRoomId === dungeonMap.startRoomId && !roomProgressRef.current[dungeonMap.startRoomId]?.eventCompleted) {
         setDungeonMode("roomEvent");
         setFloor10EntryStoryVisible(true);
@@ -766,6 +810,7 @@ export function DungeonScreen({
     !floor5EntryStoryVisible && !floor5FinalStoryVisible &&
     !floor6EntryStoryVisible && !floor7EntryStoryVisible && !floor8EntryStoryVisible && !floor7RescueStoryVisible && floor6ClueStoryIndex === null && floor7ClueStoryIndex === null && floor8ClueStoryIndex === null && floor9ClueStoryIndex === null &&
     !floor10EntryStoryVisible && floor10BossPhase === "idle" &&
+    u3Story === null &&
     finalGateDialogueStep === null;
 
   useEffect(() => {
@@ -883,12 +928,14 @@ export function DungeonScreen({
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x090b10);
 
-    const camera = new THREE.PerspectiveCamera(64, 1, 0.1, 100);
+    const camera = new THREE.PerspectiveCamera(64, 1, 0.1, floorId === UNIT3_FLOOR1_ID ? GYEONGSEONG_CAMERA_FAR : 100);
     const initialRoom = getDungeonRoom(currentRoomId);
     camera.position.set(...initialRoom.explorationCameraPose.position);
     camera.lookAt(...initialRoom.explorationCameraPose.lookAt);
     scene.add(camera);
     const dungeonCamera = new DungeonCameraController(camera);
+    // 3× longer streets: walk ~2.2× faster so a move takes about 1.4× the Phase 2 time.
+    if (floorId === UNIT3_FLOOR1_ID) dungeonCamera.speedMultiplier = 2.2;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -956,9 +1003,19 @@ export function DungeonScreen({
     const dungeon4Environment = floorId === "floor-4"
       ? createDungeon4SeaEnvironment(dungeonMap)
       : null;
+    const gyeongseongEnvironment = floorId === UNIT3_FLOOR1_ID
+      ? createGyeongseongEnvironment(dungeonMap, `${floorId}:${dungeonRun.seed}`)
+      : null;
     let dungeonTextures: Awaited<ReturnType<typeof loadDungeonTextureSet>> | null = null;
     let visualCancelled = false;
-    if (dungeon4Environment) {
+    if (gyeongseongEnvironment) {
+      scene.background = gyeongseongEnvironment.background;
+      scene.fog = gyeongseongEnvironment.fog;
+      scene.add(gyeongseongEnvironment.root);
+      gyeongseongEnvironment.ready.catch((error) => {
+        if (import.meta.env.DEV) console.warn("[GyeongseongEnvironment] model load failed; streets fall back to blocks", error);
+      });
+    } else if (dungeon4Environment) {
       scene.background = new THREE.Color(0x77b5d1);
       scene.fog = dungeon4Environment.fog;
       scene.add(dungeon4Environment.root);
@@ -1085,6 +1142,7 @@ export function DungeonScreen({
     const render = () => {
       const delta = clock.getDelta();
       dungeon4Environment?.update(clock.elapsedTime);
+      gyeongseongEnvironment?.update(camera);
       weapon.update(delta);
       monsterAnimation.update(delta);
       bossPresentation.update(delta);
@@ -1131,6 +1189,7 @@ export function DungeonScreen({
       visualAssemblyRef.current = null;
       if (dungeonTextures) disposeDungeonTextureSet(dungeonTextures);
       dungeon4Environment?.dispose();
+      gyeongseongEnvironment?.dispose();
       geometries.forEach((geometry) => geometry.dispose());
       materials.forEach((material) => material.dispose());
       renderer.dispose();
@@ -1315,6 +1374,11 @@ export function DungeonScreen({
       const enemyName = activeMonsterName();
       const attackDamage = activeEnemyAttackDamage();
       setCombatMessage(dungeonDialogue.attackTitle(enemyName));
+      const unit3Vfx = isUnit3Floor1 ? getUnit3MonsterAttackVfx(activeMonsterDefinition().id) : null;
+      if (unit3Vfx) {
+        setU3MonsterVfx({ id: unit3Vfx, key: Date.now() });
+        await new Promise((resolve) => window.setTimeout(resolve, UNIT3_MONSTER_ATTACK_LEAD_MS));
+      }
       await visualsRef.current?.monster.play("attack", () => {
         if (!mountedRef.current) {
           return;
@@ -1894,6 +1958,11 @@ export function DungeonScreen({
         if (!mountedRef.current) {
           return;
         }
+        if (isUnit3Floor1 && roomId === findCartRoomId(dungeonMap) && !u3Flag(UNIT3_FLOOR1_FLAGS.cartRescue)) {
+          setDungeonMode("roomEvent");
+          setU3Story({ kind: "cartAfter", roomId });
+          return;
+        }
         setExplorationMessage(message);
         setDungeonMode("exploration");
       },
@@ -2077,6 +2146,27 @@ export function DungeonScreen({
         }
         setFloor10BossPhase("playing");
         playDungeon10BossEntrance(presentation);
+        return;
+      }
+      if (isUnit3Floor1 && questStoryEnabled && floorQuestStarted) {
+        if (roomId === findCartRoomId(dungeonMap) && !u3Flag(UNIT3_FLOOR1_FLAGS.cartRescue)) {
+          setU3Story({ kind: "cartIntro", roomId });
+          return;
+        }
+        const storyIndex = getStoryIndexForRoom(roomId);
+        if (storyIndex >= 0 && !u3Flag(UNIT3_FLOOR1_STORY_FLAGS[storyIndex])) {
+          setU3Story({ kind: "room", index: storyIndex, roomId });
+          return;
+        }
+        if (isFinalRoom(dungeonMap, roomId) && !u3Flag(UNIT3_FLOOR1_FLAGS.finalStory)) {
+          // The final room has no combat; the gate already required all three story events.
+          setU3Story({ kind: "final", roomId });
+          return;
+        }
+      }
+      if (isUnit3Floor1 && isFinalRoom(dungeonMap, roomId) && floorQuestStarted) {
+        // Story already seen (or quest completed): offer the usual "return to base camp" prompt.
+        setObjectiveEvent("retry");
         return;
       }
       if (questStoryEnabled && floorId === "floor-6") {
@@ -2287,7 +2377,9 @@ export function DungeonScreen({
     eventResultProcessingRef.current = false;
     defeatProcessingRef.current = false;
     dungeonExitProcessingRef.current = false;
-    const nextProgress = restoreRoomProgress(dungeonMap, undefined);
+    let nextProgress = restoreRoomProgress(dungeonMap, undefined);
+    // Unit 3: events already seen stay resolved after "다시 도전하기" (flags are persistent).
+    if (floorId === UNIT3_FLOOR1_ID) nextProgress = applyUnit3Floor1Progress(dungeonMap, nextProgress, u3FlagsRef.current);
     if (floorId === "floor-2" && nextProgress[dungeonMap.startRoomId]) {
       nextProgress[dungeonMap.startRoomId] = { roomId: dungeonMap.startRoomId, eventCompleted: false };
     }
@@ -2449,7 +2541,7 @@ export function DungeonScreen({
         className="dungeon-scene"
         aria-label="고정 테스트 던전"
       />
-      {attackVfxVisible && <div className={attackVfxVisible === "water-thunderbolt" ? "weapon-water-vfx" : attackVfxVisible === "ink-brush-attack" ? "weapon-ink-brush-vfx" : attackVfxVisible === "powerful-impact" ? "weapon-powerful-impact-vfx" : "wooden-wand-fire-vfx"} style={{ backgroundImage: `url(${import.meta.env.BASE_URL}assets/combat/vfx/${attackVfxVisible === "water-thunderbolt" ? "water-blade-slash.png" : attackVfxVisible === "ink-brush-attack" ? "ink-brush-attack.png" : attackVfxVisible === "powerful-impact" ? "powerful-impact.png" : "fire-attack.png"})` }} aria-hidden="true" />}
+      {attackVfxVisible && <div className={attackVfxVisible === "water-thunderbolt" ? "weapon-water-vfx" : attackVfxVisible === "ink-brush-attack" ? "weapon-ink-brush-vfx" : attackVfxVisible === "powerful-impact" ? "weapon-powerful-impact-vfx" : attackVfxVisible === UIBYEONG_HWANDO_SLASH_VFX.id ? "weapon-hwando-slash-vfx" : "wooden-wand-fire-vfx"} style={{ backgroundImage: `url(${import.meta.env.BASE_URL}assets/combat/vfx/${attackVfxVisible === "water-thunderbolt" ? "water-blade-slash.png" : attackVfxVisible === "ink-brush-attack" ? "ink-brush-attack.png" : attackVfxVisible === "powerful-impact" ? "powerful-impact.png" : attackVfxVisible === UIBYEONG_HWANDO_SLASH_VFX.id ? UIBYEONG_HWANDO_SLASH_VFX.assetFile : "fire-attack.png"})` }} aria-hidden="true" />}
       {floorIntroVisible && <DungeonFloorIntro floorId={floorId} />}
       {exitButtonState.visible && floorId !== "floor-10" && (
         <DungeonExitButton
@@ -2800,7 +2892,7 @@ export function DungeonScreen({
         />
       )}
 
-      {!floorIntroVisible && !floor1EntryStoryVisible && !floor1FinalStoryVisible && !floor2EntryStoryVisible && !floor2FinalStoryVisible && floor2ClueStoryIndex === null && !floor3EntryStoryVisible && !floor3FinalStoryVisible && !floor4EntryStoryVisible && !floor4FinalStoryVisible && !floor5EntryStoryVisible && !floor5FinalStoryVisible && !floor6EntryStoryVisible && !floor7EntryStoryVisible && !floor8EntryStoryVisible && !floor10EntryStoryVisible && floor6ClueStoryIndex === null && floor7ClueStoryIndex === null && floor8ClueStoryIndex === null && floor9ClueStoryIndex === null && floor10BossPhase === "idle" && (dungeonMode === "exploration" || dungeonMode === "moving") && (
+      {!floorIntroVisible && !floor1EntryStoryVisible && !floor1FinalStoryVisible && !floor2EntryStoryVisible && !floor2FinalStoryVisible && floor2ClueStoryIndex === null && !floor3EntryStoryVisible && !floor3FinalStoryVisible && !floor4EntryStoryVisible && !floor4FinalStoryVisible && !floor5EntryStoryVisible && !floor5FinalStoryVisible && !floor6EntryStoryVisible && !floor7EntryStoryVisible && !floor8EntryStoryVisible && !floor10EntryStoryVisible && floor6ClueStoryIndex === null && floor7ClueStoryIndex === null && floor8ClueStoryIndex === null && floor9ClueStoryIndex === null && floor10BossPhase === "idle" && u3Story === null && (dungeonMode === "exploration" || dungeonMode === "moving") && (
         <section className="dungeon-movement-panel" aria-label="던전 이동 선택">
           {floorId !== "floor-10" && <p className="eyebrow">DUNGEON EXPLORATION</p>}
           {finalGateDialogueStep === null ? (
@@ -3062,6 +3154,60 @@ export function DungeonScreen({
             onObjectiveAcquired(runCorrectCountRef.current); setObjectiveEvent(null); onFloorCleared(); onNavigate("baseCamp");
           }} />
       </div>}
+      {u3MonsterVfx && <Unit3MonsterAttackVfx key={u3MonsterVfx.key} vfxId={u3MonsterVfx.id} onDone={() => setU3MonsterVfx(null)} />}
+      {isUnit3Floor1 && u3Story && (() => {
+        const sequence = u3Story.kind === "start" ? UNIT3_FLOOR1_START_STORY
+          : u3Story.kind === "cartIntro" ? UNIT3_FLOOR1_CART_INTRO_STORY
+          : u3Story.kind === "cartAfter" ? UNIT3_FLOOR1_CART_AFTER_STORY
+          : u3Story.kind === "room" ? UNIT3_FLOOR1_STORY_ROOM_STORIES[u3Story.index ?? 0]!
+          : u3Story.kind === "postEvents" ? UNIT3_FLOOR1_POST_EVENTS_STORY
+          : UNIT3_FLOOR1_FINAL_STORY;
+        const backToExploration = () => {
+          setU3Story(null);
+          const roomId = u3Story.roomId ?? currentRoomId;
+          setExplorationMessage(u3Story.kind === "cartAfter"
+            ? "전투 이벤트가 끝났다. 이동할 길을 선택하자."
+            : (() => { const action = resolveRoomEntry(getDungeonRoom(roomId), { roomId, eventCompleted: true }); return "message" in action ? action.message : "조용한 방이다."; })());
+          setDungeonMode("exploration");
+        };
+        const finishStory = () => {
+          const story = u3Story;
+          if (story.kind === "start") {
+            setU3Flag(UNIT3_FLOOR1_FLAGS.startEvent);
+            const next = completeRoomEvent(roomProgressRef.current, dungeonMap.startRoomId);
+            roomProgressRef.current = next; setRoomProgress(next);
+            backToExploration();
+          } else if (story.kind === "cartIntro") {
+            // The rescue is a normal question-driven combat with 먹물 든 을사늑약 문서.
+            setU3Story(null);
+            if (story.roomId) startCombatForRoom(story.roomId);
+          } else if (story.kind === "cartAfter") {
+            setU3Flag(UNIT3_FLOOR1_FLAGS.cartRescue);
+            backToExploration();
+          } else if (story.kind === "room") {
+            setU3Flag(UNIT3_FLOOR1_STORY_FLAGS[story.index ?? 0]);
+            if (story.roomId) { const next = completeRoomEvent(roomProgressRef.current, story.roomId); roomProgressRef.current = next; setRoomProgress(next); }
+            if (allStoryEventsDone(u3FlagsRef.current) && !u3Flag(UNIT3_FLOOR1_FLAGS.postEventTalk)) setU3Story({ kind: "postEvents" });
+            else backToExploration();
+          } else if (story.kind === "postEvents") {
+            setU3Flag(UNIT3_FLOOR1_FLAGS.postEventTalk);
+            backToExploration();
+          } else {
+            setU3Flag(UNIT3_FLOOR1_FLAGS.finalStory);
+            playerHpRef.current = maxHp; setPlayerHp(maxHp);
+            setU3Story(null);
+            onFloorCleared();
+            onNavigate("baseCamp");
+          }
+        };
+        return <div className="dungeon-story-overlay unit3-floor1-story-overlay">
+          <StoryPlayer key={`${u3Story.kind}-${u3Story.index ?? 0}`} sequence={sequence} playerName={playerState.name || DEFAULT_PLAYER_NAME} playerStatus={playerState}
+            presentationMode="baseCampOverlay" onNavigate={() => undefined}
+            stageRenderers={{ [UNIT3_FLOOR1_STAGE_ID]: (stagePhase: string) => <Unit3Floor1Stage phase={stagePhase} /> }}
+            onCheckpointReached={(_storyId, checkpointId) => { if (checkpointId === UNIT3_FLOOR1_CART_CRASH_CHECKPOINT) playCartCrash(); }}
+            onComplete={finishStory} />
+        </div>;
+      })()}
       {activeArtifactEvent && <PrehistoryArtifactEvent
         artifactId={activeArtifactEvent}
         imageUrl={activeArtifactEvent === "hand-axe" ? handAxeFoundUrl : activeArtifactEvent === "tanged-point" ? tangedPointFoundUrl : potteryFoundUrl}

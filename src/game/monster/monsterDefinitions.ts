@@ -88,6 +88,10 @@ export const MONSTER_VISUAL_DEFINITIONS: Readonly<
   "goryeo-spirit": { id: "goryeo-spirit", name: "균열 침식 대한 제국군", image: `${import.meta.env.BASE_URL}assets/dungeon9/corrupted-korean-empire-army.png`, displayScale: 1.12, aspectRatio: 1, anchor: [0, -0.04, 0] },
   "dungeon9-seo-jae-pil": { id: "dungeon9-seo-jae-pil", name: "한 맺힌 독립협회 서재필의 영혼", image: `${import.meta.env.BASE_URL}assets/dungeon9/corrupted-seo-jae-pil.png`, displayScale: 1.12, aspectRatio: 1, anchor: [0, -0.04, 0] },
   "vengeful-goryeo-spirit": { id: "vengeful-goryeo-spirit", name: "한 맺힌 명성황후", image: `${import.meta.env.BASE_URL}assets/dungeon9/vengeful-empress-myeongseong.png`, displayScale: 1.18, aspectRatio: 1086 / 1448, anchor: [0, -0.04, 0] },
+  // Unit 3 Floor 1 (을사늑약과 항일 의병 운동) — dungeon-made monsters.
+  "unit3-inked-treaty-document": { id: "unit3-inked-treaty-document", name: "먹물 든 을사늑약 문서", image: `${import.meta.env.BASE_URL}assets/chapter3/floor1/monsters/inked-treaty-document.png`, displayScale: 1.12, aspectRatio: 1, anchor: [0, -0.02, 0] },
+  "unit3-informant-shadow": { id: "unit3-informant-shadow", name: "길을 막는 그림자", image: `${import.meta.env.BASE_URL}assets/chapter3/floor1/monsters/informant-shadow.png`, displayScale: 1.15, aspectRatio: 1312 / 1199, anchor: [0, -0.04, 0] },
+  "unit3-residency-general-watcher": { id: "unit3-residency-general-watcher", name: "봉쇄의 파수꾼", image: `${import.meta.env.BASE_URL}assets/chapter3/floor1/monsters/residency-general-watcher.png`, displayScale: 1.3, aspectRatio: 1, anchor: [0, -0.04, 0] },
   "dungeon9-corrupted-citizen": { id: "dungeon9-corrupted-citizen", name: "균열 침식 대한제국 시민", image: `${import.meta.env.BASE_URL}assets/dungeon9/corrupted-korean-empire-citizen.png`, displayScale: 1.15, aspectRatio: 1774 / 887, anchor: [0, 0, 0] },
 };
 
