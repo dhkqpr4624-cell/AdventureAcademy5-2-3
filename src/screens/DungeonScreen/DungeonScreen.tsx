@@ -10,7 +10,7 @@ import { runNormalCombatChecks } from "../../game/combat/normalCombatChecks";
 import { runCriticalChecks } from "../../game/combat/criticalChecks";
 import { runPotionChecks } from "../../game/combat/potionChecks";
 import { runEliteCombatChecks } from "../../game/combat/eliteCombatChecks";
-import { POWERFUL_IMPACT_VFX } from "../../game/combat/attackVfxDefinitions";
+import { POWERFUL_IMPACT_VFX, UIBYEONG_HWANDO_SLASH_VFX } from "../../game/combat/attackVfxDefinitions";
 import { runDungeonMapChecks } from "../../game/dungeon/dungeonMapChecks";
 import { runDungeonCameraChecks } from "../../game/dungeon/dungeonCameraChecks";
 import { runDungeonCompletionChecks } from "../../game/dungeon/dungeonCompletionChecks";
@@ -652,7 +652,7 @@ export function DungeonScreen({
   );
   const [floatingText, setFloatingText] = useState<string | null>(null);
   const [damageFlash, setDamageFlash] = useState(false);
-  const [attackVfxVisible, setAttackVfxVisible] = useState<"fire-attack" | "water-thunderbolt" | "ink-brush-attack" | "powerful-impact" | null>(null);
+  const [attackVfxVisible, setAttackVfxVisible] = useState<"fire-attack" | "water-thunderbolt" | "ink-brush-attack" | "powerful-impact" | "uibyeong-hwando-slash" | null>(null);
   const [resolution, setResolution] =
     useState<CombatResolution | null>(null);
   const [goldDrop, setGoldDrop] = useState(0);
@@ -687,7 +687,7 @@ export function DungeonScreen({
     const weaponDefinition = weaponId ? getItemDefinition(weaponId) : null;
     if (!weaponDefinition || weaponDefinition.type !== "weaponSkin") return;
     const attackVfxId = weaponDefinition.attackVfxId ?? "fire-attack";
-    if (attackVfxId !== "fire-attack" && attackVfxId !== "water-thunderbolt" && attackVfxId !== "ink-brush-attack" && attackVfxId !== "powerful-impact") return;
+    if (attackVfxId !== "fire-attack" && attackVfxId !== "water-thunderbolt" && attackVfxId !== "ink-brush-attack" && attackVfxId !== "powerful-impact" && attackVfxId !== UIBYEONG_HWANDO_SLASH_VFX.id) return;
     setAttackVfxVisible(attackVfxId);
     await new Promise<void>((resolve) => {
       fireAttackResolveRef.current = resolve;
@@ -695,7 +695,7 @@ export function DungeonScreen({
         fireAttackTimerRef.current = null;
         fireAttackResolveRef.current = null;
         resolve();
-      }, attackVfxId === "powerful-impact" ? POWERFUL_IMPACT_VFX.durationMs : 1000);
+      }, attackVfxId === "powerful-impact" ? POWERFUL_IMPACT_VFX.durationMs : attackVfxId === UIBYEONG_HWANDO_SLASH_VFX.id ? UIBYEONG_HWANDO_SLASH_VFX.durationMs : 1000);
     });
     if (!mountedRef.current) return;
     setAttackVfxVisible(null);
@@ -2541,7 +2541,7 @@ export function DungeonScreen({
         className="dungeon-scene"
         aria-label="고정 테스트 던전"
       />
-      {attackVfxVisible && <div className={attackVfxVisible === "water-thunderbolt" ? "weapon-water-vfx" : attackVfxVisible === "ink-brush-attack" ? "weapon-ink-brush-vfx" : attackVfxVisible === "powerful-impact" ? "weapon-powerful-impact-vfx" : "wooden-wand-fire-vfx"} style={{ backgroundImage: `url(${import.meta.env.BASE_URL}assets/combat/vfx/${attackVfxVisible === "water-thunderbolt" ? "water-blade-slash.png" : attackVfxVisible === "ink-brush-attack" ? "ink-brush-attack.png" : attackVfxVisible === "powerful-impact" ? "powerful-impact.png" : "fire-attack.png"})` }} aria-hidden="true" />}
+      {attackVfxVisible && <div className={attackVfxVisible === "water-thunderbolt" ? "weapon-water-vfx" : attackVfxVisible === "ink-brush-attack" ? "weapon-ink-brush-vfx" : attackVfxVisible === "powerful-impact" ? "weapon-powerful-impact-vfx" : attackVfxVisible === UIBYEONG_HWANDO_SLASH_VFX.id ? "weapon-hwando-slash-vfx" : "wooden-wand-fire-vfx"} style={{ backgroundImage: `url(${import.meta.env.BASE_URL}assets/combat/vfx/${attackVfxVisible === "water-thunderbolt" ? "water-blade-slash.png" : attackVfxVisible === "ink-brush-attack" ? "ink-brush-attack.png" : attackVfxVisible === "powerful-impact" ? "powerful-impact.png" : attackVfxVisible === UIBYEONG_HWANDO_SLASH_VFX.id ? UIBYEONG_HWANDO_SLASH_VFX.assetFile : "fire-attack.png"})` }} aria-hidden="true" />}
       {floorIntroVisible && <DungeonFloorIntro floorId={floorId} />}
       {exitButtonState.visible && floorId !== "floor-10" && (
         <DungeonExitButton

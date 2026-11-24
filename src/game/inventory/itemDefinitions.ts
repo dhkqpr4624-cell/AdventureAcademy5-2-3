@@ -31,7 +31,7 @@ export const ITEM_DEFINITION_REGISTRY: Record<string, ItemDefinition> = {
   // Unit 3 Floor 1 quest reward: cosmetic only (no stats), default physical hit VFX (no attackVfxId).
   "weapon-uibyeong-hwando": {
     id: "weapon-uibyeong-hwando", name: "의병의 환도", type: "weaponSkin",
-    rarity: "rare", description: "소박한 나무 손잡이와 어두운 철색 날을 지닌 의병의 환도다. 능력치 변화는 없다.",
+    rarity: "rare", description: "나라를 지키려고 모인 의병들이 사용하던 칼을 본뜬 무기.",
     icon: `${import.meta.env.BASE_URL}assets/items/uibyeong-hwando.png`, stackable: false,
   },
   "weapon-gojoseon-bronze-dagger": {

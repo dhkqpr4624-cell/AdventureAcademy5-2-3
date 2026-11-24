@@ -4,7 +4,7 @@ import { changeItemQuantity, getItemQuantity } from "../inventory/inventoryState
 import type { GameSaveState } from "../../save/saveStateAdapter";
 
 /**
- * Unit 3 · Floor 1 — 빼앗긴 외교권, 꺼지지 않는 의지 (을사늑약과 항일 의병 운동)
+ * Unit 3 · Floor 1 — 을사늑약과 항일 의병 운동 (Hotfix 3 title; formerly 「빼앗긴 외교권, 꺼지지 않는 의지」)
  * Quest: 돌아갈 곳을 잊은 사람.
  *
  * Every story beat is persisted as a flag in `firstObjectiveEventSeen` (existing save field), so no save
@@ -12,7 +12,7 @@ import type { GameSaveState } from "../../save/saveStateAdapter";
  */
 export const UNIT3_FLOOR1_ID = "unit3-floor-1" as const;
 export const UNIT3_FLOOR1_QUEST_ID = "quest-unit3-floor-1";
-export const UNIT3_FLOOR1_TITLE = "빼앗긴 외교권, 꺼지지 않는 의지";
+export const UNIT3_FLOOR1_TITLE = "을사늑약과 항일 의병 운동";
 export const UNIT3_FLOOR1_QUEST_TITLE = "돌아갈 곳을 잊은 사람";
 
 export const UNIT3_FLOOR1_FLAGS = {
@@ -36,8 +36,8 @@ export const UNIT3_FLOOR1_STORY_ROOM_IDS = ["room-story-hand-axe", "room-story-t
 
 export const UNIT3_MONSTER_IDS = {
   normalA: "unit3-inked-treaty-document",
-  normalB: "unit3-informant-shadow",
-  elite: "unit3-residency-general-watcher",
+  normalB: "unit3-informant-shadow", // 표시 이름: 길을 막는 그림자 (id unchanged for save/data compatibility)
+  elite: "unit3-residency-general-watcher", // 표시 이름: 봉쇄의 파수꾼
 } as const;
 
 export const UNIT3_FLOOR1_REWARD = {
@@ -49,7 +49,7 @@ export const UNIT3_FLOOR1_REWARD = {
 export const UNIT3_FLOOR1_ACHIEVEMENT = {
   id: "achievement-unit3-first-returnee",
   title: "첫 번째 귀환자",
-  description: "던전 속에서 자신의 삶을 잊어 가던 주민을 구출했다.",
+  description: "던전에서 자신의 이름과 가족을 잊어 가던 주민을 구출했다.",
 } as const;
 
 export type Unit3Flags = Readonly<Record<string, boolean | undefined>>;
@@ -122,7 +122,7 @@ function asElite(room: DungeonRoomNode): DungeonRoomNode {
  * - start → cart room (normal combat with 먹물 든 을사늑약 문서; mandatory, before the story rooms)
  * - the three dead-end story rooms are empty and required; their completion comes from persisted flags
  * - the final room stays a combat-free quest room
- * - at least one elite (통감부 감시자) remains; other combat rooms get A or B
+ * - at least one elite (봉쇄의 파수꾼) remains; other combat rooms get A or B
  * - only the cart room and the three story rooms gate the final room.
  */
 export function prepareUnit3Floor1Map(map: DungeonMapDefinition, seed: string): DungeonMapDefinition {

@@ -5,8 +5,8 @@ procedurally with Pillow instead (deterministic, no external input). Each sheet 
 128x128 px drawn on a small grid and scaled x2 with nearest-neighbour, laid out horizontally (2048x256).
 
   ink-splash.png        먹물 든 을사늑약 문서 — ink blots burst toward the viewer
-  shadow-lantern.png    밀고의 그림자 — a dark lantern bolt rushes forward and bursts
-  sabre-slash.png       통감부 감시자 — a steel sabre slash with a red edge
+  shadow-lantern.png    길을 막는 그림자 (구 밀고의 그림자) — a dark lantern bolt rushes forward and bursts
+  sabre-slash.png       봉쇄의 파수꾼 (구 통감부 감시자) — a steel sabre slash with a red edge
 
 Usage: python3 scripts/chapter3/make_floor1_monster_vfx.py public/assets/chapter3/floor1/vfx
 """
