@@ -7,7 +7,7 @@ import { ItemTooltip } from "./ItemTooltip";
 const rarityLabel = (rarity: string) =>
   rarity.charAt(0).toUpperCase() + rarity.slice(1);
 
-const tooltipContent = (item: NonNullable<ReturnType<typeof getItemDefinition>>) => {
+export const getItemTooltipContent = (item: NonNullable<ReturnType<typeof getItemDefinition>>) => {
   const lines = [item.name, rarityLabel(item.rarity)];
   if (item.type === "armor") {
     lines.push(`최대체력 +${item.equipmentStats?.maxHpBonus ?? 0}`);
@@ -64,7 +64,7 @@ export function InventoryPopup({
             const quantity = getItemQuantity(inventory, itemId);
             const isEquipped = equippedItemIds.has(itemId);
             return (
-              <ItemTooltip key={itemId} content={tooltipContent(item)}>
+              <ItemTooltip key={itemId} content={getItemTooltipContent(item)}>
                 {(bindings) => (
                   <button
                     type="button"

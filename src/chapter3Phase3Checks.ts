@@ -127,7 +127,10 @@ export function runChapter3Phase3Checks(): void {
         flags = { ...flags, [UNIT3_FLOOR2_STORY_FLAGS[storyIndex]]: true };
         progress = applyUnit3Floor2Progress(map, progress, flags);
       });
-      assert(canEnterFinalRoom(map, progress) && isFinalRoom(map, final.id), `seed ${n} order ${order}: final open after all three`);
+      // Phase 3 hotfix: the school fight is not resolved by its permanent flag — it is fought again in every run.
+      assert(progress[school]?.eventCompleted !== true && !canEnterFinalRoom(map, progress), `seed ${n} order ${order}: school room not resolved by the flag (fought again this run)`);
+      progress = { ...progress, [school]: { roomId: school, eventCompleted: true } };
+      assert(canEnterFinalRoom(map, progress) && isFinalRoom(map, final.id), `seed ${n} order ${order}: final open after all three + this run's school fight`);
     }
     // street profile: same graph and sizes, re-arranged buildings, no tram rails, never 12a
     const visual = toGyeongseongVisualMap(map);
@@ -156,7 +159,7 @@ export function runChapter3Phase3Checks(): void {
   assert(getUnit3Floor2QuestPhase(state) === "readyToComplete" && state.firstObjectiveEventSeen[UNIT3_FLOOR2_FLAGS.kafStaysAtSchool] && state.playerState.currentHp === state.playerState.maxHp && getUnit3TargetFloorId(state) === null, "final story: ready to report, 카프 stays at the school");
   const gold = state.playerState.gold, potions = getItemQuantity(state.inventoryState, "potion-small");
   const completed = completeUnit3Floor2Quest(state);
-  assert(completed.playerState.gold === gold + 10 && getItemQuantity(completed.inventoryState, "potion-small") === potions + 2 && getItemQuantity(completed.inventoryState, UNIT3_FLOOR2_REWARD.weaponItemId) === 1
+  assert(completed.playerState.gold === gold + 10 && getItemQuantity(completed.inventoryState, "potion-small") === potions + 2 && getItemQuantity(completed.inventoryState, UNIT3_FLOOR2_REWARD.weaponItemId) === 0 // hotfix: pen = achievement special reward
     && completed.achievementReceived[UNIT3_FLOOR2_ACHIEVEMENT.id] && completed.questState[UNIT3_FLOOR2_QUEST_ID] === "completed", "floor 2 rewards");
   assert(completeUnit3Floor2Quest(completed) === completed, "floor 2 rewards only once");
   // save round trip: flags, quest, pen, equipment, achievement

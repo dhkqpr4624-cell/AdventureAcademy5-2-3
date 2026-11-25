@@ -1,6 +1,6 @@
 import type { DungeonMapDefinition, DungeonRoomNode, DungeonRoomProgress } from "../dungeon/dungeonTypes";
 import { createSeededRandom } from "../dungeon/generation/seededRandom";
-import { changeItemQuantity, getItemQuantity } from "../inventory/inventoryState";
+import { changeItemQuantity } from "../inventory/inventoryState";
 import type { GameSaveState } from "../../save/saveStateAdapter";
 import { UNIT3_FLOOR1_FLAGS, UNIT3_FLOOR1_QUEST_ID, UNIT3_FLOOR1_STORY_ROOM_IDS, findCartRoomId, hasFlag, type Unit3Flags, type Unit3QuestPhase } from "./unit3Floor1";
 
@@ -43,6 +43,8 @@ export const UNIT3_FLOOR2_MONSTER_IDS = {
 } as const;
 
 export const UNIT3_FLOOR2_REWARD = { gold: 10, smallPotions: 2, weaponItemId: "weapon-learning-fountain-pen" } as const;
+/** Floor 2 special reward (achievement window; Phase 3 hotfix): quest completed + 7 distinct correct questions. */
+export const UNIT3_FLOOR2_SPECIAL_REWARD = { itemId: "weapon-learning-fountain-pen", requiredCorrect: 7 } as const;
 export const UNIT3_FLOOR2_ACHIEVEMENT = {
   id: "achievement-unit3-unforgotten-heart",
   title: "잊혀도 남은 마음",
@@ -111,8 +113,9 @@ export function applyUnit3Floor2Progress(map: DungeonMapDefinition, progress: Re
   UNIT3_FLOOR2_STORY_ROOM_IDS.forEach((roomId, index) => {
     if (map.rooms.some((room) => room.id === roomId)) next[roomId] = { roomId, eventCompleted: hasFlag(flags, UNIT3_FLOOR2_STORY_FLAGS[index]) };
   });
-  const schoolRoomId = findCartRoomId(map);
-  next[schoolRoomId] = { roomId: schoolRoomId, eventCompleted: hasFlag(flags, UNIT3_FLOOR2_FLAGS.schoolBattle) };
+  // Phase 3 hotfix: the school room (story → fight → talk) is NOT resolved by its permanent flag. Within one run
+  // the won fight marks it completed (room progress); every new run — fresh entry or "다시 도전하기" — starts it
+  // unresolved, and with the story already seen it is an ordinary normal fight (2 questions from the run's pool).
   next[map.startRoomId] = { roomId: map.startRoomId, eventCompleted: hasFlag(flags, UNIT3_FLOOR2_FLAGS.startEvent) };
   return next;
 }
@@ -147,13 +150,15 @@ export function acceptUnit3Floor2Quest(state: GameSaveState): GameSaveState {
   }, UNIT3_FLOOR2_FLAGS.questAccepted);
 }
 
-/** Quest completion: rewards exactly once (guarded by `rewardClaimed`). Kaf is not rescued. */
+/**
+ * Quest completion: rewards exactly once (guarded by `rewardClaimed`). Kaf is not rescued.
+ * Phase 3 hotfix: gold + potions + the achievement record only. 배움의 만년필 is the floor's special reward,
+ * claimed in the achievement window (unit3Achievements.ts); `penUnlocked` is no longer written (it now marks
+ * saves whose completion already handed out the pen, see migrateUnit3SpecialRewards).
+ */
 export function completeUnit3Floor2Quest(state: GameSaveState): GameSaveState {
   if (getUnit3Floor2QuestPhase(state) !== "readyToComplete" || state.rewardClaimed[UNIT3_FLOOR2_QUEST_ID]) return state;
-  let inventoryState = changeItemQuantity(state.inventoryState, "potion-small", UNIT3_FLOOR2_REWARD.smallPotions);
-  if (getItemQuantity(inventoryState, UNIT3_FLOOR2_REWARD.weaponItemId) === 0) {
-    inventoryState = changeItemQuantity(inventoryState, UNIT3_FLOOR2_REWARD.weaponItemId, 1);
-  }
+  const inventoryState = changeItemQuantity(state.inventoryState, "potion-small", UNIT3_FLOOR2_REWARD.smallPotions);
   return withFlags({
     ...state,
     playerState: { ...state.playerState, gold: state.playerState.gold + UNIT3_FLOOR2_REWARD.gold },
@@ -161,7 +166,7 @@ export function completeUnit3Floor2Quest(state: GameSaveState): GameSaveState {
     questState: { ...state.questState, [UNIT3_FLOOR2_QUEST_ID]: "completed" },
     rewardClaimed: { ...state.rewardClaimed, [UNIT3_FLOOR2_QUEST_ID]: true },
     achievementReceived: { ...state.achievementReceived, [UNIT3_FLOOR2_ACHIEVEMENT.id]: true },
-  }, UNIT3_FLOOR2_FLAGS.questCompleted, UNIT3_FLOOR2_FLAGS.penUnlocked);
+  }, UNIT3_FLOOR2_FLAGS.questCompleted);
 }
 
 /** Final story (학교 마당) ended: floor cleared, 카프 stays at the school, back to the base camp. */

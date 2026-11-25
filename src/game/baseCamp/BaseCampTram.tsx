@@ -15,9 +15,10 @@ export function tramLeftAt(elapsedMs: number, tram: BaseCampTramDefinition, worl
 }
 
 /**
- * One tram at a time, at constant speed. A new 30–60 s wait is rolled before the first appearance and after
- * each pass; the pass ends only when the whole car body is off the left edge. All timers and the animation
- * frame are released on unmount (leaving the base camp).
+ * One tram at a time, at constant speed. A random wait is rolled before the first appearance
+ * (`firstDelaySeconds`, else `intervalSeconds`) and after each pass (`intervalSeconds`); the pass ends only when
+ * the whole car body is off the left edge, so two cars never overlap. One timer / animation frame at most; all are
+ * released on unmount (leaving the base camp).
  */
 export function BaseCampTram({ tram, worldWidth, zIndex }: { tram: BaseCampTramDefinition; worldWidth: number; zIndex: number }) {
   const ref = useRef<HTMLImageElement>(null);
@@ -33,9 +34,11 @@ export function BaseCampTram({ tram, worldWidth, zIndex }: { tram: BaseCampTramD
       element.style.transform = `translate3d(${worldWidth}px, 0, 0)`;
       element.dataset.state = "waiting";
     };
+    let first = true;
     const schedule = () => {
       if (disposed) return;
-      const delay = rollTramDelayMs(Math.random(), tram.intervalSeconds);
+      const delay = rollTramDelayMs(Math.random(), first && tram.firstDelaySeconds ? tram.firstDelaySeconds : tram.intervalSeconds);
+      first = false;
       element.dataset.nextDelayMs = String(Math.round(delay));
       timer = window.setTimeout(depart, delay);
     };

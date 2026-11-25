@@ -155,7 +155,7 @@ import {
 } from "../../game/quest/itemCollectionQuestRules";
 import type { QuestStatus } from "../../game/quest/questTypes";
 import { createDungeon4SeaEnvironment } from "../../three/dungeon/Dungeon4SeaEnvironment";
-import { createGyeongseongEnvironment, GYEONGSEONG_CAMERA_FAR } from "../../three/dungeon/gyeongseong/GyeongseongEnvironment";
+import { areGyeongseongAssetsLoaded, createGyeongseongEnvironment, GYEONGSEONG_CAMERA_FAR } from "../../three/dungeon/gyeongseong/GyeongseongEnvironment";
 import { toGyeongseongVisualMap } from "../../three/dungeon/gyeongseong/gyeongseongLayout";
 import { StoryPlayer } from "../../game/story/StoryPlayer";
 import { DUNGEON5_ENTRY_STORY, DUNGEON5_FINAL_STORY } from "../../data/stories/dungeon5Stories";
@@ -205,6 +205,8 @@ type DungeonScreenProps = {
   onCollectionRunReset: () => void;
   onObjectiveAcquired: (correctCount: number) => void;
   onBestCorrect: (correctCount: number) => void;
+  /** Phase 3 hotfix: a question of this floor was answered correctly (Unit 3 distinct-question achievement count). */
+  onQuestionCorrect?: (questionId: string) => void;
   floorQuestStarted: boolean;
   floorQuestStatus: QuestStatus;
   savedFloorRun: DungeonFloorRunState | null;
@@ -447,6 +449,7 @@ export function DungeonScreen({
   onCollectionRunReset,
   onObjectiveAcquired,
   onBestCorrect,
+  onQuestionCorrect,
   floorQuestStarted,
   floorQuestStatus,
   savedFloorRun,
@@ -577,8 +580,17 @@ export function DungeonScreen({
   };
   const [u3MonsterVfx, setU3MonsterVfx] = useState<{ id: string; key: number } | null>(null);
   // Decode the floor's story images up front (Floor 2: illustrations + 카프's standing) so none appear late.
-  useEffect(() => { unit3Floor?.preload?.(); }, [unit3Floor]);
   const [floorIntroVisible, setFloorIntroVisible] = useState(true);
+  /**
+   * Phase 3 hotfix: a Unit 3 street floor whose building models are not loaded yet stays behind the loading cover
+   * until they are (GyeongseongEnvironment.ready) — no empty street is shown — and only then does the 3.2 s floor
+   * title (the existing entry transition) start. When the models are already cached (base-camp preload, earlier
+   * entries) there is no cover at all; nothing is ever delayed on purpose.
+   */
+  const [environmentReady, setEnvironmentReady] = useState(() => !unit3Floor || areGyeongseongAssetsLoaded());
+  // Phase 3 hotfix: the floor's story illustrations are decoded once the street is ready, so on a slow network they
+  // no longer compete with the building models for bandwidth (the base camp already downloads them in idle time).
+  useEffect(() => { if (environmentReady) unit3Floor?.preload?.(); }, [unit3Floor, environmentReady]);
   const [floor5EntryStoryVisible, setFloor5EntryStoryVisible] = useState(false);
   const [floor1EntryStoryVisible, setFloor1EntryStoryVisible] = useState(false);
   const [floor1FinalStoryVisible, setFloor1FinalStoryVisible] = useState(false);
@@ -745,6 +757,10 @@ export function DungeonScreen({
 
   useEffect(() => {
     onDungeonEntered();
+  }, []);
+
+  useEffect(() => {
+    if (!environmentReady) return;
     const timer = window.setTimeout(() => {
       setFloorIntroVisible(false);
       if (questStoryEnabled && floorId === "floor-1" && floorQuestStarted && currentRoomId === dungeonMap.startRoomId && !floor1StartStorySeen) {
@@ -795,7 +811,7 @@ export function DungeonScreen({
       }
     }, 3200);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [environmentReady]);
 
   const minimapVisible =
     floorId !== "floor-10" &&
@@ -1005,6 +1021,7 @@ export function DungeonScreen({
       : null;
     let dungeonTextures: Awaited<ReturnType<typeof loadDungeonTextureSet>> | null = null;
     let visualCancelled = false;
+    let environmentFallbackTimer: number | null = null;
     if (gyeongseongEnvironment) {
       scene.background = gyeongseongEnvironment.background;
       scene.fog = gyeongseongEnvironment.fog;
@@ -1012,6 +1029,14 @@ export function DungeonScreen({
       gyeongseongEnvironment.ready.catch((error) => {
         if (import.meta.env.DEV) console.warn("[GyeongseongEnvironment] model load failed; streets fall back to blocks", error);
       });
+      // Loading cover until the street's models are in (a very slow network never blocks the game: 20 s fallback).
+      const markEnvironmentReady = () => {
+        if (environmentFallbackTimer !== null) window.clearTimeout(environmentFallbackTimer);
+        environmentFallbackTimer = null;
+        if (!visualCancelled) setEnvironmentReady(true);
+      };
+      environmentFallbackTimer = window.setTimeout(markEnvironmentReady, 20_000);
+      gyeongseongEnvironment.ready.catch(() => undefined).finally(markEnvironmentReady);
     } else if (dungeon4Environment) {
       scene.background = new THREE.Color(0x77b5d1);
       scene.fog = dungeon4Environment.fog;
@@ -1162,6 +1187,7 @@ export function DungeonScreen({
 
     return () => {
       visualCancelled = true;
+      if (environmentFallbackTimer !== null) window.clearTimeout(environmentFallbackTimer);
       window.cancelAnimationFrame(animationFrameId);
       window.removeEventListener("resize", updateViewport);
       visualsRef.current = null;
@@ -1190,6 +1216,9 @@ export function DungeonScreen({
       geometries.forEach((geometry) => geometry.dispose());
       materials.forEach((material) => material.dispose());
       renderer.dispose();
+      // Phase 3 hotfix: release this context's GPU memory now instead of whenever the canvas is collected
+      // (repeated entries / retries no longer pile up old WebGL contexts). Cached CPU-side assets are unaffected.
+      renderer.forceContextLoss();
       renderer.domElement.remove();
     };
   }, []);
@@ -1516,8 +1545,9 @@ export function DungeonScreen({
     setHasCriticalOccurred(criticalStateRef.current.hasCriticalOccurred);
     setEnemyStunned(criticalStateRef.current.enemyStunned);
     setCriticalEffect(criticalResult.isCritical);
-    await playSword(isCorrect ? "hit" : "miss");
-    if (isCorrect) await playEquippedWeaponVfx();
+    // Phase 3 hotfix: the weapon VFX starts together with the swing (was: after the whole 465 ms swing). The
+    // monster hit / HIT SFX / damage still follow once both have finished, exactly once per attack.
+    await Promise.all([playSword(isCorrect ? "hit" : "miss"), isCorrect ? playEquippedWeaponVfx() : Promise.resolve()]);
     if (!mountedRef.current) {
       return;
     }
@@ -1795,8 +1825,8 @@ export function DungeonScreen({
         setPhase("finishingAttack");
         setCombatMessage("마무리 공격!");
         await visualsRef.current?.monster.play("stagger");
-        await playSword("finish");
-        await playEquippedWeaponVfx();
+        // Phase 3 hotfix: finishing blow — VFX starts with the swing (see playPlayerAttack).
+        await Promise.all([playSword("finish"), playEquippedWeaponVfx()]);
         const hitAnimation = visualsRef.current?.monster.play("hit");
         playRandomizedOneShot(HIT_SFX_URL);
         await hitAnimation;
@@ -2541,7 +2571,8 @@ export function DungeonScreen({
         aria-label="고정 테스트 던전"
       />
       {attackVfxVisible && <div className={attackVfxVisible === "water-thunderbolt" ? "weapon-water-vfx" : attackVfxVisible === "ink-brush-attack" ? "weapon-ink-brush-vfx" : attackVfxVisible === "powerful-impact" ? "weapon-powerful-impact-vfx" : attackVfxVisible === UIBYEONG_HWANDO_SLASH_VFX.id ? "weapon-hwando-slash-vfx" : "wooden-wand-fire-vfx"} style={{ backgroundImage: `url(${import.meta.env.BASE_URL}assets/combat/vfx/${attackVfxVisible === "water-thunderbolt" ? "water-blade-slash.png" : attackVfxVisible === "ink-brush-attack" ? "ink-brush-attack.png" : attackVfxVisible === "powerful-impact" ? "powerful-impact.png" : attackVfxVisible === UIBYEONG_HWANDO_SLASH_VFX.id ? UIBYEONG_HWANDO_SLASH_VFX.assetFile : "fire-attack.png"})` }} aria-hidden="true" />}
-      {floorIntroVisible && <DungeonFloorIntro floorId={floorId} />}
+      {floorIntroVisible && environmentReady && <DungeonFloorIntro floorId={floorId} />}
+      {!environmentReady && <div className="screen-loading dungeon-environment-loading" role="status">던전으로 들어가는 중입니다.</div>}
       {exitButtonState.visible && floorId !== "floor-10" && (
         <DungeonExitButton
           disabled={exitButtonState.disabled}
@@ -2640,7 +2671,7 @@ export function DungeonScreen({
               instanceSeed={`${questionAttemptSeed}::${activeRoomEvent.roomId}`}
               onNavigate={onNavigate}
               onReviewChange={(result) => {
-                if (!pendingRoomEventResultRef.current && result.isCorrect) runCorrectCountRef.current += 1;
+                if (!pendingRoomEventResultRef.current && result.isCorrect) { runCorrectCountRef.current += 1; onQuestionCorrect?.(result.questionId); }
                 pendingRoomEventResultRef.current = result;
                 const current = activeRoomEventRef.current;
                 if (current) {
@@ -2823,7 +2854,7 @@ export function DungeonScreen({
             onNavigate={onNavigate}
             onReviewChange={(result) => {
               if (!pendingResultRef.current) {
-                if (result.isCorrect) runCorrectCountRef.current += 1;
+                if (result.isCorrect) { runCorrectCountRef.current += 1; onQuestionCorrect?.(result.questionId); }
                 pendingResultRef.current = result;
                 setPhase("review");
               }

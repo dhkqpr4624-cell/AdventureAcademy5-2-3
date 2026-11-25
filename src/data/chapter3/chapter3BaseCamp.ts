@@ -20,7 +20,10 @@ export const CHAPTER3_BASE_CAMP_MAP: BaseCampMapDefinition = {
     ground: CHAPTER3_ASSETS.basecamp.ground,
   },
   cloudLoop: { src: CHAPTER3_ASSETS.basecamp.cloud, speed: 12 },
-  tram: { src: CHAPTER3_ASSETS.basecamp.tram, ...BASECAMP_TRAM, crossingSeconds: 12.5, intervalSeconds: [30, 60] },
+  tram: { src: CHAPTER3_ASSETS.basecamp.tram, ...BASECAMP_TRAM, crossingSeconds: 12.5,
+    // Phase 3 hotfix: shorter, still random gaps so students notice the tram — first pass 4–8 s after entering
+    // the camp, then 12–22 s after the car has fully left the screen (a pass itself takes 12.5 s).
+    firstDelaySeconds: [4, 8], intervalSeconds: [12, 22] },
   focusPoints: {
     campCenter: { id: "campCenter", x: 836, y: 470.5, zoom: 1 },
   },

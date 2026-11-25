@@ -38,13 +38,18 @@ const ACTORS: Record<string, StoryActor> = {
   kaf: { ...CHAPTER3_STORY_ACTORS.kapp, id: "kaf", name: "카프", displayRole: undefined },
   official: portraitActor("official", "학교 관계자", asset("floor2/portraits/school-official.png")),
   student: portraitActor("student", "학생", asset("floor2/portraits/student.png")),
-  // The dungeon-made enemy speaks before the fight; its supplied monster artwork doubles as the portrait.
-  sycophant: portraitActor("sycophant", "아부쟁이 친일파", asset("floor2/monsters/sycophant.png")),
+  // Phase 3 hotfix: the supplied dialogue portrait (1254×1254, transparent). The combat image
+  // (floor2/monsters/sycophant.png) is unchanged and still used for the monster.
+  sycophant: portraitActor("sycophant", "아부쟁이 친일파", asset("floor2/portraits/sycophant.png")),
   // Same people as on Floor 1 (주민 / 다른 주민): their existing portraits are reused.
   resident: portraitActor("resident", "주민", asset("floor1/portraits/street-resident.png")),
   resident2: portraitActor("resident2", "다른 주민", asset("floor1/portraits/street-resident-2.png")),
 };
 type ActorId = keyof typeof ACTORS;
+/** Floor 2 dialogue portraits (decoded with the stage images when a Floor 2 run starts). */
+export const UNIT3_FLOOR2_PORTRAIT_URLS: string[] = ["official", "student", "sycophant"]
+  .map((id) => ACTORS[id].portraits.default?.imageUrl)
+  .filter((url): url is string => Boolean(url));
 
 let auto = 0;
 const nextId = (prefix: string) => `u3f2-${prefix}-${(auto += 1).toString().padStart(3, "0")}`;

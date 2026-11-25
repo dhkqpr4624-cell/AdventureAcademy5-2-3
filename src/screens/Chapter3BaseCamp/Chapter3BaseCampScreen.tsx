@@ -7,7 +7,10 @@ import { CHAPTER3_BASE_CAMP_MAP, createChapter3BaseCampHitboxes, createChapter3B
 import { BaseCampViewport, type BaseCampViewportController } from "../BaseCampScreen/BaseCampViewport";
 import { StoryPlayer } from "../../game/story/StoryPlayer";
 import { ShopPopup } from "../../components/ShopPopup";
-import { InventoryPopup } from "../../components/InventoryPopup";
+import { InventoryPopup, getItemTooltipContent } from "../../components/InventoryPopup";
+import { ItemTooltip } from "../../components/ItemTooltip";
+import { scheduleUnit3DungeonPreload } from "../../game/chapter3/dungeonPreload";
+import { UNIT3_FLOOR_ACHIEVEMENTS, claimUnit3SpecialReward, getUnit3FloorAchievement, getUnit3SpecialRewardStatus } from "../../game/chapter3/unit3Achievements";
 import { ItemIcon } from "../../components/ItemIcon";
 import { NpcQuestMarker } from "../../components/NpcQuestMarker";
 import { purchaseShopItem } from "../../game/inventory/shopResolver";
@@ -22,8 +25,8 @@ import {
   UNIT3_FLOOR1_KAIDEN_TALK_STORY, UNIT3_FLOOR1_QUEST_ACCEPTED_CHECKPOINT, UNIT3_FLOOR1_QUEST_COMPLETE_STORY, UNIT3_FLOOR1_QUEST_OFFER_STORY,
 } from "../../data/chapter3/floor1Stories";
 import {
-  UNIT3_FLOOR2_ACHIEVEMENT, UNIT3_FLOOR2_ID, UNIT3_FLOOR2_QUEST_ID, UNIT3_FLOOR2_QUEST_TITLE, UNIT3_FLOOR2_REWARD, UNIT3_FLOOR2_TITLE,
-  acceptUnit3Floor2Quest, completeUnit3Floor2Quest, getUnit3Floor2QuestPhase, getUnit3TargetFloorId,
+  UNIT3_FLOOR2_ACHIEVEMENT, UNIT3_FLOOR2_FLAGS, UNIT3_FLOOR2_ID, UNIT3_FLOOR2_QUEST_ID, UNIT3_FLOOR2_QUEST_TITLE, UNIT3_FLOOR2_REWARD, UNIT3_FLOOR2_TITLE,
+  acceptUnit3Floor2Quest, completeUnit3Floor2Quest, getUnit3Floor2QuestPhase,
 } from "../../game/chapter3/unit3Floor2";
 import {
   UNIT3_FLOOR2_ACTIVE_REMINDER_STORY, UNIT3_FLOOR2_AFTER_COMPLETE_STORY, UNIT3_FLOOR2_KAIDEN_ACTIVE_STORY, UNIT3_FLOOR2_KAIDEN_TALK_STORY,
@@ -100,12 +103,10 @@ export function Chapter3BaseCampScreen({ game, updateGame, requestSave, onNaviga
       setShopMessage(""); setShopOpen(true); return;
     }
     if (target === "dungeonEntrance") {
-      const pending = getUnit3TargetFloorId(game);
-      if (pending) { onEnterDungeon(pending); return; }
-      if (questPhase === "notAccepted") { setNotice("데네브와 먼저 이야기해 보세요."); return; }
-      const unlocked = enterableFloors();
-      if (unlocked.length > 1) { setFloorSelectOpen(true); return; }
-      onEnterDungeon(unlocked[0] ?? UNIT3_FLOOR1_ID);
+      // Phase 3 hotfix: choosing a floor and entering it are separate steps — the entrance always opens the
+      // floor list (every unlocked floor, whatever quest is in progress); only a button in that list enters.
+      if (enterableFloors().length === 0) { setNotice("데네브와 먼저 이야기해 보세요."); return; }
+      setFloorSelectOpen(true);
       return;
     }
     const floor2 = campFloor === UNIT3_FLOOR2_ID;
@@ -125,6 +126,16 @@ export function Chapter3BaseCampScreen({ game, updateGame, requestSave, onNaviga
   /** Floors whose quest was accepted (unlocked) — offered by the entrance when nothing is pending. */
   const enterableFloors = (): Unit3CampFloorId[] =>
     ([UNIT3_FLOOR1_ID, UNIT3_FLOOR2_ID] as Unit3CampFloorId[]).filter((floorId) => game.floorUnlockState.unlockedFloorIds.includes(floorId));
+
+  // Phase 3 hotfix: warm the dungeon (code, street models, monsters, weapon VFX) while the student is in the camp.
+  // Scheduled once per camp visit, idle-time only; cancelled when the camp unmounts.
+  useEffect(() => scheduleUnit3DungeonPreload(
+    enterableFloors(),
+    game.inventoryState.equippedItemIds.weaponSkin ?? null,
+    // floors whose story (illustrations) is still ahead: accepted and the final story not seen yet
+    ([UNIT3_FLOOR1_ID, UNIT3_FLOOR2_ID] as Unit3CampFloorId[]).filter((floorId) => game.questState[floorId === UNIT3_FLOOR2_ID ? UNIT3_FLOOR2_QUEST_ID : UNIT3_FLOOR1_QUEST_ID] === "active"
+      && !game.firstObjectiveEventSeen[floorId === UNIT3_FLOOR2_ID ? UNIT3_FLOOR2_FLAGS.finalStory : UNIT3_FLOOR1_FLAGS.finalStory]),
+  ), []);
 
   const finishStory = () => {
     const current = story;
@@ -164,12 +175,22 @@ export function Chapter3BaseCampScreen({ game, updateGame, requestSave, onNaviga
     requestSave("shopUsed");
   };
 
+  /** Achievement window "받기": re-checked against the latest state inside updateGame, so double clicks grant once. */
+  const claimSpecialReward = (floorId: string) => {
+    const spec = getUnit3FloorAchievement(floorId);
+    if (!spec || !getUnit3SpecialRewardStatus(game, spec).canClaim) return;
+    updateGame((state) => claimUnit3SpecialReward(state, floorId));
+    requestSave("itemAcquired", true);
+  };
+
   const marker = questPhase === "notAccepted" ? "available" : questPhase === "readyToComplete" ? "readyToComplete" : null;
   const rewardSpec = rewardFloor === UNIT3_FLOOR2_ID
     ? { questId: UNIT3_FLOOR2_QUEST_ID, title: UNIT3_FLOOR2_QUEST_TITLE, reward: UNIT3_FLOOR2_REWARD, achievement: UNIT3_FLOOR2_ACHIEVEMENT }
     : { questId: UNIT3_FLOOR1_QUEST_ID, title: UNIT3_FLOOR1_QUEST_TITLE, reward: UNIT3_FLOOR1_REWARD, achievement: UNIT3_FLOOR1_ACHIEVEMENT };
   const rewardClaimed = Boolean(game.rewardClaimed[rewardSpec.questId]);
   const rewardWeapon = getItemDefinition(rewardSpec.reward.weaponItemId)!;
+  const rewardSpecialSpec = getUnit3FloorAchievement(rewardFloor === UNIT3_FLOOR2_ID ? UNIT3_FLOOR2_ID : UNIT3_FLOOR1_ID);
+  const rewardSpecial = rewardSpecialSpec ? getUnit3SpecialRewardStatus(game, rewardSpecialSpec) : null;
   const smallPotion = getItemDefinition("potion-small")!;
   const campQuestTitle = campFloor === UNIT3_FLOOR2_ID ? UNIT3_FLOOR2_QUEST_TITLE : UNIT3_FLOOR1_QUEST_TITLE;
   const campFloorLabel = campFloor === UNIT3_FLOOR2_ID ? `던전 2층 · ${UNIT3_FLOOR2_TITLE}` : `던전 1층 · ${UNIT3_FLOOR1_TITLE}`;
@@ -267,26 +288,44 @@ export function Chapter3BaseCampScreen({ game, updateGame, requestSave, onNaviga
       />}
       {achievementOpen && (
         <div className="pixel-popup-backdrop achievement-backdrop" role="presentation">
-          <section className="achievement-popup" role="dialog" aria-modal="true" aria-labelledby="chapter3-achievement-title">
+          <section className="achievement-popup chapter3-achievement-popup" role="dialog" aria-modal="true" aria-labelledby="chapter3-achievement-title">
             <header className="achievement-popup-header">
               <div><p className="eyebrow">ACHIEVEMENT</p><h2 id="chapter3-achievement-title">업적</h2></div>
               <button type="button" className="achievement-close-button" onClick={() => setAchievementOpen(false)} aria-label="업적 닫기">×</button>
             </header>
-            <div className="achievement-list">
-              {[
-                { floorLabel: `던전 1층 · ${UNIT3_FLOOR1_TITLE}`, achievement: UNIT3_FLOOR1_ACHIEVEMENT },
-                { floorLabel: `던전 2층 · ${UNIT3_FLOOR2_TITLE}`, achievement: UNIT3_FLOOR2_ACHIEVEMENT },
-              ].map(({ floorLabel, achievement }) => {
-                const received = Boolean(game.achievementReceived[achievement.id]);
+            <div className="achievement-list chapter3-achievement-list">
+              {UNIT3_FLOOR_ACHIEVEMENTS.map((spec) => {
+                // Phase 3 hotfix: Unit 2 layout — medal · floor/title/description/progress · special reward · 받기.
+                const status = getUnit3SpecialRewardStatus(game, spec);
+                const rewardItem = getItemDefinition(spec.rewardItemId)!;
+                const stateLabel = status.claimed ? "수령 완료" : status.canClaim ? "달성" : status.questCompleted ? "정답 부족" : "진행 중";
                 return (
-                  <article key={achievement.id} className={`achievement-card ${received ? "is-received" : "is-progress"}`}>
+                  <article key={spec.achievement.id} data-floor={spec.floorId}
+                    className={`achievement-card chapter3-achievement-card ${status.claimed ? "is-received" : status.canClaim ? "is-completed" : "is-progress"}`}>
                     <div className="achievement-floor-medal" aria-hidden="true">★</div>
                     <div className="achievement-card-copy">
-                      <small>{floorLabel}</small>
-                      <strong>{achievement.title}</strong>
-                      <span>{achievement.description}</span>
+                      <small>{spec.floorLabel} · {spec.floorTitle}</small>
+                      <strong>{spec.achievement.title}</strong>
+                      <span>{spec.achievement.description}</span>
+                      <b className={status.progress >= status.required ? "is-ready" : ""}>정답 문항 {Math.min(status.progress, status.required)} / {status.required}</b>
+                      <em className={`chapter3-achievement-quest ${status.questCompleted ? "is-done" : ""}`}>{status.questCompleted ? "스토리 퀘스트 완료" : "스토리 퀘스트 미완료"}</em>
                     </div>
-                    <div className="achievement-card-action"><span className="achievement-state">{received ? "달성" : "미달성"}</span></div>
+                    <div className="achievement-reward">
+                      <span>특수 보상</span>
+                      <ItemTooltip content={getItemTooltipContent(rewardItem)}>
+                        {(bindings) => (
+                          <span className="chapter3-achievement-reward-item" tabIndex={0} role="img" aria-label={rewardItem.name} {...bindings}>
+                            <ItemIcon item={rewardItem} />
+                          </span>
+                        )}
+                      </ItemTooltip>
+                    </div>
+                    <div className="achievement-card-action">
+                      <span className="achievement-state">{stateLabel}</span>
+                      <button type="button" disabled={!status.canClaim} onClick={() => claimSpecialReward(spec.floorId)}>
+                        {status.claimed ? "받음" : "받기"}
+                      </button>
+                    </div>
                   </article>
                 );
               })}
@@ -302,7 +341,9 @@ export function Chapter3BaseCampScreen({ game, updateGame, requestSave, onNaviga
             <div className="quest-reward-grid chapter3-reward-grid">
               <article><p className="eyebrow">골드</p><span className="reward-icon">G</span><strong>{rewardSpec.reward.gold} Gold</strong></article>
               <article><p className="eyebrow">포션</p><span className="reward-icon"><ItemIcon item={smallPotion} /></span><strong>{smallPotion.name} {rewardSpec.reward.smallPotions}개</strong></article>
-              <article className="is-unlocked"><p className="eyebrow">무기 스킨</p><span className="reward-icon"><ItemIcon item={rewardWeapon} /></span><strong>{rewardWeapon.name}</strong><small>능력치 변화 없음</small></article>
+              {/* Phase 3 hotfix: the weapon skin is the floor's special reward — claimed in the achievement window. */}
+              <article className="chapter3-reward-special"><p className="eyebrow">특수 보상</p><span className="reward-icon"><ItemIcon item={rewardWeapon} /></span><strong>{rewardWeapon.name}</strong>
+                <small>{rewardSpecial ? `업적 창에서 받기 · 정답 문항 ${Math.min(rewardSpecial.progress, rewardSpecial.required)} / ${rewardSpecial.required}` : "업적 창에서 받기"}</small></article>
               <article className="is-unlocked"><p className="eyebrow">업적</p><span className="reward-icon">★</span><strong>{rewardSpec.achievement.title}</strong><small>{rewardSpec.achievement.description}</small></article>
             </div>
             <div className="quest-reward-actions">
@@ -343,7 +384,8 @@ export function Chapter3BaseCampScreen({ game, updateGame, requestSave, onNaviga
           </section>
         </div>
       )}
-      <button type="button" className="chapter3-title-return" onClick={() => onNavigate("title")}>처음 화면</button>
+      {/* Phase 3 hotfix: hidden while the achievement / floor list is open — on small screens it covered their × button. */}
+      {!achievementOpen && !floorSelectOpen && <button type="button" className="chapter3-title-return" onClick={() => onNavigate("title")}>처음 화면</button>}
       <div className="chapter3-camp-arrival-fade" aria-hidden="true" />
     </main>
   );

@@ -8,18 +8,24 @@ import { applySaveDataToGameState, createInitialGameSaveState, createSaveDataFro
 import type { SaveReason } from "../save/saveTypes";
 import { PlayerNamePopup } from "../components/PlayerNamePopup";
 import { playRandomizedOneShot } from "../game/audioOneShot";
-import { fadeOutBgm, playBgm, stopBgm } from "../game/audioBgm";
+import { fadeOutBgm, playBgm, stopBgm, type BgmTrackId } from "../game/audioBgm";
 import { stopAllChapter3Sfx } from "../game/audio/chapter3ProceduralSfx";
 import { completeChapter3Intro, resolveContinueScreen } from "./chapter3Flow";
 import type { SetStateAction } from "react";
 import { UNIT3_FLOOR1_FLAGS, UNIT3_FLOOR1_ID, UNIT3_FLOOR1_QUEST_ID, finishUnit3Floor1Run, markUnit3Flag } from "../game/chapter3/unit3Floor1";
 import { UNIT3_FLOOR2_FLAGS, UNIT3_FLOOR2_ID, UNIT3_FLOOR2_QUEST_ID, finishUnit3Floor2Run } from "../game/chapter3/unit3Floor2";
+import { migrateUnit3SpecialRewards, recordUnit3CorrectAnswer } from "../game/chapter3/unit3Achievements";
+
+/** Save → game state, with the Phase 3 hotfix special-reward migration (idempotent, never removes anything). */
+const loadGameState = (data: Parameters<typeof applySaveDataToGameState>[0]): GameSaveState =>
+  migrateUnit3SpecialRewards(applySaveDataToGameState(data));
 
 /** Unit 3 floors routed from the base camp (Phase 3: Floor 1 and Floor 2). */
+/** `bgm`: the floor's dungeon theme (Phase 3 hotfix: one shared track for Floors 1–2; set per floor later). */
 const UNIT3_DUNGEON_FLOORS = {
-  [UNIT3_FLOOR1_ID]: { questId: UNIT3_FLOOR1_QUEST_ID, finalFlag: UNIT3_FLOOR1_FLAGS.finalStory, finish: finishUnit3Floor1Run },
-  [UNIT3_FLOOR2_ID]: { questId: UNIT3_FLOOR2_QUEST_ID, finalFlag: UNIT3_FLOOR2_FLAGS.finalStory, finish: finishUnit3Floor2Run },
-} as const;
+  [UNIT3_FLOOR1_ID]: { questId: UNIT3_FLOOR1_QUEST_ID, finalFlag: UNIT3_FLOOR1_FLAGS.finalStory, finish: finishUnit3Floor1Run, bgm: "unit3-dungeon" },
+  [UNIT3_FLOOR2_ID]: { questId: UNIT3_FLOOR2_QUEST_ID, finalFlag: UNIT3_FLOOR2_FLAGS.finalStory, finish: finishUnit3Floor2Run, bgm: "unit3-dungeon" },
+} as const satisfies Record<string, { bgm: BgmTrackId } & Record<string, unknown>>;
 type Unit3DungeonFloorId = keyof typeof UNIT3_DUNGEON_FLOORS;
 
 const StoryScreen = lazy(() => import("../screens/StoryScreen/StoryScreen").then((module) => ({ default: module.StoryScreen })));
@@ -35,7 +41,7 @@ const BUTTON_CLICK_SFX_URL = `${import.meta.env.BASE_URL}assets/audio/button-cli
  */
 export function App() {
   const loaded = useRef(SaveManager.load());
-  const initial = useRef(loaded.current.success ? applySaveDataToGameState(loaded.current.data) : createInitialGameSaveState());
+  const initial = useRef(loaded.current.success ? loadGameState(loaded.current.data) : createInitialGameSaveState());
   const [currentScreen, setCurrentScreen] = useState<ScreenId>("title");
   /** Floor opened by the next "dungeon" navigation (chosen at the base camp entrance). */
   const [dungeonFloorId, setDungeonFloorId] = useState<Unit3DungeonFloorId>(UNIT3_FLOOR1_ID);
@@ -74,7 +80,7 @@ export function App() {
     if (screen === "baseCamp") requestSave("baseCampEntered");
   }, [requestSave]);
   const hydrate = (data: ReturnType<typeof snapshot>) => {
-    commitGame(applySaveDataToGameState(data));
+    commitGame(loadGameState(data));
     startedAtRef.current = Date.now(); setCurrentScreen("title");
   };
   const reset = () => {
@@ -122,10 +128,18 @@ export function App() {
       stopAllChapter3Sfx(200);
       return;
     }
-    // Leaving the base camp (dungeon entry): the camp theme fades out instead of carrying into the dungeon.
+    if (currentScreen === "dungeon") {
+      // Phase 3 hotfix: dungeon theme. It starts on entry (the camp theme releases over 1 s while it fades in) and
+      // loops through exploration, normal / elite fights, story events, illustrations and "다시 도전하기" — all of
+      // those stay on this screen, and playBgm() never restarts the active track. Returning to the base camp
+      // starts the camp theme, which fades this one out; the title stops everything.
+      playBgm(UNIT3_DUNGEON_FLOORS[dungeonFloorId].bgm, undefined, { loop: true, volume: 0.42, fadeInMs: 1800 });
+      return;
+    }
+    // Leaving the base camp for the intro story: the camp theme fades out instead of carrying into the story.
     void fadeOutBgm(1200, "unit3-basecamp");
     // The intro (story) drives its own BGM / ambience through the chapter3 stage.
-  }, [currentScreen]);
+  }, [currentScreen, dungeonFloorId]);
 
   const content = (() => {
     switch (currentScreen) {
@@ -173,8 +187,15 @@ export function App() {
           storyFlags={game.firstObjectiveEventSeen}
           onStoryEventSeen={(eventId) => { updateGame((current) => markUnit3Flag(current, eventId)); requestSave("storyCompleted", true); }}
           onCollectionRunReset={() => undefined}
-          onObjectiveAcquired={(correctCount) => updateGame((current) => ({ ...current, floorBestCorrect: { ...current.floorBestCorrect, [floorId]: Math.max(current.floorBestCorrect[floorId] ?? 0, correctCount) } }))}
-          onBestCorrect={(correctCount) => updateGame((current) => ({ ...current, floorBestCorrect: { ...current.floorBestCorrect, [floorId]: Math.max(current.floorBestCorrect[floorId] ?? 0, correctCount) } }))}
+          // Phase 3 hotfix: Unit 3 counts distinct correct question ids per floor (unit3Achievements.ts);
+          // the Unit 2 per-run best (`floorBestCorrect`) is no longer written, so old saves keep their legacy value.
+          onObjectiveAcquired={() => undefined}
+          onBestCorrect={() => undefined}
+          onQuestionCorrect={(questionId) => {
+            const before = gameRef.current;
+            const next = recordUnit3CorrectAnswer(before, floorId, questionId);
+            if (next !== before) { commitGame(next); requestSave("itemAcquired"); }
+          }}
           floorQuestStarted={game.questState[floor.questId] === "active" || game.questState[floor.questId] === "completed"}
           floorQuestStatus={game.questState[floor.questId] ?? "locked"}
           onFloorCleared={() => { updateGame((current) => floor.finish(current)); requestSave("floorCleared", true); }}
@@ -187,7 +208,7 @@ export function App() {
         hasSave={SaveManager.load().success}
         onContinue={() => {
           const latest = SaveManager.load();
-          const state = latest.success ? applySaveDataToGameState(latest.data) : gameRef.current;
+          const state = latest.success ? loadGameState(latest.data) : gameRef.current;
           commitGame(state);
           startedAtRef.current = Date.now();
           const next = resolveContinueScreen(state);

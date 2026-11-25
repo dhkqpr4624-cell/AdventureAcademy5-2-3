@@ -80,7 +80,7 @@ export function runBgmFollowupChecks(): void {
   assert(urls.reminiscence.endsWith(REVIVE_ENDING_BGM), "Dungeon3 reminiscence must use revive-ending-scene.wav");
   assert(urls["ending-credit"].endsWith(REVIVE_ENDING_BGM), "Dungeon10 ending must use revive-ending-scene.wav");
   assert(urls["save-deneb"].endsWith(SAVE_DENEB_BGM), "Dungeon7 rescue must use save-deneb-dungeon7.wav");
-  const otherTracks = (Object.keys(urls) as BgmTrackId[]).filter((id) => !["village", "reminiscence", "ending-credit", "save-deneb", "unit3-hq", "unit3-basecamp"].includes(id));
+  const otherTracks = (Object.keys(urls) as BgmTrackId[]).filter((id) => !["village", "reminiscence", "ending-credit", "save-deneb", "unit3-hq", "unit3-basecamp", "unit3-dungeon"].includes(id));
   assert(otherTracks.join() === "airship,intro-story,dungeon,boss-battle,sacrifice,unit3-tension", "unexpected BGM track list");
   assert(urls["unit3-hq"].endsWith(UNIT3_HQ_BGM) && urls["unit3-tension"].endsWith("audio/intro-story-theme.wav"), "Unit 3 HQ / tension BGM files");
   assert(urls["unit3-basecamp"].endsWith(UNIT3_BASECAMP_BGM), "Unit 3 base camp BGM file");

@@ -113,7 +113,10 @@ export function runChapter3Phase2Checks(): void {
         flags = { ...flags, [UNIT3_FLOOR1_STORY_FLAGS[storyIndex]]: true };
         progress = applyUnit3Floor1Progress(map, progress, flags);
       });
-      assert(canEnterFinalRoom(map, progress) && isFinalRoom(map, final.id), `seed ${n} order ${order}: final open after all three`);
+      // Phase 3 hotfix: the cart fight is not resolved by its permanent flag — it is fought again in every run.
+      assert(progress[cart]?.eventCompleted !== true && !canEnterFinalRoom(map, progress), `seed ${n} order ${order}: cart room not resolved by the flag (fought again this run)`);
+      progress = { ...progress, [cart]: { roomId: cart, eventCompleted: true } };
+      assert(canEnterFinalRoom(map, progress) && isFinalRoom(map, final.id), `seed ${n} order ${order}: final open after all three + this run's cart fight`);
     }
 
     // 3D: logical map → visual map only moves positions
@@ -256,13 +259,14 @@ export function runChapter3Phase2Checks(): void {
   const twice = completeUnit3Floor1Quest(completeUnit3Floor1Quest(completed));
   assert(completed.playerState.gold === gold + UNIT3_FLOOR1_REWARD.gold && twice.playerState.gold === completed.playerState.gold, "10 gold exactly once");
   assert(completed.inventoryState.items["potion-small"] === potions + 2 && twice.inventoryState.items["potion-small"] === completed.inventoryState.items["potion-small"], "2 small potions exactly once");
-  assert(completed.inventoryState.items[UNIT3_FLOOR1_REWARD.weaponItemId] === 1 && twice.inventoryState.items[UNIT3_FLOOR1_REWARD.weaponItemId] === 1, "Hwando unlocked once");
+  // Phase 3 hotfix: the hwando is the special reward (achievement window), not part of the quest completion.
+  assert(!completed.inventoryState.items[UNIT3_FLOOR1_REWARD.weaponItemId] && !twice.inventoryState.items[UNIT3_FLOOR1_REWARD.weaponItemId], "quest completion no longer grants the hwando");
   assert(completed.achievementReceived[UNIT3_FLOOR1_ACHIEVEMENT.id] && completed.questState[UNIT3_FLOOR1_QUEST_ID] === "completed", "achievement + quest completed");
   // the Unit 3 quest status must survive the schema validation used when loading from storage
   const validatedReady = validateCurrentSave(JSON.parse(JSON.stringify(createSaveDataFromGameState(state))));
   assert(validatedReady && validatedReady.quests.statuses[UNIT3_FLOOR1_QUEST_ID] === "active", "Unit 3 quest status survives save validation");
   const reloaded = applySaveDataToGameState(validateCurrentSave(JSON.parse(JSON.stringify(createSaveDataFromGameState(twice))))!);
-  assert(getUnit3Floor1QuestPhase(reloaded) === "completed" && reloaded.firstObjectiveEventSeen[UNIT3_FLOOR1_FLAGS.hwandoUnlocked], "completion survives save/load");
+  assert(getUnit3Floor1QuestPhase(reloaded) === "completed" && reloaded.firstObjectiveEventSeen[UNIT3_FLOOR1_FLAGS.questCompleted] && !reloaded.firstObjectiveEventSeen[UNIT3_FLOOR1_FLAGS.hwandoUnlocked], "completion survives save/load (no legacy grant flag written)");
   // Phase 1 / Unit 2 style save without any Unit 3 flags still loads
   const legacy = createSaveDataFromGameState(createInitialGameSaveState());
   const loaded = applySaveDataToGameState({ ...legacy, questProgress: { ...legacy.questProgress, firstObjectiveEventSeen: { "floor-1": true } } });

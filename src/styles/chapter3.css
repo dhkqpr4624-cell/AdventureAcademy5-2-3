@@ -272,12 +272,23 @@
   opacity: 0; transition: opacity 700ms ease; filter: drop-shadow(0 16px 26px rgba(0, 0, 0, 0.55)); will-change: opacity;
 }
 .u3f2-kaf-standing.is-shown { opacity: 1; }
+/* Phase 3 hotfix: 카프 alone (no story illustration behind her) stands at the horizontal centre of the screen. */
+.u3f2-kaf-standing.is-solo { left: 50%; }
 @media (prefers-reduced-motion: reduce) { .u3f2-kaf-standing { transition: none; } }
 
 /* ===== Phase 3: dungeon floor choice at the entrance (only when no floor is pending and 2 floors are unlocked) ===== */
 .chapter3-floor-select-popup { width: min(92vw, 520px); }
 .chapter3-floor-select-list { display: grid; gap: 0.7rem; padding: 0.4rem 0 0.2rem; }
 .chapter3-floor-select-button { display: grid; gap: 0.25rem; text-align: left; padding: 0.85rem 1rem; }
+/* Phase 3 hotfix: buttons ≈ 92 % of the popup's inner width, centred, even side margins; long titles wrap;
+   only the list scrolls (header stays) so later floors (up to 9) fit on small screens. */
+.chapter3-floor-select-popup .chapter3-floor-select-list {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding: 0.85rem 0 0.95rem; justify-items: center; align-content: start;
+}
+.chapter3-floor-select-popup .chapter3-floor-select-button { width: 92%; box-sizing: border-box; margin: 0; }
+.chapter3-floor-select-button strong,
+.chapter3-floor-select-button span { white-space: normal; word-break: keep-all; overflow-wrap: anywhere; line-height: 1.35; }
 .chapter3-floor-select-button strong { font-size: 1.05rem; }
 .chapter3-floor-select-button span { font-size: 0.86rem; opacity: 0.85; }
 .chapter3-supply-grant-popup { width: min(92vw, 420px); }
@@ -285,3 +296,36 @@
 /* Phase 3: Floor 2 monster VFX sizes (PixelFX cells are square; larger cells keep the same pixel scale). */
 .unit3-monster-vfx.vfx-ito-phantom-dark-blast { width: min(84vmin, 760px); }
 .unit3-monster-vfx.vfx-informer-shadow-fog, .unit3-monster-vfx.vfx-sycophant-black-smoke { width: min(74vmin, 660px); }
+
+/* ===== Phase 3 hotfix: achievement window — Unit 2 layout (progress · special reward · 받기), Unit 3 colours ===== */
+.chapter3-achievement-card .achievement-card-copy em { font-style: normal; font-size: 0.72rem; color: #cdbda8; }
+.chapter3-achievement-card .achievement-card-copy em.is-done { color: #e8c779; }
+.chapter3-achievement-reward-item {
+  display: grid; place-items: center; width: 56px; height: 56px; box-sizing: border-box; padding: 4px;
+  border: 2px solid #b38342; background: #241e20; cursor: help; outline: none;
+}
+.chapter3-achievement-reward-item:hover,
+.chapter3-achievement-reward-item:focus-visible { border-color: #ffe3a1; box-shadow: 0 0 0 2px rgba(255, 227, 161, 0.35); }
+.chapter3-achievement-reward-item .item-icon-image { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
+.chapter3-achievement-card.is-received .achievement-state { color: #9bcf8b; }
+.chapter3-achievement-card.is-completed .achievement-state { color: #69e583; }
+.chapter3-reward-special small { color: #6e4d2c; }
+
+/* ===== Phase 3 hotfix: dungeon entry — same look as the intro loading screen (.chapter3-loading), shown only
+   until the street's buildings, textures and shaders are ready; covers the scene and the HUD. ===== */
+.dungeon-environment-loading {
+  position: fixed; inset: 0; z-index: 120; display: grid; place-items: center;
+  color: #f5e6c4; background: #05070b; font-weight: 700; letter-spacing: 0.04em;
+}
+/* Header and 닫기 stay fixed; only the card list scrolls and takes whatever height is left (short landscape screens too). */
+.chapter3-achievement-popup { display: flex; flex-direction: column; }
+.chapter3-achievement-popup .achievement-popup-header,
+.chapter3-achievement-popup footer { flex: 0 0 auto; }
+.chapter3-achievement-popup .chapter3-achievement-list { flex: 1 1 auto; min-height: 0; max-height: none; }
+@media (max-height: 420px) {
+  .chapter3-achievement-popup { max-height: 94svh; }
+  .chapter3-achievement-popup .achievement-popup-header { padding: 8px 16px; }
+  .chapter3-achievement-popup footer { padding: 8px 16px 10px; }
+}
+/* rows keep their content height (the cards' min-height would otherwise let them shrink and overlap); the list scrolls */
+.chapter3-achievement-popup .chapter3-achievement-list { grid-auto-rows: max-content; align-content: start; }

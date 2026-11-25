@@ -124,7 +124,7 @@ export function runChapter3Checks() {
 
   // tram: 30–60 s waits, starts fully off the right and ends fully off the left
   const tram = CHAPTER3_BASE_CAMP_MAP.tram!;
-  assert(rollTramDelayMs(0, tram.intervalSeconds) === 30_000 && rollTramDelayMs(1, tram.intervalSeconds) === 60_000, "tram delay range");
+  assert(rollTramDelayMs(0, tram.intervalSeconds) === 12_000 && rollTramDelayMs(1, tram.intervalSeconds) === 22_000 && tram.firstDelaySeconds?.[0] === 4 && tram.firstDelaySeconds?.[1] === 8, "tram delay range (Phase 3 hotfix: first 4–8 s, then 12–22 s after each pass)");
   assert(tramLeftAt(0, tram, CHAPTER3_BASE_CAMP_MAP.worldWidth) === CHAPTER3_BASE_CAMP_MAP.worldWidth, "tram enters from off-screen right");
   assert(tramLeftAt(tram.crossingSeconds * 1000, tram, CHAPTER3_BASE_CAMP_MAP.worldWidth) + tram.width === 0, "tram leaves fully on the left");
   assert(tram.crossingSeconds >= 10 && tram.crossingSeconds <= 15, "tram crossing 10–15 s");

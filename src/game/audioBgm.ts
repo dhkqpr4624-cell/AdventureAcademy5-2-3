@@ -10,7 +10,8 @@ export type BgmTrackId =
   | "save-deneb"
   | "unit3-hq"
   | "unit3-tension"
-  | "unit3-basecamp";
+  | "unit3-basecamp"
+  | "unit3-dungeon";
 
 export type BgmOptions = {
   loop?: boolean;
@@ -37,6 +38,8 @@ export const BGM_URLS: Readonly<Record<BgmTrackId, string>> = {
   "unit3-tension": `${import.meta.env.BASE_URL}assets/audio/intro-story-theme.wav`,
   // Unit 3 base camp theme.
   "unit3-basecamp": `${import.meta.env.BASE_URL}assets/audio/bgm/unit3-basecamp.wav`,
+  // Phase 3 hotfix: Unit 3 dungeon theme (Floors 1–2; per-floor tracks can be mapped in UNIT3_DUNGEON_BGM_BY_FLOOR).
+  "unit3-dungeon": `${import.meta.env.BASE_URL}assets/audio/bgm/unit3-dungeon.wav`,
 };
 
 /**
@@ -45,16 +48,29 @@ export const BGM_URLS: Readonly<Record<BgmTrackId, string>> = {
  * -25.5 LUFS) so every scene keeps its SFX balance at the shared 0.42 volume.
  *   intro-adventureacademy.wav  -12.2 LUFS  ->  10^((-25.5 + 12.2) / 20) = 0.216
  *   unit3-basecamp.wav          -19.0 LUFS  ->  10^((-25.5 + 19.0) / 20) = 0.473
+ *   unit3-dungeon.wav           -15.8 LUFS  ->  10^((-25.5 + 15.8) / 20) = 0.327   (Phase 3 hotfix)
  */
 export const BGM_LOUDNESS_TRIM: Readonly<Partial<Record<BgmTrackId, number>>> = {
   "unit3-hq": 0.216,
   "unit3-basecamp": 0.473,
+  "unit3-dungeon": 0.327,
+};
+
+/**
+ * Loop region [start, end] in seconds for looping tracks whose master has silence around the music
+ * (the file itself is untouched). Playback starts at `start`; on reaching `end` it jumps back to `start`.
+ *   unit3-dungeon.wav: 1.43 s of digital silence before the first note → start 1.40 s; the reverb tail is kept
+ *   until it falls below -60 dBFS (118.2 s; the file runs to 119.6 s) → end 118.2 s.
+ */
+export const BGM_LOOP_REGIONS: Readonly<Partial<Record<BgmTrackId, readonly [number, number]>>> = {
+  "unit3-dungeon": [1.4, 118.2],
 };
 
 /** When another track replaces one of these, the outgoing track fades out over this many ms instead of cutting. */
 const BGM_RELEASE_MS: Readonly<Partial<Record<BgmTrackId, number>>> = {
   "unit3-hq": 1000,
   "unit3-basecamp": 1000,
+  "unit3-dungeon": 1000,
 };
 
 export function effectiveBgmVolume(id: BgmTrackId, volume = 0.42): number {
@@ -98,6 +114,8 @@ function disposeEntry(entry: ActiveBgm): void {
   entry.restartTimer = null;
   entry.rampTimer = null;
   entry.audio.onended = null;
+  entry.audio.ontimeupdate = null;
+  entry.audio.onloadedmetadata = null;
   entry.audio.pause();
   entry.audio.currentTime = 0;
   releasing.delete(entry);
@@ -151,6 +169,16 @@ export function playBgm(
   audio.loop = Boolean(options.loop) && restartDelayMs === 0;
   activeBgm = { id, audio, restartDelayMs, restartDelayRangeMs, exclusive: Boolean(options.exclusive), restartTimer: null, rampTimer: null, targetVolume, fadingOut: false };
   if (options.fadeInMs) rampVolume(activeBgm, targetVolume, options.fadeInMs);
+
+  const loopRegion = audio.loop ? BGM_LOOP_REGIONS[id] : undefined;
+  if (loopRegion) {
+    const [loopStart, loopEnd] = loopRegion;
+    const toStart = () => { if (audio.currentTime < loopStart - 0.05) audio.currentTime = loopStart; };
+    if (audio.readyState >= 1) toStart(); else audio.onloadedmetadata = toStart;
+    audio.ontimeupdate = () => {
+      if (audio.currentTime >= loopEnd || audio.currentTime < loopStart - 0.05) audio.currentTime = loopStart;
+    };
+  }
 
   if (restartDelayMs > 0 || restartDelayRangeMs) {
     audio.onended = () => {

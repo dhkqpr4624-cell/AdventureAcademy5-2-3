@@ -1,6 +1,6 @@
 import type { DungeonMapDefinition, DungeonRoomNode, DungeonRoomProgress } from "../dungeon/dungeonTypes";
 import { createSeededRandom } from "../dungeon/generation/seededRandom";
-import { changeItemQuantity, getItemQuantity } from "../inventory/inventoryState";
+import { changeItemQuantity } from "../inventory/inventoryState";
 import type { GameSaveState } from "../../save/saveStateAdapter";
 
 /**
@@ -40,10 +40,21 @@ export const UNIT3_MONSTER_IDS = {
   elite: "unit3-residency-general-watcher", // 표시 이름: 봉쇄의 파수꾼
 } as const;
 
+/**
+ * Quest reward (granted automatically when the quest is reported to 데네브). Phase 3 hotfix: the weapon skin
+ * is no longer part of it — it is the floor's special reward, claimed in the achievement window
+ * (UNIT3_FLOOR1_SPECIAL_REWARD). `weaponItemId` stays for the existing data/checks and the reward popup.
+ */
 export const UNIT3_FLOOR1_REWARD = {
   gold: 10,
   smallPotions: 2,
   weaponItemId: "weapon-uibyeong-hwando",
+} as const;
+
+/** Floor 1 special reward (achievement window): quest completed + distinct correct questions on this floor. */
+export const UNIT3_FLOOR1_SPECIAL_REWARD = {
+  itemId: "weapon-uibyeong-hwando",
+  requiredCorrect: 6,
 } as const;
 
 export const UNIT3_FLOOR1_ACHIEVEMENT = {
@@ -156,7 +167,7 @@ export function prepareUnit3Floor1Map(map: DungeonMapDefinition, seed: string): 
   return { ...map, rooms };
 }
 
-/** Room progress for a fresh run: persisted story beats mark their rooms as already resolved. */
+/** Room progress for a fresh run: persisted dialogue-only story beats (start, 3 story rooms) mark their rooms as resolved. */
 export function applyUnit3Floor1Progress(
   map: DungeonMapDefinition,
   progress: Record<string, DungeonRoomProgress>,
@@ -168,8 +179,9 @@ export function applyUnit3Floor1Progress(
       next[roomId] = { roomId, eventCompleted: hasFlag(flags, UNIT3_FLOOR1_STORY_FLAGS[index]) };
     }
   });
-  const cartRoomId = findCartRoomId(map);
-  next[cartRoomId] = { roomId: cartRoomId, eventCompleted: hasFlag(flags, UNIT3_FLOOR1_FLAGS.cartRescue) };
+  // Phase 3 hotfix: the cart room (story → fight → talk) is NOT resolved by its permanent flag. Within one run the
+  // won fight marks it completed (room progress); every new run — fresh entry or "다시 도전하기" — starts it
+  // unresolved, and with the story already seen it is an ordinary normal fight (2 questions from the run's pool).
   next[map.startRoomId] = { roomId: map.startRoomId, eventCompleted: hasFlag(flags, UNIT3_FLOOR1_FLAGS.startEvent) };
   return next;
 }
@@ -206,15 +218,15 @@ export function markUnit3Flag(state: GameSaveState, flag: string): GameSaveState
 
 /**
  * Quest completion (Deneb, Event J). Rewards are granted exactly once: guarded by `rewardClaimed`,
- * so replays, reloads or double clicks can never duplicate gold, potions, the skin or the achievement.
+ * so replays, reloads or double clicks can never duplicate gold, potions or the achievement.
+ * Phase 3 hotfix: the weapon skin moved to the achievement window; `hwandoUnlocked` is no longer written
+ * (it now identifies saves whose completion already handed out the hwando — see migrateUnit3SpecialRewards).
  * The two small potions are added like the Unit 2 quest/NPC potion rewards (changeItemQuantity, no pouch cap).
  */
 export function completeUnit3Floor1Quest(state: GameSaveState): GameSaveState {
   if (getUnit3Floor1QuestPhase(state) !== "readyToComplete" || state.rewardClaimed[UNIT3_FLOOR1_QUEST_ID]) return state;
-  let inventoryState = changeItemQuantity(state.inventoryState, "potion-small", UNIT3_FLOOR1_REWARD.smallPotions);
-  if (getItemQuantity(inventoryState, UNIT3_FLOOR1_REWARD.weaponItemId) === 0) {
-    inventoryState = changeItemQuantity(inventoryState, UNIT3_FLOOR1_REWARD.weaponItemId, 1);
-  }
+  // Phase 3 hotfix: no weapon here any more — 의병의 환도 is claimed in the achievement window.
+  const inventoryState = changeItemQuantity(state.inventoryState, "potion-small", UNIT3_FLOOR1_REWARD.smallPotions);
   return {
     ...state,
     playerState: { ...state.playerState, gold: state.playerState.gold + UNIT3_FLOOR1_REWARD.gold },
@@ -225,7 +237,6 @@ export function completeUnit3Floor1Quest(state: GameSaveState): GameSaveState {
     firstObjectiveEventSeen: {
       ...state.firstObjectiveEventSeen,
       [UNIT3_FLOOR1_FLAGS.questCompleted]: true,
-      [UNIT3_FLOOR1_FLAGS.hwandoUnlocked]: true,
     },
   };
 }

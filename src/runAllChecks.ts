@@ -60,6 +60,7 @@ import { runDungeonPerfFollowupChecks } from "./dungeonPerfFollowupChecks";
 import { runChapter3Checks } from "./chapter3Checks";
 import { runChapter3Phase2Checks } from "./chapter3Phase2Checks";
 import { runChapter3Phase3Checks } from "./chapter3Phase3Checks";
+import { runChapter3Phase3HotfixChecks } from "./chapter3Phase3HotfixChecks";
 import { runUnit2QuestionContentChecks } from "./unit2QuestionContentChecks";
 
 const checks = [
@@ -129,6 +130,7 @@ const checks = [
   ["chapter3 intro / stage / base camp / save checks", runChapter3Checks],
   ["chapter3 phase 2 checks", runChapter3Phase2Checks],
   ["chapter3 phase 3 checks", runChapter3Phase3Checks],
+  ["chapter3 phase 3 hotfix checks", runChapter3Phase3HotfixChecks],
 ] as const;
 
 for (const [label, run] of checks) {

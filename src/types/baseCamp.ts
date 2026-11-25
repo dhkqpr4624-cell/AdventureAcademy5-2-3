@@ -31,6 +31,8 @@ export type BaseCampTramDefinition = {
   crossingSeconds: number;
   /** random wait before each appearance (re-rolled before the first and after every pass) */
   intervalSeconds: readonly [number, number];
+  /** optional random wait before the FIRST appearance after entering the camp (defaults to intervalSeconds) */
+  firstDelaySeconds?: readonly [number, number];
 };
 
 /** NPC shown on a base camp map without the Unit 2 quest/dialogue wiring. */

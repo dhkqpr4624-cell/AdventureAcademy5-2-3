@@ -102,6 +102,97 @@ export function parseGsl1(buffer: ArrayBuffer): THREE.BufferGeometry {
 
 type Manifest = Record<string, { materials: { name: string; color: string }[] }>;
 
+/* ---------------------------------------------------------------------------------------------------------
+ * Phase 3 hotfix: shared asset cache.
+ *
+ * Before, every dungeon entry (each floor, each return from the base camp) fetched the 5 building models
+ * (full + LOD mesh + texture, ~8 MB) and the road tiles again, parsed them again and decoded the textures again.
+ * Parsed geometries / textures are now kept for the session and shared by every environment. A disposed
+ * environment only releases its GPU copies (geometry.dispose() / texture.dispose() free the WebGL objects of the
+ * renderer that is going away; the CPU data stays and the next renderer uploads it again), so repeated entries,
+ * floor changes and retries never download, parse or decode twice. `preloadGyeongseongAssets()` fills the cache
+ * ahead of time (called from the base camp while the student is idle). Failed loads are not cached.
+ * --------------------------------------------------------------------------------------------------------- */
+type ModelAssets = { detailed: THREE.BufferGeometry; low: THREE.BufferGeometry; texture: THREE.Texture };
+type TileAssets = { geometry: THREE.BufferGeometry; average: THREE.Color };
+const modelCache = new Map<BuildingModelId, Promise<ModelAssets>>();
+const tileCache = new Map<RoadTileId, Promise<TileAssets>>();
+/** Models / tiles whose load has finished successfully (the cache also holds in-flight promises). */
+const loadedAssets = new Set<string>();
+let manifestCache: Promise<Manifest> | null = null;
+const ALL_ROAD_TILE_IDS: readonly RoadTileId[] = ["road-paving", "road-tram", "road-curb"];
+
+const fetchBinary = (name: string) => fetch(`${BASE}meshes/${name}.bin`).then((response) => {
+  if (!response.ok) throw new Error(`${name}: HTTP ${response.status}`);
+  return response.arrayBuffer();
+});
+/** Texture whose image is already decoded (Image.decode() runs off the main thread), so the GPU upload is the only step left. */
+const fetchTexture = (name: string) => new Promise<THREE.Texture>((resolve, reject) => {
+  const image = new Image();
+  image.decoding = "async";
+  image.onload = () => {
+    const finish = () => {
+      const texture = new THREE.Texture(image);
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.anisotropy = 4;
+      texture.needsUpdate = true;
+      resolve(texture);
+    };
+    if (typeof image.decode === "function") image.decode().then(finish, finish); else finish();
+  };
+  image.onerror = () => reject(new Error(`${name}: texture failed`));
+  image.src = `${BASE}textures/${name}.jpg`;
+});
+const remember = <K, V>(cache: Map<K, Promise<V>>, key: K, load: () => Promise<V>): Promise<V> => {
+  const cached = cache.get(key);
+  if (cached) return cached;
+  const promise = load();
+  cache.set(key, promise);
+  promise.catch(() => { if (cache.get(key) === promise) cache.delete(key); });
+  return promise;
+};
+const loadManifest = () => {
+  if (!manifestCache) {
+    manifestCache = fetch(`${BASE}meshes/manifest.json`).then((response) => response.json() as Promise<Manifest>);
+    manifestCache.catch(() => { manifestCache = null; });
+  }
+  return manifestCache;
+};
+const loadModelAssets = (model: BuildingModelId) => remember(modelCache, model, async () => {
+  const [full, low, texture] = await Promise.all([fetchBinary(model), fetchBinary(`${model}-lod1`), fetchTexture(model)]);
+  const assets = { detailed: parseGsm2(full), low: parseGsl1(low), texture };
+  loadedAssets.add(`model:${model}`);
+  return assets;
+});
+const loadTileAssets = (tile: RoadTileId) => remember(tileCache, tile, async () => {
+  const [buffer, manifest] = await Promise.all([fetchBinary(tile), loadManifest()]);
+  const colors = manifest[tile]?.materials.map((m) => new THREE.Color(`#${m.color}`).multiplyScalar(1.35));
+  const geometry = parseGsm(buffer, colors);
+  const average = new THREE.Color(0, 0, 0);
+  const colorAttribute = geometry.getAttribute("color");
+  for (let index = 0; index < colorAttribute.count; index += 1) {
+    average.r += colorAttribute.getX(index); average.g += colorAttribute.getY(index); average.b += colorAttribute.getZ(index);
+  }
+  average.multiplyScalar(1 / Math.max(1, colorAttribute.count));
+  loadedAssets.add(`tile:${tile}`);
+  return { geometry, average };
+});
+
+/**
+ * Loads (once per session) every building model and road tile a Gyeongseong street can use, one asset at a time
+ * so it never competes with the base camp. Resolves when done; never rejects (a failed asset is retried on entry).
+ */
+export async function preloadGyeongseongAssets(models: readonly BuildingModelId[] = BUILDING_MODEL_IDS): Promise<void> {
+  for (const tile of ALL_ROAD_TILE_IDS) await loadTileAssets(tile).catch(() => undefined);
+  for (const model of models) await loadModelAssets(model).catch(() => undefined);
+}
+/** True when every street asset is already loaded (a dungeon entry then needs no loading screen at all). */
+export function areGyeongseongAssetsLoaded(models: readonly BuildingModelId[] = BUILDING_MODEL_IDS): boolean {
+  return ALL_ROAD_TILE_IDS.every((tile) => loadedAssets.has(`tile:${tile}`)) && models.every((model) => loadedAssets.has(`model:${model}`));
+}
+/** For checks / diagnostics: how many models and tiles are cached (settled or in flight). */
+export function getGyeongseongAssetCacheSize() { return { models: modelCache.size, tiles: tileCache.size }; }
+
 export function createGyeongseongEnvironment(map: DungeonMapDefinition, seed: string, profile: GyeongseongProfile = "floor1"): GyeongseongEnvironment {
   const layout = planGyeongseongLayout(map, seed, profile);
   const root = new THREE.Group();
@@ -139,18 +230,6 @@ export function createGyeongseongEnvironment(map: DungeonMapDefinition, seed: st
   root.add(ground);
   geometries.push(groundGeometry); materials.push(groundMaterial);
 
-  const loadBinary = (name: string) => fetch(`${BASE}meshes/${name}.bin`).then((response) => {
-    if (!response.ok) throw new Error(`${name}: HTTP ${response.status}`);
-    return response.arrayBuffer();
-  });
-  const textureLoader = new THREE.TextureLoader();
-  const loadTexture = (name: string) => new Promise<THREE.Texture>((resolve, reject) => {
-    textureLoader.load(`${BASE}textures/${name}.jpg`, (texture) => {
-      texture.colorSpace = THREE.SRGBColorSpace;
-      texture.anisotropy = 4;
-      resolve(texture);
-    }, undefined, reject);
-  });
 
   /* ---- road LOD: detailed stone tiles near the camera, flat tiles farther away */
   const ROAD_LOD_RADIUS = 30;
@@ -185,15 +264,13 @@ export function createGyeongseongEnvironment(map: DungeonMapDefinition, seed: st
   const usedTiles = [...new Set(layout.tiles.map((t) => t.tile))] as RoadTileId[];
 
   const ready = (async () => {
-    const manifest = await fetch(`${BASE}meshes/manifest.json`).then((response) => response.json() as Promise<Manifest>);
     await Promise.all([
       ...usedModels.map(async (model) => {
-        const [full, low, texture] = await Promise.all([loadBinary(model), loadBinary(`${model}-lod1`), loadTexture(model)]);
-        if (disposed) { texture.dispose(); return; }
-        const detailedGeometry = parseGsm2(full);
-        const lowGeometry = parseGsl1(low);
+        const { detailed: detailedGeometry, low: lowGeometry, texture } = await loadModelAssets(model);
+        if (disposed) return;
         const detailedMaterial = new THREE.MeshLambertMaterial({ map: texture });
         const lowMaterial = new THREE.MeshLambertMaterial({ vertexColors: true });
+        // Shared (cached) geometries / texture: dispose() on unmount only frees this renderer's GPU copies.
         geometries.push(detailedGeometry, lowGeometry); materials.push(detailedMaterial, lowMaterial); textures.push(texture);
         for (const placement of layout.buildings.filter((b) => b.model === model)) {
           const lod = new THREE.LOD();
@@ -211,10 +288,8 @@ export function createGyeongseongEnvironment(map: DungeonMapDefinition, seed: st
         }
       }),
       ...usedTiles.map(async (tile) => {
-        const buffer = await loadBinary(tile);
+        const { geometry, average } = await loadTileAssets(tile);
         if (disposed) return;
-        const colors = manifest[tile]?.materials.map((m) => new THREE.Color(`#${m.color}`).multiplyScalar(1.35));
-        const geometry = parseGsm(buffer, colors);
         const material = new THREE.MeshLambertMaterial({ vertexColors: true });
         geometries.push(geometry); materials.push(material);
         const placements = layout.tiles.filter((t) => t.tile === tile);
@@ -224,12 +299,6 @@ export function createGyeongseongEnvironment(map: DungeonMapDefinition, seed: st
           new THREE.Vector3(ROAD_TILE_SCALE, ROAD_TILE_SCALE, ROAD_TILE_SCALE),
         ));
         const detailed = new THREE.InstancedMesh(geometry, material, placements.length);
-        const average = new THREE.Color(0, 0, 0);
-        const colorAttribute = geometry.getAttribute("color");
-        for (let index = 0; index < colorAttribute.count; index += 1) {
-          average.r += colorAttribute.getX(index); average.g += colorAttribute.getY(index); average.b += colorAttribute.getZ(index);
-        }
-        average.multiplyScalar(1 / Math.max(1, colorAttribute.count));
         const flatMaterial = new THREE.MeshLambertMaterial({ color: average });
         materials.push(flatMaterial);
         const flat = new THREE.InstancedMesh(flatTileGeometry, flatMaterial, placements.length);
