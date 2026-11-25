@@ -28,11 +28,17 @@ export const ITEM_DEFINITION_REGISTRY: Record<string, ItemDefinition> = {
     rarity: "common", description: "아카데미에서 지급한 기본 목검이다.",
     icon: `${import.meta.env.BASE_URL}assets/items/basic-sword.png`, stackable: false,
   },
-  // Unit 3 Floor 1 quest reward: cosmetic only (no stats), default physical hit VFX (no attackVfxId).
+  // Unit 3 Floor 1 quest reward: cosmetic only (no stats); its own PixelFX sword swing (Phase 3).
   "weapon-uibyeong-hwando": {
     id: "weapon-uibyeong-hwando", name: "의병의 환도", type: "weaponSkin",
     rarity: "rare", description: "나라를 지키려고 모인 의병들이 사용하던 칼을 본뜬 무기.",
-    icon: `${import.meta.env.BASE_URL}assets/items/uibyeong-hwando.png`, stackable: false,
+    icon: `${import.meta.env.BASE_URL}assets/items/uibyeong-hwando.png`, stackable: false, attackVfxId: "uibyeong-hwando-slash",
+  },
+  // Unit 3 Floor 2 quest reward: cosmetic only (no stats); reuses the existing ink-brush attack VFX.
+  "weapon-learning-fountain-pen": {
+    id: "weapon-learning-fountain-pen", name: "배움의 만년필", type: "weaponSkin",
+    rarity: "rare", description: "책과 배움으로 나라를 지키려 했던 사람들의 뜻을 담은 무기.",
+    icon: `${import.meta.env.BASE_URL}assets/items/learning-fountain-pen.png`, stackable: false, attackVfxId: "ink-brush-attack",
   },
   "weapon-gojoseon-bronze-dagger": {
     id: "weapon-gojoseon-bronze-dagger", name: "고조선 비파형 동검", type: "weaponSkin",

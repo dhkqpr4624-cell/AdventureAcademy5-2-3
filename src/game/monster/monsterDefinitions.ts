@@ -92,6 +92,11 @@ export const MONSTER_VISUAL_DEFINITIONS: Readonly<
   "unit3-inked-treaty-document": { id: "unit3-inked-treaty-document", name: "먹물 든 을사늑약 문서", image: `${import.meta.env.BASE_URL}assets/chapter3/floor1/monsters/inked-treaty-document.png`, displayScale: 1.12, aspectRatio: 1, anchor: [0, -0.02, 0] },
   "unit3-informant-shadow": { id: "unit3-informant-shadow", name: "길을 막는 그림자", image: `${import.meta.env.BASE_URL}assets/chapter3/floor1/monsters/informant-shadow.png`, displayScale: 1.15, aspectRatio: 1312 / 1199, anchor: [0, -0.04, 0] },
   "unit3-residency-general-watcher": { id: "unit3-residency-general-watcher", name: "봉쇄의 파수꾼", image: `${import.meta.env.BASE_URL}assets/chapter3/floor1/monsters/residency-general-watcher.png`, displayScale: 1.3, aspectRatio: 1, anchor: [0, -0.04, 0] },
+  // Unit 3 Floor 2 (애국계몽운동과 의거 활동) — all three are enemies made by the dungeon (not real people).
+  "unit3-f2-sycophant": { id: "unit3-f2-sycophant", name: "아부쟁이 친일파", image: `${import.meta.env.BASE_URL}assets/chapter3/floor2/monsters/sycophant.png`, displayScale: 1.15, aspectRatio: 1, anchor: [0, -0.04, 0] },
+  // No image was supplied for 밀고하는 그림자: it reuses the Floor 1 shadow artwork (same file, not copied).
+  "unit3-f2-informing-shadow": { id: "unit3-f2-informing-shadow", name: "밀고하는 그림자", image: `${import.meta.env.BASE_URL}assets/chapter3/floor1/monsters/informant-shadow.png`, displayScale: 1.15, aspectRatio: 1312 / 1199, anchor: [0, -0.04, 0] },
+  "unit3-f2-ito-phantom": { id: "unit3-f2-ito-phantom", name: "이토 히로부미의 망령", image: `${import.meta.env.BASE_URL}assets/chapter3/floor2/monsters/ito-phantom.png`, displayScale: 1.3, aspectRatio: 1, anchor: [0, -0.04, 0] },
   "dungeon9-corrupted-citizen": { id: "dungeon9-corrupted-citizen", name: "균열 침식 대한제국 시민", image: `${import.meta.env.BASE_URL}assets/dungeon9/corrupted-korean-empire-citizen.png`, displayScale: 1.15, aspectRatio: 1774 / 887, anchor: [0, 0, 0] },
 };
 

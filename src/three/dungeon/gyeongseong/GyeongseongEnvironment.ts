@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import type { DungeonMapDefinition } from "../../../game/dungeon/dungeonTypes";
-import { BUILDING_MODEL_IDS, CELL, GROUND_Y, planGyeongseongLayout, type BuildingModelId, type GyeongseongLayout, type RoadTileId } from "./gyeongseongLayout";
+import { BUILDING_MODEL_IDS, CELL, GROUND_Y, planGyeongseongLayout, type BuildingModelId, type GyeongseongProfile, type GyeongseongLayout, type RoadTileId } from "./gyeongseongLayout";
 
 /**
  * Stylised 1900s Gyeongseong for Unit 3 Floor 1.
@@ -102,8 +102,8 @@ export function parseGsl1(buffer: ArrayBuffer): THREE.BufferGeometry {
 
 type Manifest = Record<string, { materials: { name: string; color: string }[] }>;
 
-export function createGyeongseongEnvironment(map: DungeonMapDefinition, seed: string): GyeongseongEnvironment {
-  const layout = planGyeongseongLayout(map, seed);
+export function createGyeongseongEnvironment(map: DungeonMapDefinition, seed: string, profile: GyeongseongProfile = "floor1"): GyeongseongEnvironment {
+  const layout = planGyeongseongLayout(map, seed, profile);
   const root = new THREE.Group();
   root.name = "GyeongseongEnvironment";
   const geometries: THREE.BufferGeometry[] = [];

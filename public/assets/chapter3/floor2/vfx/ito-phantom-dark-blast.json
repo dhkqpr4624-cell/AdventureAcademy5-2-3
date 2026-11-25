@@ -1,0 +1,52 @@
+{
+ "generator": "pixelfx",
+ "pixelfxCommit": "5294518ce7c72e48b6100a744596e0acf57f2826",
+ "effect": "shadow/dark-explosion",
+ "options": {
+  "palette": [
+   "#08070b",
+   "#16131d",
+   "#26212f",
+   "#3a3346",
+   "#544c63",
+   "#77708a",
+   "#a59fb8",
+   "#dcd8e6"
+  ]
+ },
+ "renderCommand": "node tools/render.mjs shadow/dark-explosion --sheet --opts '{\"palette\": [\"#08070b\", \"#16131d\", \"#26212f\", \"#3a3346\", \"#544c63\", \"#77708a\", \"#a59fb8\", \"#dcd8e6\"]}'",
+ "contract": "monster",
+ "frames": 8,
+ "cell": [
+  280,
+  280
+ ],
+ "sheet": [
+  2240,
+  280
+ ],
+ "sourceFps": 30,
+ "sourceFrameSize": [
+  280,
+  248
+ ],
+ "sourcePivot": [
+  140,
+  206
+ ],
+ "timeWindowSeconds": [
+  0.1,
+  2.5
+ ],
+ "sourceFramesUsed": [
+  3,
+  13,
+  24,
+  34,
+  44,
+  54,
+  65,
+  75
+ ],
+ "playback": "8 frames, 640 ms, steps(7), once"
+}

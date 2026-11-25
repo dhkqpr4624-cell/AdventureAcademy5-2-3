@@ -2590,7 +2590,7 @@ button:focus-visible {
 .weapon-powerful-impact-vfx { position: absolute; z-index: 18; left: 50%; top: 50%; width: 800px; height: 800px; transform: translate(-50%, calc(-89.75% + 50px)); pointer-events: none; background-position: 0 0; background-size: 800% 100%; background-repeat: no-repeat; image-rendering: pixelated; animation: weapon-powerful-impact-vfx 1s steps(8) 1 both; }
 @keyframes weapon-powerful-impact-vfx { from { background-position-x: 0; } to { background-position-x: 114.2857%; } }
 /* 의병의 환도 전용 검 swing (Hotfix 3): same 8×100px sheet contract as powerful-impact, one pass, no loop. */
-.weapon-hwando-slash-vfx { position: absolute; z-index: 18; left: 50%; top: 50%; width: 800px; height: 800px; transform: translate(-50%, calc(-89.75% + 50px)); pointer-events: none; background-position: 0 0; background-size: 800% 100%; background-repeat: no-repeat; image-rendering: pixelated; animation: weapon-hwando-slash-vfx 1s steps(8) 1 both; }
+.weapon-hwando-slash-vfx { position: absolute; z-index: 18; left: 50%; top: 50%; width: 800px; height: 800px; transform: translate(-50%, -50%); pointer-events: none; background-position: 0 0; background-size: 800% 100%; background-repeat: no-repeat; image-rendering: pixelated; animation: weapon-hwando-slash-vfx 1s steps(8) 1 both; }
 @keyframes weapon-hwando-slash-vfx { from { background-position-x: 0; } to { background-position-x: 114.2857%; } }
 
 .dungeon7-rescue { position: fixed; inset: 0; z-index: 120; overflow: hidden; background: #05070a; }

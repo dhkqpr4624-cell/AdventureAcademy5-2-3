@@ -13,6 +13,14 @@ import { stopAllChapter3Sfx } from "../game/audio/chapter3ProceduralSfx";
 import { completeChapter3Intro, resolveContinueScreen } from "./chapter3Flow";
 import type { SetStateAction } from "react";
 import { UNIT3_FLOOR1_FLAGS, UNIT3_FLOOR1_ID, UNIT3_FLOOR1_QUEST_ID, finishUnit3Floor1Run, markUnit3Flag } from "../game/chapter3/unit3Floor1";
+import { UNIT3_FLOOR2_FLAGS, UNIT3_FLOOR2_ID, UNIT3_FLOOR2_QUEST_ID, finishUnit3Floor2Run } from "../game/chapter3/unit3Floor2";
+
+/** Unit 3 floors routed from the base camp (Phase 3: Floor 1 and Floor 2). */
+const UNIT3_DUNGEON_FLOORS = {
+  [UNIT3_FLOOR1_ID]: { questId: UNIT3_FLOOR1_QUEST_ID, finalFlag: UNIT3_FLOOR1_FLAGS.finalStory, finish: finishUnit3Floor1Run },
+  [UNIT3_FLOOR2_ID]: { questId: UNIT3_FLOOR2_QUEST_ID, finalFlag: UNIT3_FLOOR2_FLAGS.finalStory, finish: finishUnit3Floor2Run },
+} as const;
+type Unit3DungeonFloorId = keyof typeof UNIT3_DUNGEON_FLOORS;
 
 const StoryScreen = lazy(() => import("../screens/StoryScreen/StoryScreen").then((module) => ({ default: module.StoryScreen })));
 const DungeonScreen = lazy(() => import("../screens/DungeonScreen/DungeonScreen").then((module) => ({ default: module.DungeonScreen })));
@@ -29,6 +37,9 @@ export function App() {
   const loaded = useRef(SaveManager.load());
   const initial = useRef(loaded.current.success ? applySaveDataToGameState(loaded.current.data) : createInitialGameSaveState());
   const [currentScreen, setCurrentScreen] = useState<ScreenId>("title");
+  /** Floor opened by the next "dungeon" navigation (chosen at the base camp entrance). */
+  const [dungeonFloorId, setDungeonFloorId] = useState<Unit3DungeonFloorId>(UNIT3_FLOOR1_ID);
+  const dungeonFloorRef = useRef<Unit3DungeonFloorId>(UNIT3_FLOOR1_ID);
   const [game, setGame] = useState<GameSaveState>(initial.current);
   const gameRef = useRef(game);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -58,7 +69,7 @@ export function App() {
   const navigate = useCallback((screen: ScreenId) => {
     if (screen !== "story") stopAllChapter3Sfx(250);
     // Unit 3 routes: intro story, base camp and the Floor 1 dungeon; anything else falls back to the title.
-    const dungeonAllowed = screen === "dungeon" && gameRef.current.floorUnlockState.unlockedFloorIds.includes(UNIT3_FLOOR1_ID);
+    const dungeonAllowed = screen === "dungeon" && gameRef.current.floorUnlockState.unlockedFloorIds.includes(dungeonFloorRef.current);
     setCurrentScreen(screen === "story" || screen === "baseCamp" || dungeonAllowed ? screen : "title");
     if (screen === "baseCamp") requestSave("baseCampEntered");
   }, [requestSave]);
@@ -131,12 +142,15 @@ export function App() {
           setCurrentScreen("baseCamp");
         }}
       />;
-      case "baseCamp": return <Chapter3BaseCampScreen game={game} updateGame={updateGame} requestSave={requestSave} onNavigate={navigate} />;
+      case "baseCamp": return <Chapter3BaseCampScreen game={game} updateGame={updateGame} requestSave={requestSave} onNavigate={navigate}
+        onEnterDungeon={(floorId) => { dungeonFloorRef.current = floorId; setDungeonFloorId(floorId); navigate("dungeon"); }} />;
       case "dungeon": {
+        const floorId = dungeonFloorId;
+        const floor = UNIT3_DUNGEON_FLOORS[floorId];
         const applyState = <T,>(value: SetStateAction<T>, current: T): T => typeof value === "function" ? (value as (previous: T) => T)(current) : value;
         return <DungeonScreen
-          key="unit3-floor-1"
-          floorId={UNIT3_FLOOR1_ID}
+          key={floorId}
+          floorId={floorId}
           onNavigate={navigate}
           playerState={game.playerState}
           setPlayerState={(value) => updateGame((current) => ({ ...current, playerState: applyState(value, current.playerState) }))}
@@ -144,7 +158,7 @@ export function App() {
           setInventoryState={(value) => updateGame((current) => ({ ...current, inventoryState: applyState(value, current.inventoryState) }))}
           onInventoryChanged={() => requestSave("itemAcquired")}
           onGoldAwarded={() => requestSave("itemAcquired")}
-          onDungeonEntered={() => { updateGame((current) => ({ ...current, currentFloorId: UNIT3_FLOOR1_ID })); requestSave("dungeonEntered"); }}
+          onDungeonEntered={() => { updateGame((current) => ({ ...current, currentFloorId: floorId })); requestSave("dungeonEntered"); }}
           onDungeonAbandoned={(reason) => updateGame((current) => ({
             ...current,
             currentFloorId: null,
@@ -154,16 +168,16 @@ export function App() {
           // Every entry starts a fresh run; persisted story flags keep finished events from replaying.
           savedFloorRun={null}
           onFloorRunChanged={() => undefined}
-          firstObjectiveEventSeen={Boolean(game.firstObjectiveEventSeen[UNIT3_FLOOR1_FLAGS.finalStory])}
+          firstObjectiveEventSeen={Boolean(game.firstObjectiveEventSeen[floor.finalFlag])}
           floor1StartStorySeen
           storyFlags={game.firstObjectiveEventSeen}
           onStoryEventSeen={(eventId) => { updateGame((current) => markUnit3Flag(current, eventId)); requestSave("storyCompleted", true); }}
           onCollectionRunReset={() => undefined}
-          onObjectiveAcquired={(correctCount) => updateGame((current) => ({ ...current, floorBestCorrect: { ...current.floorBestCorrect, [UNIT3_FLOOR1_ID]: Math.max(current.floorBestCorrect[UNIT3_FLOOR1_ID] ?? 0, correctCount) } }))}
-          onBestCorrect={(correctCount) => updateGame((current) => ({ ...current, floorBestCorrect: { ...current.floorBestCorrect, [UNIT3_FLOOR1_ID]: Math.max(current.floorBestCorrect[UNIT3_FLOOR1_ID] ?? 0, correctCount) } }))}
-          floorQuestStarted={game.questState[UNIT3_FLOOR1_QUEST_ID] === "active" || game.questState[UNIT3_FLOOR1_QUEST_ID] === "completed"}
-          floorQuestStatus={game.questState[UNIT3_FLOOR1_QUEST_ID] ?? "locked"}
-          onFloorCleared={() => { updateGame((current) => finishUnit3Floor1Run(current)); requestSave("floorCleared", true); }}
+          onObjectiveAcquired={(correctCount) => updateGame((current) => ({ ...current, floorBestCorrect: { ...current.floorBestCorrect, [floorId]: Math.max(current.floorBestCorrect[floorId] ?? 0, correctCount) } }))}
+          onBestCorrect={(correctCount) => updateGame((current) => ({ ...current, floorBestCorrect: { ...current.floorBestCorrect, [floorId]: Math.max(current.floorBestCorrect[floorId] ?? 0, correctCount) } }))}
+          floorQuestStarted={game.questState[floor.questId] === "active" || game.questState[floor.questId] === "completed"}
+          floorQuestStatus={game.questState[floor.questId] ?? "locked"}
+          onFloorCleared={() => { updateGame((current) => floor.finish(current)); requestSave("floorCleared", true); }}
           onDungeon10EndingStarted={() => undefined}
           onDungeon10EndingComplete={() => undefined}
         />;

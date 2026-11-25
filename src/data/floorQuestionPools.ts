@@ -22,6 +22,13 @@ import {
  */
 export const UNIT3_FLOOR1_INTERIM_QUESTIONS: readonly Question[] = DUNGEON9_UNIT2_QUESTIONS;
 
+/**
+ * Unit 3 Floor 2 question pool — INTERIM (Phase 3). No Floor 2 questions were supplied and none may be
+ * invented, so Floor 2 combats reuse the same verified interim pool as Floor 1 so the floor can be played and
+ * tested. Replace this single constant with the Floor 2 questions when they are delivered.
+ */
+export const UNIT3_FLOOR2_INTERIM_QUESTIONS: readonly Question[] = UNIT3_FLOOR1_INTERIM_QUESTIONS;
+
 export const FLOOR_QUESTION_POOLS: Readonly<Record<Exclude<FloorId, "floor-10">, readonly Question[]>> = {
   "floor-1": DUNGEON1_UNIT2_QUESTIONS,
   "floor-2": DUNGEON2_UNIT2_QUESTIONS,
@@ -33,6 +40,7 @@ export const FLOOR_QUESTION_POOLS: Readonly<Record<Exclude<FloorId, "floor-10">,
   "floor-8": DUNGEON8_UNIT2_QUESTIONS,
   "floor-9": DUNGEON9_UNIT2_QUESTIONS,
   "unit3-floor-1": UNIT3_FLOOR1_INTERIM_QUESTIONS,
+  "unit3-floor-2": UNIT3_FLOOR2_INTERIM_QUESTIONS,
 };
 
 export const DUNGEON_1_TO_9_QUESTION_POOL: readonly Question[] = [

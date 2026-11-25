@@ -13,6 +13,12 @@ export const DUNGEON_FLOOR_TITLES: DungeonFloorTitle[] = [
     subtitle: "을사늑약과 항일 의병 운동",
   },
   {
+    floor: 2,
+    floorId: "unit3-floor-2",
+    title: "던전 2층",
+    subtitle: "일제 침략에 맞선 다양한 노력(애국계몽운동과 의거 활동)",
+  },
+  {
     floor: 1,
     floorId: "floor-1",
     title: "던전 1층",

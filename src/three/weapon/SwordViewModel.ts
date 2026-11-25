@@ -100,6 +100,13 @@ export const UIBYEONG_HWANDO_DEFINITION: SwordDefinition = {
   textureUrl: `${import.meta.env.BASE_URL}assets/swords/uibyeong-hwando.png`,
 };
 
+/** Unit 3 Floor 2 reward skin: the supplied fountain-pen texture on the existing sword model/animation. */
+export const LEARNING_FOUNTAIN_PEN_DEFINITION: SwordDefinition = {
+  ...BASIC_SWORD_DEFINITION,
+  id: "learning-fountain-pen",
+  textureUrl: `${import.meta.env.BASE_URL}assets/swords/learning-fountain-pen.png`,
+};
+
 export function getSwordDefinitionForEquippedItem(
   equippedItemId: string | null | undefined,
 ): SwordDefinition {
@@ -111,6 +118,7 @@ export function getSwordDefinitionForEquippedItem(
   if (equippedItemId === "weapon-silla-ring-pommel-sword") return SILLA_RING_POMMEL_SWORD_DEFINITION;
   if (equippedItemId === "weapon-choe-museon-cannon") return CHOE_MUSEON_CANNON_DEFINITION;
   if (equippedItemId === "weapon-uibyeong-hwando") return UIBYEONG_HWANDO_DEFINITION;
+  if (equippedItemId === "weapon-learning-fountain-pen") return LEARNING_FOUNTAIN_PEN_DEFINITION;
   return BASIC_SWORD_DEFINITION;
 }
 

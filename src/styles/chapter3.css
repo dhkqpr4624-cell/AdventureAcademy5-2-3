@@ -263,3 +263,25 @@
 .base-camp-npc-name-tag.is-shop { justify-items: center; gap: 0.12rem; }
 .base-camp-npc-name-tag.is-shop small { color: #ffe08a; font-size: 0.82rem; font-weight: 800; letter-spacing: 0.12em; }
 .base-camp-npc-name-tag.is-shop strong { font-size: 1rem; }
+
+/* ===== Phase 3: Unit 3 Floor 2 stage — 카프 period-costume standing illustration ===== */
+.u3f2-stage.is-standing-only { background: rgba(4, 5, 9, 0.45); }
+.u3f2-kaf-standing {
+  position: absolute; left: calc(50% + min(18vw, 330px)); bottom: 15.5rem; transform: translateX(-50%);
+  height: min(58svh, 620px); width: auto; aspect-ratio: 843 / 1329; object-fit: contain; image-rendering: pixelated;
+  opacity: 0; transition: opacity 700ms ease; filter: drop-shadow(0 16px 26px rgba(0, 0, 0, 0.55)); will-change: opacity;
+}
+.u3f2-kaf-standing.is-shown { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .u3f2-kaf-standing { transition: none; } }
+
+/* ===== Phase 3: dungeon floor choice at the entrance (only when no floor is pending and 2 floors are unlocked) ===== */
+.chapter3-floor-select-popup { width: min(92vw, 520px); }
+.chapter3-floor-select-list { display: grid; gap: 0.7rem; padding: 0.4rem 0 0.2rem; }
+.chapter3-floor-select-button { display: grid; gap: 0.25rem; text-align: left; padding: 0.85rem 1rem; }
+.chapter3-floor-select-button strong { font-size: 1.05rem; }
+.chapter3-floor-select-button span { font-size: 0.86rem; opacity: 0.85; }
+.chapter3-supply-grant-popup { width: min(92vw, 420px); }
+.chapter3-supply-grant-popup .chapter3-reward-grid { grid-template-columns: 1fr; }
+/* Phase 3: Floor 2 monster VFX sizes (PixelFX cells are square; larger cells keep the same pixel scale). */
+.unit3-monster-vfx.vfx-ito-phantom-dark-blast { width: min(84vmin, 760px); }
+.unit3-monster-vfx.vfx-informer-shadow-fog, .unit3-monster-vfx.vfx-sycophant-black-smoke { width: min(74vmin, 660px); }

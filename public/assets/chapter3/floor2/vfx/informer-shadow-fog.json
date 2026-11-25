@@ -1,0 +1,52 @@
+{
+ "generator": "pixelfx",
+ "pixelfxCommit": "5294518ce7c72e48b6100a744596e0acf57f2826",
+ "effect": "explosions/smoke-burst-bare",
+ "options": {
+  "palette": [
+   "#06040a",
+   "#120a1c",
+   "#1f1230",
+   "#2e1a48",
+   "#432468",
+   "#5e3290",
+   "#8048b8"
+  ],
+  "light": 0.4
+ },
+ "renderCommand": "node tools/render.mjs explosions/smoke-burst-bare --sheet --opts '{\"palette\": [\"#06040a\", \"#120a1c\", \"#1f1230\", \"#2e1a48\", \"#432468\", \"#5e3290\", \"#8048b8\"], \"light\": 0.4}'",
+ "contract": "monster",
+ "frames": 8,
+ "cell": [
+  260,
+  260
+ ],
+ "sheet": [
+  2080,
+  260
+ ],
+ "sourceFps": 30,
+ "sourceFrameSize": [
+  260,
+  176
+ ],
+ "sourcePivot": [
+  130,
+  156
+ ],
+ "timeWindowSeconds": [
+  0.97,
+  4.3
+ ],
+ "sourceFramesUsed": [
+  29,
+  43,
+  58,
+  72,
+  86,
+  100,
+  115,
+  129
+ ],
+ "playback": "8 frames, 640 ms, steps(7), once"
+}

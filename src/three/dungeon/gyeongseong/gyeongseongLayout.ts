@@ -40,6 +40,18 @@ export const BUILDING_MODELS: Record<BuildingModelId, { width: number; depth: nu
   "gs-mansion": { width: 1.145, depth: 0.809, height: 19, weight: 2 },
 };
 export const BUILDING_MODEL_IDS = Object.keys(BUILDING_MODELS) as BuildingModelId[];
+
+/**
+ * Street profile (Phase 3). "floor1" is the original Floor 1 street (default; byte-identical layout).
+ * "floor2-school" re-arranges the same FBX buildings, tiles and sizes for the school district of Floor 2:
+ * more brick buildings, residences and hanok, fewer shops and no station, and no tram rails (quiet side
+ * streets) — the room graph, plaza/street widths, building sizes and LOD are unchanged.
+ */
+export type GyeongseongProfile = "floor1" | "floor2-school";
+const PROFILE_WEIGHTS: Record<GyeongseongProfile, Record<BuildingModelId, number>> = {
+  floor1: Object.fromEntries(BUILDING_MODEL_IDS.map((id) => [id, BUILDING_MODELS[id].weight])) as Record<BuildingModelId, number>,
+  "floor2-school": { "gs-timber-shop": 1, "gs-brick-corner": 4, "gs-hanok": 3, "gs-station": 0, "gs-mansion": 3 },
+};
 /** Asset kept in the repository for later floors; it must never be placed on Floors 1–7. */
 export const FORBIDDEN_ROAD_ASSET_FLOORS_1_TO_7 = "12a-cracked-road";
 
@@ -137,8 +149,9 @@ function mainRouteRoomPairs(map: DungeonMapDefinition): Set<string> {
 }
 
 /** `map` must be the visual map (toGyeongseongVisualMap). */
-export function planGyeongseongLayout(map: DungeonMapDefinition, seed: string): GyeongseongLayout {
-  const random = createSeededRandom(`${seed}::gyeongseong-layout-v2`);
+export function planGyeongseongLayout(map: DungeonMapDefinition, seed: string, profile: GyeongseongProfile = "floor1"): GyeongseongLayout {
+  const random = createSeededRandom(profile === "floor1" ? `${seed}::gyeongseong-layout-v2` : `${seed}::gyeongseong-layout-${profile}`);
+  const weights = PROFILE_WEIGHTS[profile];
   const open = new Map<string, OpenCell>();
   // room centres sit on cell corners: plaza cells [c-PLAZA_HALF, c+PLAZA_HALF-1]
   const roomCorner = new Map(map.rooms.map((room) => [room.id, { i: Math.round(room.position.x / CELL), j: Math.round(room.position.z / CELL) }]));
@@ -183,7 +196,7 @@ export function planGyeongseongLayout(map: DungeonMapDefinition, seed: string): 
       // 07a's curb (pavement edge) runs along the tile's −X edge: turn it towards the buildings.
       tile = "road-curb";
       rotationY = closedDir.dx === -1 ? 0 : closedDir.dx === 1 ? Math.PI : closedDir.dz === 1 ? Math.PI / 2 : -Math.PI / 2;
-    } else if (cell.kind === "street" && cell.main && cell.centerLine) {
+    } else if (cell.kind === "street" && cell.main && cell.centerLine && profile === "floor1") {
       tile = "road-tram"; // rails run along local Z
       rotationY = cell.axis === "z" ? 0 : Math.PI / 2;
     }
@@ -204,7 +217,7 @@ export function planGyeongseongLayout(map: DungeonMapDefinition, seed: string): 
   });
   const pickModels = () => {
     // weighted shuffle
-    const pool = BUILDING_MODEL_IDS.flatMap((id) => Array.from({ length: BUILDING_MODELS[id].weight }, () => id));
+    const pool = BUILDING_MODEL_IDS.flatMap((id) => Array.from({ length: weights[id] }, () => id));
     const order: BuildingModelId[] = [];
     while (pool.length) { const index = Math.floor(random.next() * pool.length); const id = pool.splice(index, 1)[0]; if (!order.includes(id)) order.push(id); }
     return order;
