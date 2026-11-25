@@ -25,6 +25,7 @@ const WEAPON_VFX_FILES: Readonly<Record<string, string>> = {
 const UNIT3_FLOOR_MONSTERS: Readonly<Record<string, readonly string[]>> = {
   "unit3-floor-1": ["unit3-inked-treaty-document", "unit3-informant-shadow", "unit3-residency-general-watcher"],
   "unit3-floor-2": ["unit3-f2-sycophant", "unit3-f2-informing-shadow", "unit3-f2-ito-phantom"],
+  "unit3-floor-3": ["unit3-f3-kenpei", "unit3-f3-governor-watcher"],
 };
 const preloadedImages = new Set<string>();
 
@@ -70,6 +71,11 @@ export function scheduleUnit3DungeonPreload(enterableFloorIds: readonly string[]
         const urls: string[] = [];
         if (storyFloorIds.includes("unit3-floor-1")) urls.push(...(await import("./Unit3Floor1Stage")).UNIT3_FLOOR1_STAGE_IMAGE_URLS);
         if (storyFloorIds.includes("unit3-floor-2")) urls.push(...(await import("./Unit3Floor2Stage")).UNIT3_FLOOR2_STAGE_IMAGE_URLS);
+        // Phase 4: Floor 3 story illustrations + every event-map layer, standing and VFX sheet (download only).
+        if (storyFloorIds.includes("unit3-floor-3")) {
+          urls.push(...(await import("./Unit3Floor3Stage")).UNIT3_FLOOR3_STAGE_IMAGE_URLS);
+          urls.push(...(await import("./eventMap/Unit3Floor3EventMap")).U3EM_IMAGE_URLS);
+        }
         for (const url of urls) {
           if (cancelled) return;
           await whenIdle();

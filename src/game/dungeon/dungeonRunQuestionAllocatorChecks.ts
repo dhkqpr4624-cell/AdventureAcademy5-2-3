@@ -105,6 +105,7 @@ export function runDungeonRunQuestionAllocatorChecks() {
     "floor-9": 20,
     "unit3-floor-1": 20,
     "unit3-floor-2": 20, // interim: same verified pool as Unit 3 Floor 1
+    "unit3-floor-3": 20, // Phase 4 interim: same verified pool (separate module floor3Questions.ts)
   };
   for (const [floorId, expectedPoolCount] of Object.entries(expectedPoolCounts) as Array<[Exclude<FloorId, "floor-10">, number]>) {
     const pool = FLOOR_QUESTION_POOLS[floorId];

@@ -1,12 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import type { NpcDefinition } from "../game/npc/npcTypes";
 import { resolveNextBlinkDelay } from "../game/npc/npcIdleResolver";
+import { outlinePadding, useOutlineImage, type OutlineStep } from "./outlineMask";
 
 type NpcIdleSpriteProps = {
   npc: { id: string; placement: NpcDefinition["placement"] } & { idle: Pick<NpcDefinition["idle"], "standingImage" | "blinkSpriteSheet" | "blinkFrameCount" | "blinkFrameDurationMs" | "minBlinkIntervalMs" | "maxBlinkIntervalMs"> };
   mirrored?: boolean;
   selected: boolean;
   interactionHighlighted: boolean;
+  /**
+   * Phase 4 hotfix: draw the hover outline from a cached image (see outlineMask.ts) instead of the CSS
+   * drop-shadow filter chain. The filter stays as the fallback until the image is ready.
+   */
+  outlineSteps?: readonly OutlineStep[];
 };
 
 export function NpcIdleSprite({
@@ -14,7 +20,10 @@ export function NpcIdleSprite({
   selected,
   interactionHighlighted,
   mirrored = false,
+  outlineSteps,
 }: NpcIdleSpriteProps) {
+  const outlineUrl = useOutlineImage(outlineSteps ? npc.idle.standingImage : undefined, npc.placement.width, npc.placement.height, outlineSteps ?? []);
+  const outlinePad = outlineSteps ? outlinePadding(outlineSteps) : 0;
   const [frame, setFrame] = useState<number | null>(null);
   const [blinkTextureReady, setBlinkTextureReady] = useState(false);
   const blinkTimerRef = useRef<number | null>(null);
@@ -91,7 +100,7 @@ export function NpcIdleSprite({
         selected ? "is-selected" : ""
       } ${
         interactionHighlighted ? "is-interaction-highlighted" : ""
-      } ${mirrored ? "is-mirrored" : ""}`}
+      } ${mirrored ? "is-mirrored" : ""} ${outlineUrl ? "has-outline-image" : ""}`}
       style={{
         left: npc.placement.x,
         top: npc.placement.y,
@@ -100,6 +109,13 @@ export function NpcIdleSprite({
       }}
       aria-hidden="true"
     >
+      {outlineUrl && (
+        <span
+          className="base-camp-npc-outline"
+          aria-hidden="true"
+          style={{ left: -outlinePad, top: -outlinePad, width: npc.placement.width + outlinePad * 2, height: npc.placement.height + outlinePad * 2, backgroundImage: `url("${outlineUrl}")` }}
+        />
+      )}
       <span className="base-camp-npc-art" aria-hidden="true">
         <img src={npc.idle.standingImage} alt="" draggable={false} />
         <span

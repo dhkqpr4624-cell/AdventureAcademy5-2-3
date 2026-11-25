@@ -36,6 +36,14 @@ export type BaseCampTramDefinition = {
 };
 
 /** NPC shown on a base camp map without the Unit 2 quest/dialogue wiring. */
+/** Phase 4: looping dungeon entrance — animated region (frame coordinates) cut from the supplied loop sheet. */
+export type BaseCampEntranceAnimation = {
+  strip: string;
+  frames: number;
+  fps: number;
+  region: { x: number; y: number; w: number; h: number };
+};
+
 export type BaseCampNpcView = {
   id: string;
   displayName: string;
@@ -70,6 +78,8 @@ export type BaseCampMapDefinition = {
   cloudLoop?: { src: string; speed: number };
   /** Tram that crosses the map on the rail (drawn in front of NPCs, behind the ground). */
   tram?: BaseCampTramDefinition;
+  /** Phase 4: animated dungeon entrance overlay (the static layer stays as the base). */
+  dungeonEntranceAnimation?: BaseCampEntranceAnimation;
   focusPoints: Record<string, BaseCampFocusPoint>;
   interactionRegions: BaseCampInteractionRegion[];
 };

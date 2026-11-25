@@ -38,6 +38,7 @@ export const FLOOR_DEFINITIONS: readonly FloorDefinition[] = [
   // Unit 3 floors are listed after the Unit 2 floors so Unit 2 ordering/unlock logic is unchanged.
   { id: "unit3-floor-1", order: 101, title: "3단원 1층", questId: "quest-unit3-floor-1", questionCount: 10 },
   { id: "unit3-floor-2", order: 102, title: "3단원 2층", questId: "quest-unit3-floor-2", questionCount: 10 },
+  { id: "unit3-floor-3", order: 103, title: "3단원 3층", questId: "quest-unit3-floor-3", questionCount: 10 },
 ];
 
 export const INITIAL_FLOOR_UNLOCK_STATE: FloorUnlockState = {

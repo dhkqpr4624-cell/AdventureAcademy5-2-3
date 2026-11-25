@@ -34,7 +34,7 @@ export function runChapter3Phase3HotfixChecks(): void {
   /* ---- 1. per-floor data: 6–8 distinct correct questions, pools large enough, no duplicate ids */
   const [floor1, floor2] = UNIT3_FLOOR_ACHIEVEMENTS;
   assert(floor1.floorId === UNIT3_FLOOR1_ID && floor1.requiredCorrect === 6 && floor1.rewardItemId === "weapon-uibyeong-hwando", "floor 1: 의병의 환도, 6 questions");
-  assert(floor2.floorId === UNIT3_FLOOR2_ID && floor2.requiredCorrect === 7 && floor2.rewardItemId === "weapon-learning-fountain-pen", "floor 2: 배움의 만년필, 7 questions");
+  assert(floor2.floorId === UNIT3_FLOOR2_ID && floor2.requiredCorrect === 7 && floor2.rewardItemId === "weapon-learning-fountain-pen", "floor 2: 애국계몽 만년필, 7 questions");
   for (const spec of UNIT3_FLOOR_ACHIEVEMENTS) {
     assert(spec.requiredCorrect >= 6 && spec.requiredCorrect <= 8, `${spec.floorId}: required correct within 6–8`);
     const pool = (FLOOR_QUESTION_POOLS as Record<string, readonly { id: string }[]>)[spec.floorId];

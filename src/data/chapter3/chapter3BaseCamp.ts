@@ -24,6 +24,12 @@ export const CHAPTER3_BASE_CAMP_MAP: BaseCampMapDefinition = {
     // Phase 3 hotfix: shorter, still random gaps so students notice the tram — first pass 4–8 s after entering
     // the camp, then 12–22 s after the car has fully left the screen (a pass itself takes 12.5 s).
     firstDelaySeconds: [4, 8], intervalSeconds: [12, 22] },
+  // Phase 4: supplied 12-frame portal loop (8 fps). Only the animated 338×199 region (frame coordinates) is drawn
+  // over the static entrance PNG — see DungeonEntranceAnimation.
+  dungeonEntranceAnimation: {
+    strip: `${import.meta.env.BASE_URL}assets/chapter3/maps/basecamp/dungeon-entrance-loop-strip.png`,
+    frames: 12, fps: 8, region: { x: 661, y: 551, w: 338, h: 199 },
+  },
   focusPoints: {
     campCenter: { id: "campCenter", x: 836, y: 470.5, zoom: 1 },
   },
@@ -60,13 +66,14 @@ const supplyPlacement = {
   height: Math.round(1003 * SUPPLY_SCALE),
 };
 
-export type Chapter3CampTargetId = "deneb" | "kaiden" | "supply" | "dungeonEntrance";
+export type Chapter3CampTargetId = "deneb" | "kaiden" | "supply" | "dungeonEntrance" | "kaf";
+type CampBox = { x: number; y: number; width: number; height: number };
 
 /**
  * Click/hover hitboxes in map pixels, fitted to the visible pixels of each sprite (PNG bounding boxes),
  * not to the transparent frame. The dungeon entrance box is the bounding box of the gate layer.
  */
-export function createChapter3BaseCampHitboxes(npcs: readonly BaseCampNpcView[]): Record<Chapter3CampTargetId, { x: number; y: number; width: number; height: number }> {
+export function createChapter3BaseCampHitboxes(npcs: readonly BaseCampNpcView[]): Record<Exclude<Chapter3CampTargetId, "kaf">, CampBox> & { kaf?: CampBox } {
   const box = (id: string, left: number, right: number, top: number, bottom: number) => {
     const placement = npcs.find((npc) => npc.id === id)!.placement;
     return {
@@ -81,6 +88,8 @@ export function createChapter3BaseCampHitboxes(npcs: readonly BaseCampNpcView[])
     kaiden: box("kaiden", 0.2, 0.83, 0.033, 0.959),
     supply: box("supply", 161 / 1568, 1524 / 1568, 31 / 1003, 979 / 1003),
     dungeonEntrance: { x: 629, y: 312, width: 401, height: 457 },
+    // Phase 4: 카프 (after the Floor 3 rescue) — kapp standing_R visible pixels 32..379 × 132..681 of 400×700.
+    ...(npcs.some((npc) => npc.id === "kaf") ? { kaf: box("kaf", 32 / 400, 379 / 400, 132 / 700, 681 / 700) } : {}),
   };
 }
 
@@ -88,8 +97,13 @@ export function createChapter3BaseCampHitboxes(npcs: readonly BaseCampNpcView[])
  * NPCs at the base camp after the intro: Deneb and Kaiden on either side of the entrance, plus the supply
  * crates ("보급물품") that open the existing shop. The player is the viewer (first person) and is not drawn.
  */
-export function createChapter3BaseCampNpcs(): BaseCampNpcView[] {
+export const CHAPTER3_BASE_CAMP_KAF_X = 405;
+export function createChapter3BaseCampNpcs(options: { kaf?: boolean } = {}): BaseCampNpcView[] {
   return [
+    // Phase 4: 카프 joins after the Floor 3 rescue — her original Adventure Academy outfit (Chapter 2 standing_R),
+    // left of 데네브, facing the camp centre. No blink sheet exists for this standing, so she idles without one.
+    ...(options.kaf ? [{ id: "kaf", displayName: "카프", displayRole: "부지휘관", placement: placement("kapp", CHAPTER3_BASE_CAMP_KAF_X),
+      idle: idle(CHAPTER3_STAGE_SPRITES.kapp.images.R!) }] : []),
     { id: "deneb", displayName: "데네브", displayRole: "지휘관", placement: placement("deneb", 545),
       idle: idle(`${import.meta.env.BASE_URL}assets/npcs/chapter2/deneb/standing_R.png`, `${import.meta.env.BASE_URL}assets/npcs/chapter2/deneb/blink_R.png`, 7) },
     { id: "kaiden", displayName: "카이든", displayRole: "지휘관", placement: placement("kaiden", 1115), idle: idle(kaidenStanding, kaidenBlink, 4) },

@@ -14,7 +14,7 @@ This script only *selects* 8 PixelFX frames (evenly spaced inside the effect's o
 them unchanged — no resampling, recolouring or drawing — into square transparent cells (frame centred,
 same offset in every cell so nothing jumps). A JSON sidecar records the PixelFX id, options and frames used.
 
-usage: python3 pack_pixelfx_sheets.py <pixelfx-final-dir> <repo-root>
+usage: python3 pack_pixelfx_sheets.py <pixelfx-final-dir> <repo-root> [name,name,...]
 """
 import json
 import os
@@ -41,12 +41,22 @@ SHEETS = {
     "sycophant-black-smoke": ("smoke", "explosions/smoke-burst-bare",
         {"palette": ["#030204", "#0a080d", "#151219", "#221e27", "#322d38", "#47414e", "#605968"], "light": 0.2},
         [], (1.0, 4.6), "public/assets/chapter3/floor2/vfx/sycophant-black-smoke.png", "monster"),
+    # Phase 4 (Unit 3 Floor 3) — rendered into /home/claude/p4/pfx/<run>/... with the same PixelFX checkout
+    "kenpei-saber-slash": ("kenpei", "melee/double-slash",
+        {"palette": ["#141210", "#2a2620", "#4a443a", "#6e6a5c", "#9c9a8c", "#cfcdc2", "#f4f2ea"],
+         "sparks": ["#f4f2ea", "#d9c48a", "#a8803e", "#6e4a24"], "seed": 6},
+        ["--no-actor"], (0.033, 0.55), "public/assets/chapter3/floor3/vfx/kenpei-saber-slash.png", "monster"),
+    "watcher-surveillance-sigil": ("watcher", "shadow/hex-sigil",
+        {"palette": ["#06080a", "#0e1418", "#18222a", "#28363e", "#3e5258", "#5f7a78", "#8fae98", "#c8e0b0"], "seed": 7},
+        ["--no-actor"], (0.3, 3.0), "public/assets/chapter3/floor3/vfx/watcher-surveillance-sigil.png", "monster"),
 }
 FRAMES = 8
 
 
-def main(src_root, repo_root):
+def main(src_root, repo_root, only=None):
     for name, (run, effect_id, opts, flags, (t0, t1), out_rel, contract) in SHEETS.items():
+        if only and name not in only:
+            continue
         base = os.path.join(src_root, run, effect_id)
         stem = effect_id.split("/")[1]
         meta = json.load(open(os.path.join(base, f"{stem}.json")))
@@ -78,4 +88,4 @@ def main(src_root, repo_root):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2])
+    main(sys.argv[1], sys.argv[2], set(sys.argv[3].split(",")) if len(sys.argv) > 3 else None)

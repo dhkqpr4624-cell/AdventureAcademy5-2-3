@@ -329,3 +329,70 @@
 }
 /* rows keep their content height (the cards' min-height would otherwise let them shrink and overlap); the list scrolls */
 .chapter3-achievement-popup .chapter3-achievement-list { grid-auto-rows: max-content; align-content: start; }
+
+/* ===== Phase 4 hotfix: hover outlines from cached images (outlineMask.ts) instead of re-filtering every frame ===== */
+.base-camp-npc-art-container.has-outline-image.is-interaction-highlighted,
+.dungeon-entrance-layer.has-outline-image.is-hover-outlined { filter: none; }
+.base-camp-npc-outline, .dungeon-entrance-outline {
+  position: absolute; display: block; pointer-events: none; opacity: 0;
+  background-repeat: no-repeat; background-size: 100% 100%; image-rendering: pixelated;
+}
+.base-camp-npc-art-container.is-mirrored .base-camp-npc-outline { transform: scaleX(-1); }
+.base-camp-npc-art-container.is-interaction-highlighted .base-camp-npc-outline,
+.dungeon-entrance-layer.is-hover-outlined .dungeon-entrance-outline { opacity: 1; }
+/* ===== Phase 4: dungeon entrance loop — 12 frames, steps() transform on one strip (compositor-only) ===== */
+.dungeon-entrance-animation { position: absolute; overflow: hidden; pointer-events: none; }
+.dungeon-entrance-animation img {
+  position: absolute; left: 0; top: 0; height: 100%; max-width: none; image-rendering: pixelated;
+  animation: dungeon-entrance-loop var(--entrance-duration, 1.5s) steps(var(--entrance-frames, 12)) infinite;
+  will-change: transform;
+}
+@keyframes dungeon-entrance-loop { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+@media (prefers-reduced-motion: reduce) { .dungeon-entrance-animation img { animation-play-state: paused; } }
+/* Phase 4: Floor 3 monster VFX sizes (PixelFX square cells; same pixel scale as Floor 2) */
+.unit3-monster-vfx.vfx-kenpei-saber-slash { width: min(70vmin, 620px); }
+.unit3-monster-vfx.vfx-watcher-surveillance-sigil { width: min(76vmin, 680px); }
+
+/* ---------------------------------------------------------------- Phase 4 · Floor 3 evacuation event map */
+.u3em-root { position: fixed; inset: 0; z-index: 60; overflow: hidden; background: transparent; user-select: none; }
+.u3em-root.is-entered { background: #372b2c; }
+.u3em-camera { position: absolute; left: 0; top: 0; transform-origin: 0 0; transition-property: transform; transition-timing-function: ease-in-out; will-change: transform; opacity: 0; }
+.u3em-root.is-entered .u3em-camera { opacity: 1; }
+.u3em-scene { position: relative; overflow: hidden; }
+.u3em-layer { position: absolute; left: 0; top: 0; width: 2172px; height: 724px; pointer-events: none; image-rendering: pixelated; }
+.u3em-bg { z-index: 1; } .u3em-wall { z-index: 2; } .u3em-ground { z-index: 3; }
+.u3em-sprite { background-repeat: no-repeat; image-rendering: pixelated; pointer-events: none; }
+.u3em-fog { position: absolute; left: 0; top: 0; z-index: 5; opacity: 0; transition-property: transform, opacity; transition-timing-function: linear, ease; will-change: transform; }
+.u3em-fog.is-shown { opacity: 1; }
+.u3em-fog-trail { position: absolute; background: linear-gradient(180deg, rgba(20,17,28,0) 0%, rgba(20,17,28,.82) 22%, #14111c 48%); }
+.u3em-actor { position: absolute; transform: translateX(-50%); opacity: 0; transition-property: left, opacity; transition-timing-function: linear, ease; }
+.u3em-actor.is-shown { opacity: 1; }
+.u3em-actor > img { display: block; width: 100%; height: 100%; image-rendering: pixelated; pointer-events: none; }
+.u3em-exclamation { position: absolute; left: 50%; transform: translateX(-50%); animation: u3em-exclamation-out 0s linear 1.75s forwards; }
+@keyframes u3em-exclamation-out { to { visibility: hidden; } }
+.u3em-barrier { position: absolute; z-index: 30; }
+.u3em-barrier > .u3em-sprite { position: absolute; left: 0; top: 0; }
+.u3em-despawn { animation: u3em-fade-out .75s ease-in forwards; }
+@keyframes u3em-fade-out { from { opacity: 1; } to { opacity: 0; } }
+.u3em-dim { position: absolute; inset: 0; z-index: 40; background: rgba(4,4,10,.72); opacity: 0; transition: opacity .7s ease; pointer-events: none; }
+.u3em-dim.is-on { opacity: 1; }
+.u3em-flashback { position: absolute; inset: 0; z-index: 41; display: grid; place-items: center; opacity: 0; transition: opacity .7s ease; pointer-events: none; }
+.u3em-flashback.is-on { opacity: 1; }
+.u3em-flashback-map { position: relative; width: min(92vw, calc(70vh * 2048 / 608)); aspect-ratio: 2048 / 608; filter: sepia(.45) saturate(.75) brightness(.92); box-shadow: 0 0 0 3px rgba(240,220,170,.35), 0 0 60px rgba(0,0,0,.8); }
+.u3em-flashback-member { position: absolute; bottom: 19.6%; width: 4.5%; height: 24%; transform: translateX(-50%); z-index: 4; }
+.u3em-flashback-member img { width: 100%; height: 100%; object-fit: contain; object-position: center bottom; }
+.u3em-flashback-map .d7-layer:last-child { z-index: 5; }
+.u3em-curtain { position: absolute; inset: 0; z-index: 70; background: #000; opacity: 0; transition-property: opacity; transition-timing-function: ease; pointer-events: none; }
+.u3em-curtain.is-closed { opacity: 1; }
+.u3em-dialogue { position: absolute; inset: 0; z-index: 50; }
+.u3em-skip { position: absolute; z-index: 80; }
+@media (prefers-reduced-motion: reduce) { .u3em-camera { transition-duration: 0s !important; } }
+
+/* Phase 4 · Floor 3 조사 현황 */
+.u3-investigation-status { position: absolute; z-index: 12; left: 16px; top: 76px; padding: 8px 12px; border-radius: 8px; background: rgba(14, 12, 20, .72); color: #f3e7c8; font-size: 14px; line-height: 1.5; pointer-events: none; box-shadow: 0 0 0 1px rgba(243, 231, 200, .22); }
+.u3-investigation-status strong { display: block; font-size: 13px; color: #e8c97a; margin-bottom: 2px; }
+.u3-investigation-status ul { margin: 0; padding: 0; list-style: none; }
+.u3-investigation-status li span { display: inline-block; width: 1.2em; }
+.u3-investigation-status li.is-done { color: #b9e3a6; }
+@media (max-width: 720px), (max-height: 480px) { .u3-investigation-status { font-size: 12px; top: 64px; left: 10px; padding: 6px 9px; } }
+.u3em-probe.story-player { position: absolute; inset: 0; height: 100%; min-height: 0; background: none; visibility: hidden; pointer-events: none; z-index: -1; }

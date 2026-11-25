@@ -1,0 +1,53 @@
+{
+ "generator": "pixelfx",
+ "pixelfxCommit": "5294518ce7c72e48b6100a744596e0acf57f2826",
+ "effect": "shadow/hex-sigil",
+ "options": {
+  "palette": [
+   "#06080a",
+   "#0e1418",
+   "#18222a",
+   "#28363e",
+   "#3e5258",
+   "#5f7a78",
+   "#8fae98",
+   "#c8e0b0"
+  ],
+  "seed": 7
+ },
+ "renderCommand": "node tools/render.mjs shadow/hex-sigil --sheet --no-actor --opts '{\"palette\": [\"#06080a\", \"#0e1418\", \"#18222a\", \"#28363e\", \"#3e5258\", \"#5f7a78\", \"#8fae98\", \"#c8e0b0\"], \"seed\": 7}'",
+ "contract": "monster",
+ "frames": 8,
+ "cell": [
+  168,
+  168
+ ],
+ "sheet": [
+  1344,
+  168
+ ],
+ "sourceFps": 30,
+ "sourceFrameSize": [
+  168,
+  128
+ ],
+ "sourcePivot": [
+  84,
+  112
+ ],
+ "timeWindowSeconds": [
+  0.3,
+  3.0
+ ],
+ "sourceFramesUsed": [
+  9,
+  21,
+  32,
+  44,
+  55,
+  67,
+  78,
+  90
+ ],
+ "playback": "8 frames, 640 ms, steps(7), once"
+}

@@ -342,3 +342,94 @@ export function playFootsteps(level = 0.32): void {
   });
   oneShotVoice(out, nodes, sources, 1500);
 }
+
+/**
+ * Phase 4 (Floor 3 evacuation event map). No audio files were supplied for the black fog or the barrier, so
+ * these are synthesized like the other Unit 3 cues (no files):
+ * - fog rumble: a low, slowly swelling noise rumble loop ("낮게 울리는 소리") while the fog is on screen;
+ * - barrier spawn: a short rising crystalline shimmer;
+ * - barrier impact: a dull muffled thud each time the fog hits the barrier.
+ */
+export function startFogRumble(level = 0.3, fadeInMs = 1400): Chapter3SfxHandle {
+  const ctx = getContext();
+  if (!ctx || !master || !noise) return NOOP;
+  const source = ctx.createBufferSource();
+  source.buffer = noise;
+  source.loop = true;
+  const low = ctx.createBiquadFilter();
+  low.type = "lowpass"; low.frequency.value = 140; low.Q.value = 2.2;
+  const hum = ctx.createOscillator();
+  hum.type = "sine"; hum.frequency.value = 46;
+  const humGain = ctx.createGain();
+  humGain.gain.value = 0.35;
+  const swell = ctx.createOscillator();
+  swell.frequency.value = 0.21;
+  const swellDepth = ctx.createGain();
+  swellDepth.gain.value = 40;
+  swell.connect(swellDepth); swellDepth.connect(low.frequency);
+  const out = ctx.createGain();
+  out.gain.setValueAtTime(0, ctx.currentTime);
+  out.gain.linearRampToValueAtTime(level, ctx.currentTime + fadeInMs / 1000);
+  source.connect(low); low.connect(out);
+  hum.connect(humGain); humGain.connect(out);
+  out.connect(master);
+  source.start(); hum.start(); swell.start();
+  const voice: Voice = { nodes: [source, low, hum, humGain, swell, swellDepth], sources: [source, hum, swell], out, timer: null };
+  voices.add(voice);
+  return { stop: (fadeMs = 900) => release(voice, fadeMs) };
+}
+
+export function playBarrierSpawn(level = 0.22): void {
+  const ctx = getContext();
+  if (!ctx || !master) return;
+  const now = ctx.currentTime;
+  const out = ctx.createGain();
+  out.gain.value = level;
+  out.connect(master);
+  const nodes: AudioNode[] = [];
+  const sources: AudioScheduledSourceNode[] = [];
+  [523.25, 783.99, 1046.5].forEach((frequency, index) => {
+    const osc = ctx.createOscillator();
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(frequency * 0.7, now + index * 0.06);
+    osc.frequency.exponentialRampToValueAtTime(frequency, now + index * 0.06 + 0.32);
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0.0001, now);
+    env.gain.setValueAtTime(0.0001, now + index * 0.06);
+    env.gain.linearRampToValueAtTime(0.5, now + index * 0.06 + 0.05);
+    env.gain.exponentialRampToValueAtTime(0.0001, now + index * 0.06 + 0.75);
+    osc.connect(env); env.connect(out);
+    osc.start(now + index * 0.06); osc.stop(now + index * 0.06 + 0.8);
+    nodes.push(osc, env); sources.push(osc);
+  });
+  oneShotVoice(out, nodes, sources, 1200);
+}
+
+export function playBarrierImpact(level = 0.3): void {
+  const ctx = getContext();
+  if (!ctx || !master || !noise) return;
+  const now = ctx.currentTime;
+  const out = ctx.createGain();
+  out.gain.value = level;
+  out.connect(master);
+  const hit = ctx.createBufferSource();
+  hit.buffer = noise;
+  const low = ctx.createBiquadFilter();
+  low.type = "lowpass"; low.frequency.value = 380;
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0.0001, now);
+  env.gain.linearRampToValueAtTime(1, now + 0.012);
+  env.gain.exponentialRampToValueAtTime(0.0001, now + 0.32);
+  const thump = ctx.createOscillator();
+  thump.type = "sine";
+  thump.frequency.setValueAtTime(120, now);
+  thump.frequency.exponentialRampToValueAtTime(48, now + 0.25);
+  const thumpEnv = ctx.createGain();
+  thumpEnv.gain.setValueAtTime(0.7, now);
+  thumpEnv.gain.exponentialRampToValueAtTime(0.0001, now + 0.3);
+  hit.connect(low); low.connect(env); env.connect(out);
+  thump.connect(thumpEnv); thumpEnv.connect(out);
+  hit.start(now, Math.random()); hit.stop(now + 0.35);
+  thump.start(now); thump.stop(now + 0.35);
+  oneShotVoice(out, [hit, low, env, thump, thumpEnv], [hit, thump], 600);
+}

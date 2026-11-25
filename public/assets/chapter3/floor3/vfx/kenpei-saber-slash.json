@@ -1,0 +1,58 @@
+{
+ "generator": "pixelfx",
+ "pixelfxCommit": "5294518ce7c72e48b6100a744596e0acf57f2826",
+ "effect": "melee/double-slash",
+ "options": {
+  "palette": [
+   "#141210",
+   "#2a2620",
+   "#4a443a",
+   "#6e6a5c",
+   "#9c9a8c",
+   "#cfcdc2",
+   "#f4f2ea"
+  ],
+  "sparks": [
+   "#f4f2ea",
+   "#d9c48a",
+   "#a8803e",
+   "#6e4a24"
+  ],
+  "seed": 6
+ },
+ "renderCommand": "node tools/render.mjs melee/double-slash --sheet --no-actor --opts '{\"palette\": [\"#141210\", \"#2a2620\", \"#4a443a\", \"#6e6a5c\", \"#9c9a8c\", \"#cfcdc2\", \"#f4f2ea\"], \"sparks\": [\"#f4f2ea\", \"#d9c48a\", \"#a8803e\", \"#6e4a24\"], \"seed\": 6}'",
+ "contract": "monster",
+ "frames": 8,
+ "cell": [
+  164,
+  164
+ ],
+ "sheet": [
+  1312,
+  164
+ ],
+ "sourceFps": 30,
+ "sourceFrameSize": [
+  164,
+  108
+ ],
+ "sourcePivot": [
+  44,
+  92
+ ],
+ "timeWindowSeconds": [
+  0.033,
+  0.55
+ ],
+ "sourceFramesUsed": [
+  1,
+  3,
+  5,
+  8,
+  10,
+  12,
+  14,
+  16
+ ],
+ "playback": "8 frames, 640 ms, steps(7), once"
+}

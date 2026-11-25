@@ -7,7 +7,7 @@ import { changeItemQuantity, getItemQuantity, type InventoryState } from "../inv
 import { getPotionMaxQuantity, SHOP_PRODUCTS } from "../inventory/shopResolver";
 import type { GameSaveState } from "../../save/saveStateAdapter";
 import { UNIT3_FLOOR1_STORY_ROOM_IDS, findCartRoomId, hasFlag } from "./unit3Floor1";
-import { getUnit3TargetFloorId } from "./unit3Floor2";
+import { getUnit3PendingFloorId } from "./unit3Floor3";
 import { getUnit3StoryFloor } from "./unit3StoryFloors";
 
 /**
@@ -143,7 +143,7 @@ function buyableHealing(inventory: InventoryState, gold: number) {
 }
 
 export function evaluateEmergencySupply(state: Pick<GameSaveState, "questState" | "firstObjectiveEventSeen" | "inventoryState" | "playerState">): EmergencySupplyDecision {
-  const floorId = getUnit3TargetFloorId(state);
+  const floorId = getUnit3PendingFloorId(state); // Phase 4: Floor 3 included
   const none = { floorId, route: null, neededHealing: 0, ownedHealing: 0, buyableHealing: 0, freeSmallSlots: 0, grant: 0 };
   if (!floorId) return none;
   const route = estimateFloorDamage(state, floorId);

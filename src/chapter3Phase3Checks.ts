@@ -91,7 +91,7 @@ export function runChapter3Phase3Checks(): void {
   for (const id of Object.values(UNIT3_FLOOR2_MONSTER_IDS)) assert(getUnit3MonsterAttackVfx(id)?.startsWith("floor2/vfx/"), `${id}: PixelFX attack VFX`);
   assert(getUnit3MonsterDefeatVfx(UNIT3_FLOOR2_MONSTER_IDS.sycophant) === "floor2/vfx/sycophant-black-smoke" && getUnit3MonsterDefeatVfx(UNIT3_FLOOR2_MONSTER_IDS.informer) === null, "black smoke on 아부쟁이 친일파 defeat only");
   const pen = getItemDefinition(UNIT3_FLOOR2_REWARD.weaponItemId)!;
-  assert(pen.name === "배움의 만년필" && pen.type === "weaponSkin" && pen.attackVfxId === "ink-brush-attack" && !pen.equipmentStats, "배움의 만년필: cosmetic, existing ink-brush VFX");
+  assert(pen.name === "애국계몽 만년필" /* Phase 4 rename */ && pen.type === "weaponSkin" && pen.attackVfxId === "ink-brush-attack" && !pen.equipmentStats, "애국계몽 만년필 (id unchanged): cosmetic, existing ink-brush VFX");
   assert(pen.description === "책과 배움으로 나라를 지키려 했던 사람들의 뜻을 담은 무기.", "pen description");
   assert(getSwordDefinitionForEquippedItem(pen.id).textureUrl.endsWith("assets/swords/learning-fountain-pen.png"), "pen texture on the existing weapon model");
   const hwando = getItemDefinition("weapon-uibyeong-hwando")!;
@@ -145,7 +145,7 @@ export function runChapter3Phase3Checks(): void {
   const f1run = createDungeonRun(UNIT3_FLOOR1_ID, "phase3-f1");
   const f1visual = toGyeongseongVisualMap(prepareUnit3Floor1Map(f1run.map, f1run.seed));
   assert(JSON.stringify(planGyeongseongLayout(f1visual, f1run.seed)) === JSON.stringify(planGyeongseongLayout(f1visual, f1run.seed, "floor1")), "floor 1 street layout unchanged (default profile)");
-  assert(getUnit3StoryFloor(UNIT3_FLOOR1_ID)?.streetProfile === "floor1" && getUnit3StoryFloor(UNIT3_FLOOR2_ID)?.streetProfile === "floor2-school" && Object.keys(UNIT3_STORY_FLOORS).length === 2, "story floor registry");
+  assert(getUnit3StoryFloor(UNIT3_FLOOR1_ID)?.streetProfile === "floor1" && getUnit3StoryFloor(UNIT3_FLOOR2_ID)?.streetProfile === "floor2-school" && Object.keys(UNIT3_STORY_FLOORS).length === 3, "story floor registry (Phase 4: + floor 3)");
 
   /* 4. quest flow: locked until floor 1 is completed, decline/accept, reward exactly once, 카프 stays */
   let state = createInitialGameSaveState();

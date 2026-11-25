@@ -10,7 +10,9 @@ const rarityLabel = (rarity: string) =>
 export const getItemTooltipContent = (item: NonNullable<ReturnType<typeof getItemDefinition>>) => {
   const lines = [item.name, rarityLabel(item.rarity)];
   if (item.type === "armor") {
-    lines.push(`최대체력 +${item.equipmentStats?.maxHpBonus ?? 0}`);
+    // Phase 4: decorative armor-slot items without stats (빼앗긴 땅문서) say so instead of "최대체력 +0".
+    const bonus = item.equipmentStats?.maxHpBonus ?? 0;
+    lines.push(bonus > 0 ? `최대체력 +${bonus}` : "장식 아이템 · 능력치 변화 없음");
   } else if (item.type === "weaponSkin") {
     lines.push("외형 전용 · 능력치 변화 없음");
   }

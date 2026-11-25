@@ -14,6 +14,7 @@ import { completeChapter3Intro, resolveContinueScreen } from "./chapter3Flow";
 import type { SetStateAction } from "react";
 import { UNIT3_FLOOR1_FLAGS, UNIT3_FLOOR1_ID, UNIT3_FLOOR1_QUEST_ID, finishUnit3Floor1Run, markUnit3Flag } from "../game/chapter3/unit3Floor1";
 import { UNIT3_FLOOR2_FLAGS, UNIT3_FLOOR2_ID, UNIT3_FLOOR2_QUEST_ID, finishUnit3Floor2Run } from "../game/chapter3/unit3Floor2";
+import { UNIT3_FLOOR3_FLAGS, UNIT3_FLOOR3_ID, UNIT3_FLOOR3_QUEST_ID, finishUnit3Floor3Run } from "../game/chapter3/unit3Floor3";
 import { migrateUnit3SpecialRewards, recordUnit3CorrectAnswer } from "../game/chapter3/unit3Achievements";
 
 /** Save → game state, with the Phase 3 hotfix special-reward migration (idempotent, never removes anything). */
@@ -25,6 +26,7 @@ const loadGameState = (data: Parameters<typeof applySaveDataToGameState>[0]): Ga
 const UNIT3_DUNGEON_FLOORS = {
   [UNIT3_FLOOR1_ID]: { questId: UNIT3_FLOOR1_QUEST_ID, finalFlag: UNIT3_FLOOR1_FLAGS.finalStory, finish: finishUnit3Floor1Run, bgm: "unit3-dungeon" },
   [UNIT3_FLOOR2_ID]: { questId: UNIT3_FLOOR2_QUEST_ID, finalFlag: UNIT3_FLOOR2_FLAGS.finalStory, finish: finishUnit3Floor2Run, bgm: "unit3-dungeon" },
+  [UNIT3_FLOOR3_ID]: { questId: UNIT3_FLOOR3_QUEST_ID, finalFlag: UNIT3_FLOOR3_FLAGS.finalStory, finish: finishUnit3Floor3Run, bgm: "unit3-dungeon" },
 } as const satisfies Record<string, { bgm: BgmTrackId } & Record<string, unknown>>;
 type Unit3DungeonFloorId = keyof typeof UNIT3_DUNGEON_FLOORS;
 

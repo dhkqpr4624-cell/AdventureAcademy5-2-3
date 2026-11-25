@@ -152,7 +152,7 @@ export function acceptUnit3Floor2Quest(state: GameSaveState): GameSaveState {
 
 /**
  * Quest completion: rewards exactly once (guarded by `rewardClaimed`). Kaf is not rescued.
- * Phase 3 hotfix: gold + potions + the achievement record only. 배움의 만년필 is the floor's special reward,
+ * Phase 3 hotfix: gold + potions + the achievement record only. 애국계몽 만년필 (Phase 4 rename; was 배움의 만년필) is the floor's special reward,
  * claimed in the achievement window (unit3Achievements.ts); `penUnlocked` is no longer written (it now marks
  * saves whose completion already handed out the pen, see migrateUnit3SpecialRewards).
  */

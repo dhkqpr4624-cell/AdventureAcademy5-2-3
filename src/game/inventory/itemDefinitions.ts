@@ -35,8 +35,15 @@ export const ITEM_DEFINITION_REGISTRY: Record<string, ItemDefinition> = {
     icon: `${import.meta.env.BASE_URL}assets/items/uibyeong-hwando.png`, stackable: false, attackVfxId: "uibyeong-hwando-slash",
   },
   // Unit 3 Floor 2 quest reward: cosmetic only (no stats); reuses the existing ink-brush attack VFX.
+  // Phase 4: Unit 3 Floor 3 special reward. A decorative item in the existing armor (equipment) slot — like 2단원's
+  // 척화비 / 국기 뱃지 — with NO stats (none were specified).
+  "decor-taken-land-deed": {
+    id: "decor-taken-land-deed", name: "빼앗긴 땅문서", type: "armor", rarity: "rare",
+    description: "일제가 토지조사사업을 벌일 때 빼앗긴 대한제국 국민의 땅문서",
+    icon: `${import.meta.env.BASE_URL}assets/chapter3/floor3/items/taken-land-deed.png`, stackable: false,
+  },
   "weapon-learning-fountain-pen": {
-    id: "weapon-learning-fountain-pen", name: "배움의 만년필", type: "weaponSkin",
+    id: "weapon-learning-fountain-pen", name: "애국계몽 만년필", type: "weaponSkin",
     rarity: "rare", description: "책과 배움으로 나라를 지키려 했던 사람들의 뜻을 담은 무기.",
     icon: `${import.meta.env.BASE_URL}assets/items/learning-fountain-pen.png`, stackable: false, attackVfxId: "ink-brush-attack",
   },

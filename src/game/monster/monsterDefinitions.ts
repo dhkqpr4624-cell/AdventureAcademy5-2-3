@@ -97,6 +97,9 @@ export const MONSTER_VISUAL_DEFINITIONS: Readonly<
   // No image was supplied for 밀고하는 그림자: it reuses the Floor 1 shadow artwork (same file, not copied).
   "unit3-f2-informing-shadow": { id: "unit3-f2-informing-shadow", name: "밀고하는 그림자", image: `${import.meta.env.BASE_URL}assets/chapter3/floor1/monsters/informant-shadow.png`, displayScale: 1.15, aspectRatio: 1312 / 1199, anchor: [0, -0.04, 0] },
   "unit3-f2-ito-phantom": { id: "unit3-f2-ito-phantom", name: "이토 히로부미의 망령", image: `${import.meta.env.BASE_URL}assets/chapter3/floor2/monsters/ito-phantom.png`, displayScale: 1.3, aspectRatio: 1, anchor: [0, -0.04, 0] },
+  // Unit 3 Floor 3 (일제의 식민 통치와 달라진 생활) — enemies made by the dungeon (supplied artwork).
+  "unit3-f3-kenpei": { id: "unit3-f3-kenpei", name: "일본제국의 헌병", image: `${import.meta.env.BASE_URL}assets/chapter3/floor3/monsters/kenpei.png`, displayScale: 1.2, aspectRatio: 1142 / 1378, anchor: [0, -0.04, 0] },
+  "unit3-f3-governor-watcher": { id: "unit3-f3-governor-watcher", name: "조선총독부 감시자", image: `${import.meta.env.BASE_URL}assets/chapter3/floor3/monsters/governor-watcher.png`, displayScale: 1.32, aspectRatio: 1172 / 1342, anchor: [0, -0.04, 0] },
   "dungeon9-corrupted-citizen": { id: "dungeon9-corrupted-citizen", name: "균열 침식 대한제국 시민", image: `${import.meta.env.BASE_URL}assets/dungeon9/corrupted-korean-empire-citizen.png`, displayScale: 1.15, aspectRatio: 1774 / 887, anchor: [0, 0, 0] },
 };
 

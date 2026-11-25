@@ -7,6 +7,9 @@ import {
 import {
   UNIT3_FLOOR2_ACHIEVEMENT, UNIT3_FLOOR2_FLAGS, UNIT3_FLOOR2_ID, UNIT3_FLOOR2_QUEST_ID, UNIT3_FLOOR2_SPECIAL_REWARD, UNIT3_FLOOR2_TITLE,
 } from "./unit3Floor2";
+import {
+  UNIT3_FLOOR3_ACHIEVEMENT, UNIT3_FLOOR3_ID, UNIT3_FLOOR3_QUEST_ID, UNIT3_FLOOR3_SPECIAL_REWARD, UNIT3_FLOOR3_TITLE,
+} from "./unit3Floor3";
 
 /**
  * Unit 3 achievements and special rewards (Phase 3 hotfix).
@@ -57,6 +60,12 @@ export const UNIT3_FLOOR_ACHIEVEMENTS: readonly Unit3FloorAchievementSpec[] = [
     floorId: UNIT3_FLOOR2_ID, floorLabel: "던전 2층", floorTitle: UNIT3_FLOOR2_TITLE, questId: UNIT3_FLOOR2_QUEST_ID,
     achievement: UNIT3_FLOOR2_ACHIEVEMENT, rewardItemId: UNIT3_FLOOR2_SPECIAL_REWARD.itemId,
     requiredCorrect: UNIT3_FLOOR2_SPECIAL_REWARD.requiredCorrect, legacyGrantFlag: UNIT3_FLOOR2_FLAGS.penUnlocked,
+  },
+  {
+    // Phase 4. No pre-hotfix save ever handed this item out, so the legacy flag is never set.
+    floorId: UNIT3_FLOOR3_ID, floorLabel: "던전 3층", floorTitle: UNIT3_FLOOR3_TITLE, questId: UNIT3_FLOOR3_QUEST_ID,
+    achievement: UNIT3_FLOOR3_ACHIEVEMENT, rewardItemId: UNIT3_FLOOR3_SPECIAL_REWARD.itemId,
+    requiredCorrect: UNIT3_FLOOR3_SPECIAL_REWARD.requiredCorrect, legacyGrantFlag: "unit3-floor-3:no-legacy-grant",
   },
 ];
 
@@ -152,4 +161,19 @@ export function migrateUnit3SpecialRewards<T extends RewardState>(state: T): T {
     if (legacyGranted || ownedAfterCompletion) rewardClaimed = { ...rewardClaimed, [key]: true };
   }
   return rewardClaimed === state.rewardClaimed ? state : { ...state, rewardClaimed };
+}
+
+/**
+ * Phase 4: quest report = quest reward + (if earned already) the special reward, in ONE state update.
+ * `complete` is the floor's own completion (gold, potions, achievement; guarded by `rewardClaimed`). If the
+ * floor's distinct-correct condition is already met at that moment, the special item is granted right away and
+ * marked 수령 완료 (`unit3-special-reward:<floor>`), so the achievement window cannot give it again. Otherwise only
+ * the quest reward is given and the achievement window's 받기 stays available for later (unchanged rule).
+ * Works for every Unit 3 floor listed in UNIT3_FLOOR_ACHIEVEMENTS. A report that changes nothing (already done)
+ * returns the state untouched, so reloads / double clicks never grant twice.
+ */
+export function completeUnit3QuestWithSpecialReward<T extends RewardState>(state: T, floorId: string, complete: (state: T) => T): T {
+  const completed = complete(state);
+  if (completed === state) return state;
+  return claimUnit3SpecialReward(completed, floorId);
 }

@@ -2586,6 +2586,16 @@ export function DungeonScreen({
           roomProgress={roomProgress}
         />
       )}
+      {minimapVisible && unit3Floor?.investigationPlaces && floorQuestStarted && u3Flag(unit3Floor.flags.startEvent) && (
+        // Phase 4 (Floor 3): 조사 현황 — the three dead-end story rooms by place name.
+        <div className="u3-investigation-status" role="status" aria-label="조사 현황" data-testid="u3-investigation-status">
+          <strong>조사 현황</strong>
+          <ul>{unit3Floor.investigationPlaces.map((place, index) => {
+            const done = u3Flag(unit3Floor.storyFlags[index]);
+            return <li key={place} className={done ? "is-done" : ""} data-done={done ? "1" : "0"}><span aria-hidden="true">{done ? "✔" : "·"}</span>{place}</li>;
+          })}</ul>
+        </div>
+      )}
       <div className={`combat-damage-flash ${damageFlash ? "is-active" : ""}`} />
       <div
         className={`combat-critical-accent ${criticalEffect ? "is-active" : ""}`}
@@ -2961,6 +2971,10 @@ export function DungeonScreen({
                 {finalGateDialogueStep === 0
                   ? "아직 살펴보지 않은 곳이 있다."
                   : "모두 살펴봐야 들어갈 수 있을 것 같다."}
+                {finalGateDialogueStep === 1 && unit3Floor?.investigationPlaces && (() => {
+                  const remaining = unit3Floor.investigationPlaces.filter((_, index) => !u3Flag(unit3Floor.storyFlags[index]));
+                  return remaining.length > 0 ? <span className="u3-gate-remaining"> (남은 곳: {remaining.join(", ")})</span> : null;
+                })()}
               </p>
               <button
                 type="button"
@@ -3208,6 +3222,11 @@ export function DungeonScreen({
             const next = completeRoomEvent(roomProgressRef.current, dungeonMap.startRoomId);
             roomProgressRef.current = next; setRoomProgress(next);
             backToExploration();
+          } else if (story.kind === "cartIntro" && unit3Floor.mainEventFightless) {
+            // Phase 4 (Floor 3): the main-route story room (조선총독부) is dialogue only — no fight.
+            setU3Flag(unit3Floor.flags.mainFight);
+            if (story.roomId) { const next = completeRoomEvent(roomProgressRef.current, story.roomId); roomProgressRef.current = next; setRoomProgress(next); }
+            backToExploration();
           } else if (story.kind === "cartIntro") {
             // The rescue is a normal question-driven combat with 먹물 든 을사늑약 문서.
             setU3Story(null);
@@ -3231,6 +3250,10 @@ export function DungeonScreen({
             onNavigate("baseCamp");
           }
         };
+        if (u3Story.kind === "final" && unit3Floor.renderFinal) {
+          // Phase 4 (Floor 3): the side-scrolling evacuation event map replaces the final story (BGM untouched).
+          return <div key="u3-final-event-map">{unit3Floor.renderFinal({ playerName: playerState.name || DEFAULT_PLAYER_NAME, playerStatus: playerState, onComplete: finishStory })}</div>;
+        }
         return <div className="dungeon-story-overlay unit3-floor1-story-overlay">
           <StoryPlayer key={`${u3Story.kind}-${u3Story.index ?? 0}`} sequence={sequence} playerName={playerState.name || DEFAULT_PLAYER_NAME} playerStatus={playerState}
             presentationMode="baseCampOverlay" onNavigate={() => undefined}

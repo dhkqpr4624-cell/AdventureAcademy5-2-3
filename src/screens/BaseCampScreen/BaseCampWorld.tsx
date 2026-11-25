@@ -11,6 +11,8 @@ import { NPC_DEFINITIONS } from "../../game/npc/npcDefinitions";
 import type { NpcDefinition } from "../../game/npc/npcTypes";
 import { resolveNpcPresentation } from "../../game/npc/npcPresentationResolver";
 import { NpcIdleSprite } from "../../components/NpcIdleSprite";
+import { GATE_OUTLINE_STEPS, NPC_OUTLINE_STEPS, outlinePadding, useOutlineImage } from "../../components/outlineMask";
+import { DungeonEntranceAnimation } from "../../game/baseCamp/DungeonEntranceAnimation";
 import { BASE_CAMP_LAYER } from "../../game/baseCamp/baseCampLayers";
 import { NpcNameTag } from "../../components/NpcNameTag";
 import { NpcQuestMarker } from "../../components/NpcQuestMarker";
@@ -73,6 +75,9 @@ export function BaseCampWorld({
   const [highlightedNpcId, setHighlightedNpcId] = useState<string | null>(null);
   const [dungeonEntranceHighlighted, setDungeonEntranceHighlighted] =
     useState(false);
+  // Phase 4 hotfix: cached hover outline for the Unit 3 entrance (static silhouette; animation frames share it).
+  const entranceOutlineUrl = useOutlineImage(npcViews ? map.layers.dungeonEntrance : undefined, map.worldWidth, map.worldHeight, GATE_OUTLINE_STEPS);
+  const entranceOutlinePad = outlinePadding(GATE_OUTLINE_STEPS);
   const layerStyle = {
     width: map.worldWidth,
     height: map.worldHeight,
@@ -170,11 +175,18 @@ export function BaseCampWorld({
         {renderLayerImage("foreground")}
       </div>
       <div
-        className={`base-camp-layer dungeon-entrance-layer ${viewHighlightId === "dungeonEntrance" ? "is-hover-outlined" : ""}`}
+        className={`base-camp-layer dungeon-entrance-layer ${viewHighlightId === "dungeonEntrance" ? "is-hover-outlined" : ""} ${entranceOutlineUrl ? "has-outline-image" : ""}`}
         style={{ zIndex: BASE_CAMP_LAYER.structures }}
         aria-hidden="true"
       >
+        {entranceOutlineUrl && (
+          <span
+            className="dungeon-entrance-outline"
+            style={{ left: -entranceOutlinePad, top: -entranceOutlinePad, width: map.worldWidth + entranceOutlinePad * 2, height: map.worldHeight + entranceOutlinePad * 2, backgroundImage: `url("${entranceOutlineUrl}")` }}
+          />
+        )}
         {renderLayerImage("dungeonEntrance")}
+        {map.dungeonEntranceAnimation && <DungeonEntranceAnimation animation={map.dungeonEntranceAnimation} worldWidth={map.worldWidth} worldHeight={map.worldHeight} />}
       </div>
       {map.layers.dungeonEntranceButton && <div
         className={`base-camp-layer dungeon-entrance-button-layer ${
@@ -203,7 +215,7 @@ export function BaseCampWorld({
       >
         {npcViews?.map((npc) => (
           <div key={npc.id} className="base-camp-npc-view" data-npc={npc.id}>
-            <NpcIdleSprite npc={npc} selected={false} interactionHighlighted={viewHighlightId === npc.id} mirrored={npc.mirrored} />
+            <NpcIdleSprite npc={npc} selected={false} interactionHighlighted={viewHighlightId === npc.id} mirrored={npc.mirrored} outlineSteps={NPC_OUTLINE_STEPS} />
             <span className="base-camp-npc-view-tag" style={{ left: npc.placement.x, top: npc.placement.y, width: npc.placement.width, height: npc.placement.height }}>
               <NpcNameTag displayName={npc.displayName} displayRole={npc.displayRole} variant={npc.nameTagVariant} />
             </span>
