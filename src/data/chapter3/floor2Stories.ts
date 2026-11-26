@@ -1,5 +1,5 @@
 import type { StoryActor, StorySequence, StoryStep } from "../../types/story";
-import { CHAPTER3_STORY_ACTORS } from "./chapter3Actors";
+import { CHAPTER3_STORY_ACTORS, UNIT3_KAF_PERIOD_ACTOR, UNIT3_KAF_PERIOD_PORTRAIT_URLS } from "./chapter3Actors";
 
 /**
  * Unit 3 · Floor 2 dialogue — 「일제 침략에 맞선 다양한 노력(애국계몽운동과 의거 활동)」 / 퀘스트 「우리를 잊은 동료」.
@@ -35,7 +35,8 @@ const ACTORS: Record<string, StoryActor> = {
   kaiden: CHAPTER3_STORY_ACTORS.kaiden,
   // No period-costume portraits were supplied: 카프 keeps her existing expression portraits
   // (default / smile / serious / angry exist), the period costume is shown by the standing illustration.
-  kaf: { ...CHAPTER3_STORY_ACTORS.kapp, id: "kaf", name: "카프", displayRole: undefined },
+  // Phase 4 hotfix 2: on Floor 2 카프 has lost her memory — 개화기-costume portraits for every line.
+  kaf: UNIT3_KAF_PERIOD_ACTOR,
   official: portraitActor("official", "학교 관계자", asset("floor2/portraits/school-official.png")),
   student: portraitActor("student", "학생", asset("floor2/portraits/student.png")),
   // Phase 3 hotfix: the supplied dialogue portrait (1254×1254, transparent). The combat image
@@ -49,7 +50,7 @@ type ActorId = keyof typeof ACTORS;
 /** Floor 2 dialogue portraits (decoded with the stage images when a Floor 2 run starts). */
 export const UNIT3_FLOOR2_PORTRAIT_URLS: string[] = ["official", "student", "sycophant"]
   .map((id) => ACTORS[id].portraits.default?.imageUrl)
-  .filter((url): url is string => Boolean(url));
+  .filter((url): url is string => Boolean(url)).concat(UNIT3_KAF_PERIOD_PORTRAIT_URLS);
 
 let auto = 0;
 const nextId = (prefix: string) => `u3f2-${prefix}-${(auto += 1).toString().padStart(3, "0")}`;

@@ -379,30 +379,42 @@ export function startFogRumble(level = 0.3, fadeInMs = 1400): Chapter3SfxHandle 
   return { stop: (fadeMs = 900) => release(voice, fadeMs) };
 }
 
-export function playBarrierSpawn(level = 0.22): void {
+/**
+ * Phase 4 hotfix 2: the barrier spawn sound is the supplied recording (public/assets/audio/sfx/barrier-spawn.wav,
+ * unchanged) — it replaces the earlier synthesized shimmer. It plays through the same Unit 3 SFX bus (master gain +
+ * compressor) as the other cues, so it sits at the same loudness, and stopAllChapter3Sfx / the returned handle
+ * stop it (event-map skip). The file peaks near 0 dBFS (mean -21 dB), hence the low level.
+ */
+export const BARRIER_SPAWN_SFX_URL = `${import.meta.env.BASE_URL}assets/audio/sfx/barrier-spawn.wav`;
+let barrierSpawnBuffer: Promise<AudioBuffer | null> | null = null;
+export function preloadBarrierSpawn(): Promise<AudioBuffer | null> {
   const ctx = getContext();
-  if (!ctx || !master) return;
-  const now = ctx.currentTime;
-  const out = ctx.createGain();
-  out.gain.value = level;
-  out.connect(master);
-  const nodes: AudioNode[] = [];
-  const sources: AudioScheduledSourceNode[] = [];
-  [523.25, 783.99, 1046.5].forEach((frequency, index) => {
-    const osc = ctx.createOscillator();
-    osc.type = "triangle";
-    osc.frequency.setValueAtTime(frequency * 0.7, now + index * 0.06);
-    osc.frequency.exponentialRampToValueAtTime(frequency, now + index * 0.06 + 0.32);
-    const env = ctx.createGain();
-    env.gain.setValueAtTime(0.0001, now);
-    env.gain.setValueAtTime(0.0001, now + index * 0.06);
-    env.gain.linearRampToValueAtTime(0.5, now + index * 0.06 + 0.05);
-    env.gain.exponentialRampToValueAtTime(0.0001, now + index * 0.06 + 0.75);
-    osc.connect(env); env.connect(out);
-    osc.start(now + index * 0.06); osc.stop(now + index * 0.06 + 0.8);
-    nodes.push(osc, env); sources.push(osc);
+  if (!ctx) return Promise.resolve(null);
+  barrierSpawnBuffer ??= fetch(BARRIER_SPAWN_SFX_URL)
+    .then((response) => (response.ok ? response.arrayBuffer() : Promise.reject(new Error(String(response.status)))))
+    .then((data) => ctx.decodeAudioData(data))
+    .catch(() => { barrierSpawnBuffer = null; return null; });
+  return barrierSpawnBuffer;
+}
+export function playBarrierSpawn(level = 0.3): Chapter3SfxHandle {
+  const ctx = getContext();
+  if (!ctx || !master) return NOOP;
+  let voice: Voice | null = null;
+  let cancelled = false;
+  void preloadBarrierSpawn().then((buffer) => {
+    if (!buffer || cancelled || !master) return;
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    const out = ctx.createGain();
+    out.gain.value = level;
+    source.connect(out);
+    out.connect(master);
+    source.start();
+    voice = { nodes: [source], sources: [source], out, timer: null };
+    oneShotVoice(out, [source], [source], Math.ceil(buffer.duration * 1000) + 200);
+    voice = [...voices].find((v) => v.out === out) ?? null;
   });
-  oneShotVoice(out, nodes, sources, 1200);
+  return { stop: (fadeMs = 150) => { cancelled = true; if (voice) release(voice, fadeMs); } };
 }
 
 export function playBarrierImpact(level = 0.3): void {

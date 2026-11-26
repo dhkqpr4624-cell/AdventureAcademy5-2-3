@@ -87,5 +87,48 @@ def main(src_root, repo_root, only=None):
         print(f"{name}: {out.size} cell {cell} frames {picks} alpha {alpha.getextrema()} corner {out.getpixel((0, 0))}")
 
 
+# Phase 4 hotfix 2 — 카프's memory recovery (event map, GridSprite one-shot). `holy/memory-awakening` is a PixelFX
+# remix authored for this project (scripts/chapter3/pixelfx-effects/memory-awakening.js, copied into the checkout's
+# src/fx/holy/ and indexed with `node tools/index.mjs`). Every 2nd PixelFX frame (30 → 15 fps) is copied unchanged
+# into a COLS-wide grid; the peak (full wrap, where the event map swaps 카프's outfit) is reported in the sidecar.
+GRIDS = {
+    "kaf-memory-awakening": ("memory", "holy/memory-awakening", {}, ["--no-actor"], 2, 8, 1.0,
+        "public/assets/chapter3/floor3/vfx/kaf-memory-awakening.png"),
+}
+
+
+def pack_grid(src_root, repo_root, only=None):
+    for name, (run, effect_id, opts, flags, step, cols, peak_s, out_rel) in GRIDS.items():
+        if only and name not in only:
+            continue
+        base = os.path.join(src_root, run, effect_id)
+        stem = effect_id.split("/")[1]
+        meta = json.load(open(os.path.join(base, f"{stem}.json")))
+        sheet = Image.open(os.path.join(base, f"{stem}.png")).convert("RGBA")
+        info = meta["meta"]["pixelfx"]
+        fps, w, h = info["fps"], info["frameSize"][0], info["frameSize"][1]
+        picks = list(range(0, len(meta["frames"]), step))
+        rows = (len(picks) + cols - 1) // cols
+        out = Image.new("RGBA", (cols * w, rows * h), (0, 0, 0, 0))
+        for i, index in enumerate(picks):
+            r = meta["frames"][index]["frame"]
+            out.alpha_composite(sheet.crop((r["x"], r["y"], r["x"] + r["w"], r["y"] + r["h"])), ((i % cols) * w, (i // cols) * h))
+        dst = os.path.join(repo_root, out_rel)
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        out.save(dst, optimize=True)
+        out_fps = fps / step
+        sidecar = {
+            "generator": "pixelfx", "pixelfxCommit": PIXELFX_COMMIT, "effect": effect_id, "options": opts or "defaults (meta.options)",
+            "renderCommand": f"node tools/render.mjs {effect_id} --sheet {' '.join(flags)}",
+            "contract": "event-map GridSprite one-shot", "frames": len(picks), "cols": cols, "rows": rows, "frameSize": [w, h],
+            "fps": out_fps, "durationMs": round(len(picks) / out_fps * 1000), "sourceFps": fps, "sourcePivot": info["pivot"],
+            "sourceFramesUsed": picks, "peakSeconds": peak_s, "peakFrame": round(peak_s * out_fps),
+        }
+        json.dump(sidecar, open(dst[:-4] + ".json", "w"), ensure_ascii=False, indent=1)
+        print(f"{name}: {out.size} {len(picks)} frames @ {out_fps} fps, pivot {info['pivot']}, peak frame {sidecar['peakFrame']}")
+
+
 if __name__ == "__main__":
-    main(sys.argv[1], sys.argv[2], set(sys.argv[3].split(",")) if len(sys.argv) > 3 else None)
+    only = set(sys.argv[3].split(",")) if len(sys.argv) > 3 else None
+    main(sys.argv[1], sys.argv[2], only)
+    pack_grid(sys.argv[1], sys.argv[2], only)

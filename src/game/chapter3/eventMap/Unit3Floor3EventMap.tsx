@@ -3,7 +3,7 @@ import { StoryPlayer } from "../../story/StoryPlayer";
 import type { StorySequence } from "../../../types/story";
 import { UNIT3_FLOOR3_EVENT_MAP_SEGMENTS } from "../../../data/chapter3/floor3Stories";
 import { CHAPTER3_STAGE_SPRITES } from "../../../data/chapter3/chapter3Actors";
-import { playBarrierImpact, playBarrierSpawn, startFogRumble, type Chapter3SfxHandle } from "../../audio/chapter3ProceduralSfx";
+import { playBarrierImpact, playBarrierSpawn, preloadBarrierSpawn, startFogRumble, type Chapter3SfxHandle } from "../../audio/chapter3ProceduralSfx";
 import { GridSprite } from "./GridSprite";
 import lunaStanding from "../../../assets/story/npcs/chapter2/luna/standing_R.png";
 import theoStanding from "../../../assets/story/npcs/chapter2/theo/standing_R.png";
@@ -43,6 +43,8 @@ export const U3EM_IMAGES = {
   barrierHold: `${F3}vfx/barrier-hold-loop-16f.png`,
   barrierImpact: `${F3}vfx/barrier-impact-10f.png`,
   barrierDespawn: `${F3}vfx/barrier-despawn-12f.png`,
+  /** Phase 4 hotfix 2: PixelFX `holy/memory-awakening` (8×5 grid, 37 frames, 15 fps, one-shot; peak = frame 15). */
+  memoryAwakening: `${F3}vfx/kaf-memory-awakening.png`,
   exclamation: `${BASE}assets/story/chapter2/intro/exclamation-sheet.png`,
   prisonBackground: `${BASE}assets/dungeon7/prison-background.png`,
   prisonForeground: `${BASE}assets/dungeon7/prison-foreground.png`,
@@ -60,6 +62,11 @@ export const U3EM_POSES = {
   denebDefense: { src: `${F3}standing/deneb-defense-R.png`, w: 948, h: 1659, top: 133, bottom: 1462, left: 49, right: 895, natural: "R", visibleH: 268 },
   kaiden: { src: CHAPTER3_STAGE_SPRITES.kaiden.images.L!, w: 600, h: 700, top: 23, bottom: 671, left: 122, right: 495, natural: "L", visibleH: 250 },
   // Hotfix: 카프 keeps her original Adventure Academy outfit for the whole event map (standing + defense pose).
+  // Hotfix 2: before her memory returns 카프 wears the 개화기 costume (supplied standing + defense pose). Their
+  // visibleH keeps the element exactly the size of the academy pose it swaps with (same canvas scale and feet),
+  // so the outfit change never moves her feet, centre or size.
+  kafPeriod: { src: `${F3}standing/kaf-period-standing.png`, w: 400, h: 700, top: 110, bottom: 686, left: 28, right: 390, natural: "R", visibleH: 232.9 },
+  kafPeriodDefense: { src: `${F3}standing/kaf-period-defense-R.png`, w: 948, h: 1659, top: 256, bottom: 1461, left: 46, right: 910, natural: "R", visibleH: 237.3 },
   kafDefense: { src: `${F3}standing/kaf-defense-R.png`, w: 948, h: 1659, top: 283, bottom: 1461, left: 32, right: 918, natural: "R", visibleH: 232 },
   kafAcademy: { src: kappStandingR, w: 400, h: 700, top: 132, bottom: 681, left: 32, right: 379, natural: "R", visibleH: 222 },
   student: { src: `${F3}standing/student.png`, w: 255, h: 383, top: 4, bottom: 380, left: 18, right: 239, natural: "R", visibleH: 176 },
@@ -88,6 +95,8 @@ type Scene = {
   fog: { shown: boolean; front: number; moveMs: number; fadeMs: number };
   barrier: "none" | "spawn" | "hold" | "despawn";
   impact: number; dim: boolean; flashback: boolean; curtain: boolean; curtainMs: number;
+  /** Hotfix 2: dialogue in the memory-flashback style; memory-recovery light (count = replays, 0 = none). */
+  memoryStyle: boolean; awaken: number; awakenOn: boolean;
 };
 
 /** Layout (scene units). Barrier: bottom end on the ground at BARRIER_X; the fog stops at its apex. */
@@ -106,6 +115,8 @@ export const U3EM_LAYOUT = {
   safeAlley: { deneb: 700, kaf: 867, kaiden: 1034, student: 1182, official: 1330, resident1: 1483, resident2: 1615 },
 } as const;
 const barrierApexX = U3EM_LAYOUT.barrierX - (U3EM_LAYOUT.barrierFrame.bottomEnd[0] - U3EM_LAYOUT.barrierFrame.apex[0]) * U3EM_LAYOUT.barrierScale;
+/** Memory-recovery VFX timing (from kaf-memory-awakening.json: 37 frames at 15 fps, peak frame 15) and size. */
+export const U3EM_MEMORY_VFX = { cols: 8, rows: 5, frames: 37, fps: 15, frameW: 112, frameH: 176, pivotX: 56, pivotY: 166, scale: 1.7, peakFrame: 15, peakMs: 1000, durationMs: 2467 } as const;
 export const U3EM_FOG_CONTACT_FRONT = Math.round(barrierApexX + 6);
 
 const actor = (pose: PoseId, x: number, facing: "L" | "R", z: number, shown = true): Actor => ({ pose, x, facing, shown, moveMs: 0, fadeMs: 600, z, alarm: 0, walking: false, pace: "walk" });
@@ -113,14 +124,14 @@ const E = U3EM_LAYOUT.entrance;
 const D = U3EM_LAYOUT.entranceDistance;
 const initialScene = (): Scene => ({
   actors: {
-    deneb: actor("deneb", E.deneb - D, "R", 3), kaf: actor("kafAcademy", E.kaf - D, "R", 4),
+    deneb: actor("deneb", E.deneb - D, "R", 3), kaf: actor("kafPeriod", E.kaf - D, "R", 4),
     resident1: actor("resident1", E.resident1 - D, "R", 5), resident2: actor("resident2", E.resident2 - D, "R", 6),
     student: actor("student", E.student - D, "R", 7), official: actor("official", E.official - D, "R", 8),
     kaiden: actor("kaiden", E.kaiden - D, "R", 9),
   },
   cameraFocus: 1050, cameraMs: 0,
   fog: { shown: false, front: -120, moveMs: 0, fadeMs: 600 },
-  barrier: "none", impact: 0, dim: false, flashback: false, curtain: false, curtainMs: 0,
+  barrier: "none", impact: 0, dim: false, flashback: false, curtain: false, curtainMs: 0, memoryStyle: false, awaken: 0, awakenOn: false,
 });
 
 class Cancelled extends Error {}
@@ -154,6 +165,8 @@ export function Unit3Floor3EventMap({ playerName, playerStatus, onComplete }: {
   const cancelledRef = useRef(false);
   const doneRef = useRef(false);
   const rumble = useRef<Chapter3SfxHandle | null>(null);
+  const barrierSfx = useRef<Chapter3SfxHandle | null>(null);
+  const awakenCue = useRef<((cue: "peak" | "end") => void) | null>(null);
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
@@ -189,6 +202,8 @@ export function Unit3Floor3EventMap({ playerName, playerStatus, onComplete }: {
     timers.current.clear();
     rumble.current?.stop(400);
     rumble.current = null;
+    barrierSfx.current?.stop(150);
+    barrierSfx.current = null;
     segmentDone.current = null;
     onCompleteRef.current();
   }, []);
@@ -241,7 +256,7 @@ export function Unit3Floor3EventMap({ playerName, playerStatus, onComplete }: {
       // 1) 3D view fades to black (curtain over the transparent root), scene assets decode, then fade in.
       await wait(30);
       curtain(true, 700);
-      await Promise.all([wait(760), decodeAll(U3EM_IMAGE_URLS, 5000)]);
+      await Promise.all([wait(760), decodeAll(U3EM_IMAGE_URLS, 5000), preloadBarrierSpawn()]);
       if (cancelledRef.current) throw new Cancelled();
       setEntered(true);
       await wait(60);
@@ -264,9 +279,9 @@ export function Unit3Floor3EventMap({ playerName, playerStatus, onComplete }: {
       await Promise.all([walkTo("deneb", L.defenders.deneb), walkTo("kaf", L.defenders.kaf)]);
       await wait(200);
       swap("deneb", "denebDefense", "L");
-      swap("kaf", "kafDefense", "L");
+      swap("kaf", "kafPeriodDefense", "L");
       await wait(250);
-      playBarrierSpawn();
+      barrierSfx.current = playBarrierSpawn(); // supplied recording, once
       set((current) => ({ ...current, barrier: "spawn" }));
       await wait(760);
       fog({ front: U3EM_FOG_CONTACT_FRONT, moveMs: 900 });
@@ -287,16 +302,39 @@ export function Unit3Floor3EventMap({ playerName, playerStatus, onComplete }: {
       camera(1050, 1400);
       await wait(600);
       await say("holding");
-      // 5) Flashback: dim, 2단원 데네브 구출 장면 (no UI); fog, barrier and NPCs paused; then back.
+      // 5) Flashback: dim + 2단원 데네브 구출 장면 (fog, barrier and NPCs paused). It stays up while 카프's
+      //    memory lines play in the flashback dialogue style (her own Adventure Academy portrait).
       set((current) => ({ ...current, dim: true }));
       await wait(700);
       set((current) => ({ ...current, flashback: true }));
-      await wait(3800);
+      await wait(1400);
+      set((current) => ({ ...current, memoryStyle: true }));
+      await say("memory");
+      // back to the present: dialogue hidden → illustration fades → dim lifts → normal dialogue style
+      await wait(350);
       set((current) => ({ ...current, flashback: false }));
-      await wait(700);
+      await wait(750);
       set((current) => ({ ...current, dim: false }));
-      await wait(600);
-      await say("flashback");
+      await wait(700);
+      set((current) => ({ ...current, memoryStyle: false }));
+      await say("flashback"); // 데네브: 카프, 저를 봐요… (카프 still in the 개화기 defense pose)
+      // 6) Memory recovery: dialogue hidden; light wells up round 카프, wraps her, and at its brightest frame the
+      //    academy defense pose replaces the 개화기 one; the light scatters; short silence; dialogue resumes.
+      await wait(300);
+      // The swap is driven by the sprite's own frame clock (peak frame reached), not a parallel timer, so it
+      // always lands on the brightest frame; the timeouts are only a fallback.
+      await new Promise<void>((resolve, reject) => {
+        let swapped = false;
+        const fallback = window.setTimeout(() => awakenCue.current?.("end"), U3EM_MEMORY_VFX.durationMs + 1500);
+        timers.current.add(fallback);
+        awakenCue.current = (cue) => {
+          if (cancelledRef.current) { awakenCue.current = null; reject(new Cancelled()); return; }
+          if (!swapped && (cue === "peak" || cue === "end")) { swapped = true; swap("kaf", "kafDefense", "L"); }
+          if (cue === "end") { awakenCue.current = null; window.clearTimeout(fallback); timers.current.delete(fallback); set((current) => ({ ...current, awakenOn: false })); resolve(); }
+        };
+        set((current) => ({ ...current, awaken: current.awaken + 1, awakenOn: true }));
+      });
+      await wait(700); // 짧은 정적
       await say("recognition");
       await wait(1700); // 잠시 정적
       await say("remembered");
@@ -349,6 +387,8 @@ export function Unit3Floor3EventMap({ playerName, playerStatus, onComplete }: {
       pending.clear();
       rumble.current?.stop(200);
       rumble.current = null;
+      barrierSfx.current?.stop(100);
+      barrierSfx.current = null;
     };
   }, [finish]);
 
@@ -403,6 +443,13 @@ export function Unit3Floor3EventMap({ playerName, playerStatus, onComplete }: {
               </div>
             );
           })}
+          {scene.awakenOn && (() => {
+            const M = U3EM_MEMORY_VFX, kaf = scene.actors.kaf;
+            return <GridSprite key={`awaken-${scene.awaken}`} className="u3em-awaken" src={U3EM_IMAGES.memoryAwakening} cols={M.cols} rows={M.rows} frames={M.frames} fps={M.fps}
+              frameW={M.frameW} frameH={M.frameH} scale={M.scale} loop={false}
+              onFrame={(index) => { if (index >= M.peakFrame) awakenCue.current?.("peak"); }} onEnd={() => awakenCue.current?.("end")}
+              style={{ left: kaf.x - M.pivotX * M.scale, top: U3EM_SCENE.groundY - M.pivotY * M.scale }} />;
+          })()}
           {scene.barrier !== "none" && (
             <div className="u3em-barrier" style={{ left: barrierLeft, top: barrierTop }} data-phase={scene.barrier}>
               {scene.barrier === "spawn" && <GridSprite src={U3EM_IMAGES.barrierSpawn} cols={4} rows={3} frames={12} fps={16} frameW={128} frameH={256} scale={L.barrierScale}
@@ -430,7 +477,7 @@ export function Unit3Floor3EventMap({ playerName, playerStatus, onComplete }: {
       </div>
       <div className={`u3em-curtain ${scene.curtain ? "is-closed" : ""}`} style={{ transitionDuration: `${scene.curtainMs}ms` }} />
       {segment && (
-        <div className="u3em-dialogue">
+        <div className={`u3em-dialogue ${scene.memoryStyle ? "is-memory" : ""}`}>
           <StoryPlayer key={segment.key} sequence={{ ...segment.sequence, dialogueSkip: false }} playerName={playerName} playerStatus={playerStatus}
             presentationMode="baseCampOverlay" onNavigate={() => undefined} onComplete={() => segmentDone.current?.()} />
         </div>

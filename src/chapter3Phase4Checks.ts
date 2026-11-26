@@ -19,12 +19,21 @@ import {
 } from "./data/chapter3/floor3Stories";
 import { getUnit3StoryFloor } from "./game/chapter3/unit3StoryFloors";
 import { resolveFloor3KafPlacement } from "./game/chapter3/Unit3Floor3Stage";
-import { U3EM_FOG_CONTACT_FRONT, U3EM_LAYOUT, U3EM_POSES, poseVisibleWidth } from "./game/chapter3/eventMap/Unit3Floor3EventMap";
+import { U3EM_FOG_CONTACT_FRONT, U3EM_LAYOUT, U3EM_MEMORY_VFX, U3EM_POSES, poseVisibleWidth } from "./game/chapter3/eventMap/Unit3Floor3EventMap";
 import { getMonsterVisualDefinition } from "./game/monster/monsterDefinitions";
 import { CHAPTER3_BASE_CAMP_MAP, createChapter3BaseCampHitboxes, createChapter3BaseCampNpcs } from "./data/chapter3/chapter3BaseCamp";
 import { GATE_OUTLINE_STEPS, NPC_OUTLINE_STEPS } from "./components/outlineMask";
 import { evaluateEmergencySupply } from "./game/chapter3/emergencySupply";
-import { CHAPTER3_STAGE_SPRITES } from "./data/chapter3/chapter3Actors";
+import { CHAPTER3_STAGE_SPRITES, UNIT3_KAF_PERIOD_ACTOR } from "./data/chapter3/chapter3Actors";
+import { BARRIER_SPAWN_SFX_URL } from "./game/audio/chapter3ProceduralSfx";
+import * as floor2Stories from "./data/chapter3/floor2Stories";
+import {
+  UNIT3_FLOOR3_MID_STORY, UNIT3_FLOOR3_POST_EVENTS_STORY, UNIT3_FLOOR3_QUEST_COMPLETE_STORY, UNIT3_FLOOR3_START_STORY, UNIT3_FLOOR3_STORY_ROOM_STORIES,
+} from "./data/chapter3/floor3Stories";
+const UNIT3_FLOOR2_ALL_KAF_STORIES: StorySequence[] = (Object.values(floor2Stories) as unknown[]).flatMap((value) => (Array.isArray(value) ? value : [value]))
+  .filter((value): value is StorySequence => typeof value === "object" && value !== null && "scenes" in value);
+const UNIT3_FLOOR2_ACTORS_FOR_CHECK = (UNIT3_FLOOR2_ALL_KAF_STORIES[0]?.actors ?? {}) as Record<string, unknown>;
+import type { StorySequence } from "./types/story";
 import { UNIT3_DEBUG_FLOORS, createUnit3DebugStart } from "./debug/unit3DebugStart";
 
 /** Phase 4 checks: Floor 3 data/flow, special-reward auto grant, pen rename, entrance strip, outlines, 카프 joining, event map layout. */
@@ -119,7 +128,7 @@ export function runChapter3Phase4Checks(): void {
   assert(choice && "options" in choice && choice.options?.map((option) => option.label).join("|") === "함께 조사하겠습니다.|잠시 준비하겠습니다.", "offer choices ① / ②");
   assert(offerSteps.some((step) => step.type === "checkpoint" && step.checkpointId === UNIT3_FLOOR3_QUEST_ACCEPTED_CHECKPOINT), "accept checkpoint");
   assert(offerSteps.filter((step) => step.type === "dialogue").every((step) => step.speakerId === "kaiden" || step.speakerId === "deneb"), "offer: 카이든 / 데네브");
-  assert(Object.keys(UNIT3_FLOOR3_EVENT_MAP_SEGMENTS).length === 8 && UNIT3_FLOOR3_ALL_STORIES.length === 17, "every script segment implemented (offer, start, mid, 3 rooms, post, 8 event-map parts, report, 카프)");
+  assert(Object.keys(UNIT3_FLOOR3_EVENT_MAP_SEGMENTS).length === 9 && UNIT3_FLOOR3_ALL_STORIES.length === 18, "every script segment implemented (offer, start, mid, 3 rooms, post, 9 event-map parts incl. memory flashback, report, 카프)");
   for (const story of UNIT3_FLOOR3_ALL_STORIES) {
     for (const step of story.scenes[0].steps) {
       if (step.type === "dialogue") assert(story.actors[step.speakerId ?? ""], `${story.id}: actor ${step.speakerId}`);
@@ -167,11 +176,29 @@ export function runChapter3Phase4Checks(): void {
   };
   const standing = { deneb: "deneb", kaf: "kafAcademy", kaiden: "kaiden", student: "student", official: "official", resident1: "resident1", resident2: "resident2" } as const;
   row(U3EM_LAYOUT.entrance, standing);
+  row(U3EM_LAYOUT.entrance, { ...standing, kaf: "kafPeriod" });
   row(U3EM_LAYOUT.safeAlley, standing);
   row({ deneb: U3EM_LAYOUT.defenders.deneb, kaf: U3EM_LAYOUT.defenders.kaf }, { deneb: "denebDefense", kaf: "kafDefense" });
+  row({ deneb: U3EM_LAYOUT.defenders.deneb, kaf: U3EM_LAYOUT.defenders.kaf }, { deneb: "denebDefense", kaf: "kafPeriodDefense" });
   row({ deneb: U3EM_LAYOUT.defenders.deneb + 25, kaf: U3EM_LAYOUT.defenders.kaf }, { deneb: "deneb", kaf: "kafAcademy" });
   assert(Object.keys(U3EM_LAYOUT.safeAlley).length === 7, "safe alley: all seven people");
-  assert(!("kafPeriod" in U3EM_POSES), "event map: 카프 only in her academy outfit");
+  // Hotfix 2: the 개화기 ↔ academy swaps keep the element size and feet (no jump at the swap).
+  // (feet: every pose is placed with its bottom alpha row on the ground line, so only the drawn scale can jump)
+  const elementOf = (id: keyof typeof U3EM_POSES) => { const p = U3EM_POSES[id]; return { h: Math.round(p.visibleH * p.h / (p.bottom - p.top)), w: p.w, canvasH: p.h }; };
+  for (const [a, b] of [["kafPeriod", "kafAcademy"], ["kafPeriodDefense", "kafDefense"]] as const) {
+    assert(JSON.stringify(elementOf(a)) === JSON.stringify(elementOf(b)), `event map: ${a} / ${b} same size and feet`);
+  }
+  assert(U3EM_MEMORY_VFX.peakMs === Math.round((15 / U3EM_MEMORY_VFX.fps) * 1000) && U3EM_MEMORY_VFX.durationMs === Math.round((37 / 15) * 1000), "memory VFX: outfit swap on the peak frame (15)");
+  // 카프 portraits follow each scene's own time: 개화기 on Floor 2 and Floor 3 until the recovery, own outfit in the
+  // memory flashback and after it (event map, camp).
+  const kafSpeakers = (story: StorySequence) => story.scenes.flatMap((scene) => scene.steps).flatMap((step) => (step.type === "dialogue" && String(step.speakerId).startsWith("kaf") ? [step.speakerId] : []));
+  assert(UNIT3_FLOOR2_ALL_KAF_STORIES.flatMap(kafSpeakers).every((id) => id === "kaf") && UNIT3_FLOOR2_ACTORS_FOR_CHECK.kaf === UNIT3_KAF_PERIOD_ACTOR, "floor 2: every 카프 line uses the 개화기 portraits");
+  const seg = UNIT3_FLOOR3_EVENT_MAP_SEGMENTS;
+  assert([seg.alarm, seg.holding].flatMap(kafSpeakers).every((id) => id === "kaf"), "floor 3 before recovery: 개화기 portraits");
+  assert(kafSpeakers(seg.memory).length === 3 && kafSpeakers(seg.memory).every((id) => id === "kafAcademy") && seg.memory.scenes[0].steps.every((step) => step.type !== "dialogue" || (step as { expression?: string }).expression === "angry"), "memory flashback: academy portrait, angry");
+  assert([seg.recognition, seg.remembered, seg.safeAlley, UNIT3_FLOOR3_QUEST_COMPLETE_STORY, UNIT3_KAF_BASE_TALK_STORY].flatMap(kafSpeakers).every((id) => id === "kafAcademy"), "after recovery: academy portraits");
+  assert([UNIT3_FLOOR3_START_STORY, UNIT3_FLOOR3_MID_STORY, ...UNIT3_FLOOR3_STORY_ROOM_STORIES, UNIT3_FLOOR3_POST_EVENTS_STORY].flatMap(kafSpeakers).every((id) => id === "kaf"), "floor 3 rooms: 개화기 portraits");
+  assert(UNIT3_KAF_PERIOD_ACTOR.portraits.angry?.imageUrl?.endsWith("kaf-period/angry.png") && BARRIER_SPAWN_SFX_URL.endsWith("assets/audio/sfx/barrier-spawn.wav"), "hotfix 2 assets wired");
 
   assert(UNIT3_DEBUG_FLOORS.map((floor) => floor.floorId).join(",") === "unit3-floor-1,unit3-floor-2,unit3-floor-3", "debug floors = implemented floors");
   const early = createUnit3DebugStart(UNIT3_FLOOR3_ID, "early");

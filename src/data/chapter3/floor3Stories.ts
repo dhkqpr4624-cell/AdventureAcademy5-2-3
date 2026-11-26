@@ -1,5 +1,5 @@
 import type { StoryActor, StorySequence, StoryStep } from "../../types/story";
-import { CHAPTER3_STORY_ACTORS } from "./chapter3Actors";
+import { CHAPTER3_STORY_ACTORS, UNIT3_KAF_ACADEMY_ACTOR, UNIT3_KAF_PERIOD_ACTOR, UNIT3_KAF_PERIOD_PORTRAIT_URLS } from "./chapter3Actors";
 
 /**
  * Unit 3 · Floor 3 dialogue — 「일제의 식민 통치와 달라진 생활」 / 퀘스트 「잊지 않은 약속」 (Phase 4).
@@ -31,7 +31,10 @@ export const UNIT3_FLOOR3_ACTORS: Record<string, StoryActor> = {
   deneb: CHAPTER3_STORY_ACTORS.deneb,
   kaiden: CHAPTER3_STORY_ACTORS.kaiden,
   // 카프's existing expression portraits (default / smile / serious / angry / sad).
-  kaf: { ...CHAPTER3_STORY_ACTORS.kapp, id: "kaf", name: "카프", displayRole: undefined },
+  // Phase 4 hotfix 2: `kaf` = before her memory returns (개화기 costume portraits); `kafAcademy` = the memory
+  // flashback and everything after the recovery in the event map (own Adventure Academy portraits), incl. camp.
+  kaf: UNIT3_KAF_PERIOD_ACTOR,
+  kafAcademy: UNIT3_KAF_ACADEMY_ACTOR,
   // No Floor 3 resident portrait was supplied: the Floor 1 street resident portrait is reused (as on Floor 2).
   resident: portraitActor("resident", "주민", asset("floor1/portraits/street-resident.png")),
   // Supplied portrait (file name "현병 초상화.png" — reported as a typo of 헌병).
@@ -43,7 +46,7 @@ export const UNIT3_FLOOR3_ACTORS: Record<string, StoryActor> = {
 type ActorId = keyof typeof UNIT3_FLOOR3_ACTORS;
 export const UNIT3_FLOOR3_PORTRAIT_URLS: string[] = ["resident", "kenpei", "farmer", "student", "official"]
   .map((id) => UNIT3_FLOOR3_ACTORS[id].portraits.default?.imageUrl)
-  .filter((url): url is string => Boolean(url));
+  .filter((url): url is string => Boolean(url)).concat(UNIT3_KAF_PERIOD_PORTRAIT_URLS);
 
 let auto = 0;
 const nextId = (prefix: string) => `u3f3-${prefix}-${(auto += 1).toString().padStart(3, "0")}`;
@@ -236,39 +239,45 @@ export const UNIT3_FLOOR3_EVENT_MAP_SEGMENTS = {
     n("데네브의 말에 카프가 잠시 고개를 돌린다."),
     d("kaf", "serious", "이 목소리…"),
   ]),
+  // 회상 (2단원 데네브 구출 당시의 카프 · 원래 복장 초상화, 회상 UI)
+  memory: em("u3f3-em-memory", [
+    d("kafAcademy", "angry", "데네브, 우리는 이제 준비가 되었어요! 테오와 루나, 그리고 (플레이어 이름)까지 함께인걸요!"),
+    d("kafAcademy", "angry", "다 함께라면 할 수 있어요!"),
+    d("kafAcademy", "angry", "우리는 당신을 더 이상 혼자 두지 않을 거야!"),
+  ]),
   flashback: em("u3f3-em-flashback", [
     d("deneb", "default", "카프, 저를 봐요. 지난번에는 카프가 저를 찾으러 왔어요."),
     d("deneb", "default", "이번에는 제가 데리러 왔어요. 함께 나가요."),
   ]),
   recognition: em("u3f3-em-recognition", [
-    d("kaf", "serious", "…데네브. 당신이군요."),
-    d("kaf", "serious", "(플레이어 이름), 카이든 경까지…"),
-    d("kaf", "serious", "제가 어떻게 당신들을…"),
+    d("kafAcademy", "serious", "…데네브. 당신이군요."),
+    d("kafAcademy", "serious", "(플레이어 이름), 카이든 경까지…"),
+    d("kafAcademy", "serious", "제가 어떻게 당신들을…"),
   ]),
   // after "잠시 정적" (a timed pause in the event map)
   remembered: em("u3f3-em-remembered", [
-    d("kaf", "serious", "…전부 기억났어요, 데네브. 이번에는 당신이 저를 찾으러 와 줬군요."),
+    d("kafAcademy", "serious", "…전부 기억났어요, 데네브. 이번에는 당신이 저를 찾으러 와 줬군요."),
     d("deneb", "default", "네. 이제는 함께 돌아갈 차례예요."),
-    d("kaf", "default", "…고마워요."),
+    d("kafAcademy", "default", "…고마워요."),
   ]),
   retreat: em("u3f3-em-retreat", [
     d("kaiden", "default", "이쪽으로! 모두 서둘러라!"),
   ]),
   safeAlley: em("u3f3-em-safe-alley", [
-    d("kaf", "serious", "카이든님… (플레이어 이름)."),
-    d("kaf", "serious", "저는 어드벤처 아카데미의 원정대원이었지요. 전부 기억나요."),
+    d("kafAcademy", "serious", "카이든님… (플레이어 이름)."),
+    d("kafAcademy", "serious", "저는 어드벤처 아카데미의 원정대원이었지요. 전부 기억나요."),
     d("kaiden", "default", "기억이 돌아와 다행이군, 카프."),
     d("kaiden", "default", "조금 더 늦었으면 던전의 영향을 더 깊이 받아 위험해질 뻔했어."),
-    d("kaf", "default", "던전에 들어온 뒤로 제가 이 시대 사람이라고 믿고 있었어요. 그전의 제 삶은 전혀 떠오르지 않았으니까요."),
-    d("kaf", "default", "여러분이 이상한 말을 한다고만 생각했죠."),
+    d("kafAcademy", "default", "던전에 들어온 뒤로 제가 이 시대 사람이라고 믿고 있었어요. 그전의 제 삶은 전혀 떠오르지 않았으니까요."),
+    d("kafAcademy", "default", "여러분이 이상한 말을 한다고만 생각했죠."),
     d("deneb", "default", "던전이 만들어 낸 기억을 진짜라고 믿게 된 거예요. 이곳으로 빨려 들어온 다른 주민분들도 마찬가지일 거예요."),
-    d("kaf", "serious", "그러고 보니 아론, 테오, 루나가 보이지 않는데…"),
-    d("kaf", "serious", "…다른 세 사람도 저와 같은 상황인 걸까요?"),
+    d("kafAcademy", "serious", "그러고 보니 아론, 테오, 루나가 보이지 않는데…"),
+    d("kafAcademy", "serious", "…다른 세 사람도 저와 같은 상황인 걸까요?"),
     d("kaiden", "default", "그럴 가능성이 높지. 그들도 찾아야 한다."),
     d("student", "default", "카프님… 카프님도 떠나시는 건가요?"),
-    d("kaf", "default", "…네. 찾아야 할 사람들이 있어요."),
+    d("kafAcademy", "default", "…네. 찾아야 할 사람들이 있어요."),
     d("official", "default", "여기까지 도와주셔서 고맙습니다. 학생들은 제가 잘 챙기겠습니다."),
-    d("kaf", "smile", "책은 잘 간직해 주세요. 다시 배울 수 있을 때까지요."),
+    d("kafAcademy", "smile", "책은 잘 간직해 주세요. 다시 배울 수 있을 때까지요."),
     d("student", "default", "네. 저도 포기하지 않을게요."),
   ]),
 } as const;
@@ -277,13 +286,13 @@ export const UNIT3_FLOOR3_EVENT_MAP_SEGMENTS = {
 export const UNIT3_FLOOR3_QUEST_COMPLETE_STORY = camp("unit3-floor3-quest-complete", "퀘스트 완료: 잊지 않은 약속", [
   d("kaiden", "default", "수고했다, (플레이어 이름). 주민들이 안전한 길을 찾도록 도왔고, 카프도 데려왔군."),
   d("deneb", "smile", "지난번에 함께 학교를 지킨 일도 헛되지 않았어요. 카프가 저희 말을 들어 줄 수 있는 시작이 되었으니까요."),
-  d("kaf", "default", "저를 찾아와 줘서 고마워요."),
-  d("kaf", "default", "이제 아론과 테오, 루나도 함께 찾아야죠."),
+  d("kafAcademy", "default", "저를 찾아와 줘서 고마워요."),
+  d("kafAcademy", "default", "이제 아론과 테오, 루나도 함께 찾아야죠."),
   d("deneb", "default", "네. 각자 다음 작전을 위해 재정비하도록 해요."),
 ]);
 export const UNIT3_KAF_BASE_TALK_STORY = camp("unit3-kaf-base-talk", "카프", [
-  d("kaf", "default", "그때는 학교를 떠나면 모든 것을 잃는다고 생각했어요. 제게 다른 삶이 있었다는 걸 잊고 있었으니까요."),
-  d("kaf", "smile", "이제는 기억해요. 지켜야 할 동료들도, 함께 돌아갈 곳도요."),
+  d("kafAcademy", "default", "그때는 학교를 떠나면 모든 것을 잃는다고 생각했어요. 제게 다른 삶이 있었다는 걸 잊고 있었으니까요."),
+  d("kafAcademy", "smile", "이제는 기억해요. 지켜야 할 동료들도, 함께 돌아갈 곳도요."),
 ], { replayable: true });
 
 export const UNIT3_FLOOR3_ALL_STORIES: readonly StorySequence[] = [

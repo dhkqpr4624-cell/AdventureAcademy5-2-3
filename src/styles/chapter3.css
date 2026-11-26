@@ -417,3 +417,12 @@
 .title-debug-panel { display: grid; gap: 6px; padding: 12px; border-radius: 8px; background: rgba(14, 12, 20, .88); color: #f3e7c8; max-width: min(90vw, 380px); }
 .title-debug-panel strong { color: #e8c97a; }
 .title-debug-note { margin: 0 0 4px; font-size: 13px; color: #d8c9a4; }
+
+/* Phase 4 hotfix 2 · 카프 memory recovery light (PixelFX one-shot, local to 카프, above people + barrier) */
+.u3em-awaken { position: absolute; z-index: 35; pointer-events: none; }
+/* Memory flashback lines: the same dialogue UI, desaturated warm sepia; the portrait faint and slightly soft.
+   Text stays at full contrast; next / skip behave as usual. */
+.u3em-dialogue.is-memory .story-dialogue-box { background-color: rgba(52, 44, 34, .9); border-color: rgba(214, 192, 150, .55); box-shadow: 0 0 24px rgba(210, 180, 130, .18); }
+.u3em-dialogue.is-memory .story-portrait-layer { filter: sepia(.65) saturate(.55) blur(.7px); opacity: .78; }
+.u3em-dialogue.is-memory .story-speaker-name { filter: sepia(.6) saturate(.6); }
+.u3em-dialogue.is-memory .story-dialogue-box p:not(.story-speaker-name) { color: #f4ecdd; }

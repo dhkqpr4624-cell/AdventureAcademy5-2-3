@@ -26,7 +26,6 @@ import { WARP_FLASH_LEVEL } from "./game/audio/chapter3ProceduralSfx";
 import { applySaveDataToGameState, createInitialGameSaveState, createSaveDataFromGameState, type GameSaveState } from "./save/saveStateAdapter";
 import { validateCurrentSave } from "./save/saveSchema";
 import { getItemQuantity } from "./game/inventory/inventoryState";
-import { CHAPTER3_STORY_ACTORS } from "./data/chapter3/chapter3Actors";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(`[chapter3 phase3] ${message}`);
@@ -81,7 +80,8 @@ export function runChapter3Phase3Checks(): void {
   assert(Object.values(UNIT3_FLOOR2_STAGE_PHASES).filter((phase) => phase.kaf).length >= 3 && UNIT3_FLOOR2_KAF_STANDING.endsWith("floor2/standing/kaf-period.png"), "카프 period standing on the stage");
   assert(Object.keys(UNIT3_FLOOR2_ILLUST).length === 6, "six supplied illustrations");
   const kaf = UNIT3_FLOOR2_FINAL_STORY.actors.kaf;
-  assert(kaf.name === "카프" && ["default", "smile", "serious", "angry"].every((expression) => kaf.portraits[expression]?.imageUrl === CHAPTER3_STORY_ACTORS.kapp.portraits[expression]?.imageUrl), "카프 keeps her existing expression portraits");
+  // Phase 4 hotfix 2: on Floor 2 (before her memory returns) 카프 uses the supplied 개화기-costume portraits.
+  assert(kaf.name === "카프" && ["default", "smile", "serious", "angry"].every((expression) => kaf.portraits[expression]?.imageUrl?.endsWith(`kaf-period/${expression}.png`)), "카프 (Floor 2): 개화기-costume expression portraits");
 
   /* 2. titles, monsters, items, achievement, VFX contracts */
   assert(DUNGEON_FLOOR_TITLES.find((entry) => entry.floorId === UNIT3_FLOOR2_ID)?.subtitle === UNIT3_FLOOR2_TITLE && UNIT3_FLOOR2_TITLE === "일제 침략에 맞선 다양한 노력(애국계몽운동과 의거 활동)", "floor 2 title");

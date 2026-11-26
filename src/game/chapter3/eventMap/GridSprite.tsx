@@ -5,15 +5,17 @@ import { useEffect, useRef } from "react";
  * requestAnimationFrame writing `background-position` directly — no React state per frame. `paused` freezes the
  * current frame (time does not advance while paused). One-shots hold their last frame and call `onEnd` once.
  */
-export function GridSprite({ src, cols, rows, frames, fps, frameW, frameH, scale, loop, paused = false, onEnd, className = "", style }: {
+export function GridSprite({ src, cols, rows, frames, fps, frameW, frameH, scale, loop, paused = false, onEnd, onFrame, className = "", style }: {
   src: string; cols: number; rows: number; frames: number; fps: number; frameW: number; frameH: number; scale: number;
-  loop: boolean; paused?: boolean; onEnd?: () => void; className?: string; style?: React.CSSProperties;
+  loop: boolean; paused?: boolean; onEnd?: () => void; onFrame?: (index: number) => void; className?: string; style?: React.CSSProperties;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const pausedRef = useRef(paused);
   pausedRef.current = paused;
   const onEndRef = useRef(onEnd);
   onEndRef.current = onEnd;
+  const onFrameRef = useRef(onFrame);
+  onFrameRef.current = onFrame;
 
   useEffect(() => {
     const element = ref.current;
@@ -31,6 +33,7 @@ export function GridSprite({ src, cols, rows, frames, fps, frameW, frameH, scale
       const row = Math.floor(index / cols);
       element.style.backgroundPosition = `${-col * frameW * scale}px ${-row * frameH * scale}px`;
       element.dataset.frame = String(index);
+      onFrameRef.current?.(index);
     };
     draw(0);
     const tick = (now: number) => {

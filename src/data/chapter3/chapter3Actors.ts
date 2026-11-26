@@ -116,3 +116,22 @@ export const CHAPTER3_EXPRESSION_FALLBACKS = [
   { actor: "deneb", requested: "serious", used: "default" },
   { actor: "researcher", requested: "serious", used: "default" },
 ] as const;
+
+/**
+ * Phase 4 hotfix 2 · 카프 before her memory returns (Floor 2 · Floor 3 until the recovery in the Floor 3 event map):
+ * the supplied 개화기-costume expression portraits. Which actor a line uses is fixed by the scene's time (its
+ * story data), never by the player's current rescue state, so replaying an old scene keeps its costume.
+ */
+const KAF_PERIOD_EXPRESSIONS = ["default", "smile", "serious", "angry", "sad"] as const;
+export const UNIT3_KAF_PERIOD_ACTOR: StoryActor = {
+  ...CHAPTER3_STORY_ACTORS.kapp,
+  id: "kaf", name: "카프", displayRole: undefined,
+  defaultExpression: "default",
+  portraits: Object.fromEntries(KAF_PERIOD_EXPRESSIONS.map((expression) => [expression, {
+    imageUrl: `${import.meta.env.BASE_URL}assets/chapter3/portraits/kaf-period/${expression}.png`,
+    placeholder: { label: "카프", gradient: "linear-gradient(135deg, #3a2430, #111)" },
+  }])),
+};
+/** 카프 in her own Adventure Academy outfit (Unit 2 portraits): memory flashback, after the recovery, base camp. */
+export const UNIT3_KAF_ACADEMY_ACTOR: StoryActor = { ...CHAPTER3_STORY_ACTORS.kapp, id: "kafAcademy", name: "카프", displayRole: undefined };
+export const UNIT3_KAF_PERIOD_PORTRAIT_URLS: string[] = KAF_PERIOD_EXPRESSIONS.map((expression) => `${import.meta.env.BASE_URL}assets/chapter3/portraits/kaf-period/${expression}.png`);
