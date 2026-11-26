@@ -367,7 +367,7 @@
 .u3em-fog-trail { position: absolute; background: linear-gradient(180deg, rgba(20,17,28,0) 0%, rgba(20,17,28,.82) 22%, #14111c 48%); }
 .u3em-actor { position: absolute; transform: translateX(-50%); opacity: 0; transition-property: left, opacity; transition-timing-function: linear, ease; }
 .u3em-actor.is-shown { opacity: 1; }
-.u3em-actor > img { display: block; width: 100%; height: 100%; image-rendering: pixelated; pointer-events: none; }
+.u3em-walker > img { display: block; width: 100%; height: 100%; image-rendering: pixelated; pointer-events: none; }
 .u3em-exclamation { position: absolute; left: 50%; transform: translateX(-50%); animation: u3em-exclamation-out 0s linear 1.75s forwards; }
 @keyframes u3em-exclamation-out { to { visibility: hidden; } }
 .u3em-barrier { position: absolute; z-index: 30; }
@@ -396,3 +396,24 @@
 .u3-investigation-status li.is-done { color: #b9e3a6; }
 @media (max-width: 720px), (max-height: 480px) { .u3-investigation-status { font-size: 12px; top: 64px; left: 10px; padding: 6px 9px; } }
 .u3em-probe.story-player { position: absolute; inset: 0; height: 100%; min-height: 0; background: none; visibility: hidden; pointer-events: none; z-index: -1; }
+
+/* Phase 4 hotfix · procedural walk for the event-map people (only while a move runs; no per-frame React).
+   Small bob, slight weight shift and a very light sway pivoting on the feet; each actor has its own phase. */
+.u3em-walker { width: 100%; height: 100%; transform-origin: 50% var(--foot-y, 100%); }
+.u3em-walker.is-walking { animation: u3em-walk 560ms ease-in-out infinite; animation-delay: var(--walk-phase, 0ms); }
+.u3em-walker.is-walking.is-hurry { animation-duration: 400ms; }
+@keyframes u3em-walk {
+  0%, 50%, 100% { transform: translate(0, 0) rotate(0deg); }
+  25% { transform: translate(1.5px, -4px) rotate(0.7deg); }
+  75% { transform: translate(-1.5px, -4px) rotate(-0.7deg); }
+}
+.u3em-root.is-paused .u3em-walker { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .u3em-walker.is-walking { animation: none; } }
+
+/* Phase 4 hotfix · title Debug Mode (Ctrl+Shift+D) */
+.title-debug { position: absolute; top: 16px; left: 16px; z-index: 20; display: grid; gap: 8px; justify-items: start; }
+.title-debug button { min-height: 2.4rem; padding: 0 14px; border: 2px solid #927847; border-radius: 6px; background: #251e16; color: #f6e5bd; font: inherit; cursor: pointer; }
+.title-debug button:hover, .title-debug button:focus-visible { background: #3a2d1e; }
+.title-debug-panel { display: grid; gap: 6px; padding: 12px; border-radius: 8px; background: rgba(14, 12, 20, .88); color: #f3e7c8; max-width: min(90vw, 380px); }
+.title-debug-panel strong { color: #e8c97a; }
+.title-debug-note { margin: 0 0 4px; font-size: 13px; color: #d8c9a4; }

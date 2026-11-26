@@ -14,10 +14,23 @@ export function planBackupRotation(main: string | null, backup1: string | null, 
   return { backup1: main, backup2: backup1, backup3: backup2 };
 }
 
+/**
+ * Phase 4 hotfix · Debug Mode: while a debug session runs, every save (auto saves included) goes to a
+ * sessionStorage-only key, so the normal save and its backups are never touched. Loading is unaffected.
+ */
+export const DEBUG_SESSION_SAVE_KEY = "adventure-academy-unit3:debug-session";
+let debugSession = false;
+export const setSaveDebugSession = (active: boolean) => { debugSession = active; };
+export const isSaveDebugSession = () => debugSession;
+
 export const SaveManager = {
   save(data: CurrentSaveData, _reason: SaveReason = "manual"): SaveResult {
     let serialized: string;
     try { serialized = JSON.stringify(data); } catch (error) { return { success: false, reason: "serializationFailed", error }; }
+    if (debugSession) {
+      try { window.sessionStorage.setItem(DEBUG_SESSION_SAVE_KEY, serialized); } catch { /* debug only */ }
+      return { success: true, savedAt: data.savedAt, skipped: false };
+    }
     const target = storage();
     if (!target) return { success: false, reason: "storageUnavailable" };
     try {
@@ -67,6 +80,7 @@ export const SaveManager = {
     return saved.success ? { ...result, data: { ...result.data, savedAt: saved.savedAt } } : { success: false, reason: "migrationFailed" };
   },
   clear() {
+    if (debugSession) return { success: true as const };
     const target = storage(); if (!target) return { success: false as const, reason: "storageUnavailable" as const };
     try { Object.values(K).forEach((key) => target.removeItem(key)); return { success: true as const }; }
     catch (error) { return { success: false as const, reason: "unknown" as const, error }; }

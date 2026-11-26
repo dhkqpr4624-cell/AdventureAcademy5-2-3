@@ -1,5 +1,8 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { TitleScreen } from "../screens/TitleScreen/TitleScreen";
+import { UNIT3_DEBUG_FLOORS, createUnit3DebugStart } from "../debug/unit3DebugStart";
+import { isSaveDebugSession, setSaveDebugSession } from "../save/SaveManager";
+import type { DungeonFloorRunState } from "../game/dungeon/dungeonTypes";
 import type { ScreenId } from "./routes";
 import { SaveManagementPanel } from "../components/SaveManagementPanel";
 import { SaveManager } from "../save/SaveManager";
@@ -55,6 +58,8 @@ export function App() {
   const [saveMessage, setSaveMessage] = useState(loaded.current.success && loaded.current.source !== "main" ? "메인 세이브가 손상되어 최근 백업을 복구했습니다." : "");
   const startedAtRef = useRef(Date.now());
   const coordinatorRef = useRef<AutoSaveCoordinator | null>(null);
+  /** Phase 4 hotfix · Debug 후반: the prepared run restored once by the next DungeonScreen mount. */
+  const debugFloorRunRef = useRef<DungeonFloorRunState | null>(null);
   gameRef.current = game;
 
   const snapshot = useCallback(() => createSaveDataFromGameState({
@@ -76,6 +81,7 @@ export function App() {
   }, [commitGame]);
   const navigate = useCallback((screen: ScreenId) => {
     if (screen !== "story") stopAllChapter3Sfx(250);
+    if (screen !== "dungeon") debugFloorRunRef.current = null;
     // Unit 3 routes: intro story, base camp and the Floor 1 dungeon; anything else falls back to the title.
     const dungeonAllowed = screen === "dungeon" && gameRef.current.floorUnlockState.unlockedFloorIds.includes(dungeonFloorRef.current);
     setCurrentScreen(screen === "story" || screen === "baseCamp" || dungeonAllowed ? screen : "title");
@@ -128,6 +134,13 @@ export function App() {
     if (currentScreen === "title") {
       stopBgm();
       stopAllChapter3Sfx(200);
+      if (isSaveDebugSession()) {
+        // Leaving a Debug session: drop the debug state and go back to the real save (never written meanwhile).
+        setSaveDebugSession(false);
+        debugFloorRunRef.current = null;
+        const latest = SaveManager.load();
+        commitGame(latest.success ? loadGameState(latest.data) : createInitialGameSaveState());
+      }
       return;
     }
     if (currentScreen === "dungeon") {
@@ -182,7 +195,7 @@ export function App() {
             playerState: reason === "defeat" ? { ...current.playerState, currentHp: current.playerState.maxHp } : current.playerState,
           }))}
           // Every entry starts a fresh run; persisted story flags keep finished events from replaying.
-          savedFloorRun={null}
+          savedFloorRun={debugFloorRunRef.current?.floorId === floorId ? debugFloorRunRef.current : null}
           onFloorRunChanged={() => undefined}
           firstObjectiveEventSeen={Boolean(game.firstObjectiveEventSeen[floor.finalFlag])}
           floor1StartStorySeen
@@ -208,6 +221,18 @@ export function App() {
       default: return <TitleScreen
         onOpenSettings={() => setSettingsOpen(true)}
         hasSave={SaveManager.load().success}
+        debugFloors={UNIT3_DEBUG_FLOORS}
+        onDebugStart={(floorId, phase) => {
+          const start = createUnit3DebugStart(floorId as Unit3DungeonFloorId, phase);
+          setSaveDebugSession(true); // from here every save goes to the debug session key only
+          commitGame(start.state);
+          startedAtRef.current = Date.now();
+          debugFloorRunRef.current = start.floorRun;
+          if (start.floorRun) {
+            dungeonFloorRef.current = floorId as Unit3DungeonFloorId; setDungeonFloorId(floorId as Unit3DungeonFloorId);
+            setCurrentScreen("dungeon");
+          } else setCurrentScreen("baseCamp");
+        }}
         onContinue={() => {
           const latest = SaveManager.load();
           const state = latest.success ? loadGameState(latest.data) : gameRef.current;

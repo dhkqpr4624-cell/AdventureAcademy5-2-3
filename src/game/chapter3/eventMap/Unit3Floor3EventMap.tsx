@@ -50,21 +50,29 @@ export const U3EM_IMAGES = {
   prisonCaptive: `${BASE}assets/dungeon7/captive-deneb.png`,
 } as const;
 
-/** Image + measured alpha box (top/bottom rows) + natural facing. */
-type Pose = { src: string; w: number; h: number; top: number; bottom: number; natural: "L" | "R"; visibleH: number };
+/**
+ * Image + measured alpha box (alpha > 128: top/bottom rows, left/right columns) + natural facing. The visible
+ * box (not the PNG canvas) is what the scripted layout spaces out, and `x` is the centre of that box.
+ */
+type Pose = { src: string; w: number; h: number; top: number; bottom: number; left: number; right: number; natural: "L" | "R"; visibleH: number };
 export const U3EM_POSES = {
-  deneb: { src: `${BASE}assets/npcs/chapter2/deneb/standing_R.png`, w: 400, h: 700, top: 38, bottom: 682, natural: "R", visibleH: 236 },
-  denebDefense: { src: `${F3}standing/deneb-defense-R.png`, w: 948, h: 1659, top: 133, bottom: 1462, natural: "R", visibleH: 268 },
-  kaiden: { src: CHAPTER3_STAGE_SPRITES.kaiden.images.L!, w: 600, h: 700, top: 23, bottom: 671, natural: "L", visibleH: 250 },
-  kafPeriod: { src: `${BASE}assets/chapter3/floor2/standing/kaf-period.png`, w: 843, h: 1329, top: 4, bottom: 1319, natural: "L", visibleH: 232 },
-  kafDefense: { src: `${F3}standing/kaf-defense-R.png`, w: 948, h: 1659, top: 283, bottom: 1461, natural: "R", visibleH: 232 },
-  kafAcademy: { src: kappStandingR, w: 400, h: 700, top: 132, bottom: 681, natural: "R", visibleH: 222 },
-  student: { src: `${F3}standing/student.png`, w: 255, h: 383, top: 4, bottom: 380, natural: "R", visibleH: 176 },
-  official: { src: `${F3}standing/school-official.png`, w: 341, h: 512, top: 5, bottom: 509, natural: "R", visibleH: 240 },
-  resident1: { src: `${F3}standing/resident1.png`, w: 154, h: 247, top: 4, bottom: 242, natural: "R", visibleH: 214 },
-  resident2: { src: `${F3}standing/resident2.png`, w: 299, h: 327, top: 2, bottom: 324, natural: "R", visibleH: 222 },
+  deneb: { src: `${BASE}assets/npcs/chapter2/deneb/standing_R.png`, w: 400, h: 700, top: 38, bottom: 682, left: 1, right: 398, natural: "R", visibleH: 236 },
+  denebDefense: { src: `${F3}standing/deneb-defense-R.png`, w: 948, h: 1659, top: 133, bottom: 1462, left: 49, right: 895, natural: "R", visibleH: 268 },
+  kaiden: { src: CHAPTER3_STAGE_SPRITES.kaiden.images.L!, w: 600, h: 700, top: 23, bottom: 671, left: 122, right: 495, natural: "L", visibleH: 250 },
+  // Hotfix: 카프 keeps her original Adventure Academy outfit for the whole event map (standing + defense pose).
+  kafDefense: { src: `${F3}standing/kaf-defense-R.png`, w: 948, h: 1659, top: 283, bottom: 1461, left: 32, right: 918, natural: "R", visibleH: 232 },
+  kafAcademy: { src: kappStandingR, w: 400, h: 700, top: 132, bottom: 681, left: 32, right: 379, natural: "R", visibleH: 222 },
+  student: { src: `${F3}standing/student.png`, w: 255, h: 383, top: 4, bottom: 380, left: 18, right: 239, natural: "R", visibleH: 176 },
+  official: { src: `${F3}standing/school-official.png`, w: 341, h: 512, top: 5, bottom: 509, left: 11, right: 315, natural: "R", visibleH: 240 },
+  resident1: { src: `${F3}standing/resident1.png`, w: 154, h: 247, top: 4, bottom: 242, left: 10, right: 134, natural: "R", visibleH: 214 },
+  resident2: { src: `${F3}standing/resident2.png`, w: 299, h: 327, top: 2, bottom: 324, left: 58, right: 208, natural: "R", visibleH: 222 },
 } satisfies Record<string, Pose>;
 type PoseId = keyof typeof U3EM_POSES;
+/** Visible width of a pose in scene units. */
+export const poseVisibleWidth = (id: PoseId) => { const p: Pose = U3EM_POSES[id]; return (p.right - p.left) * p.visibleH / (p.bottom - p.top); };
+/** Walking speed (scene units / s): one pace for every walk, a faster one for the hurried exits. */
+export const U3EM_WALK_SPEED = 150;
+export const U3EM_HURRY_SPEED = 260;
 
 export const U3EM_IMAGE_URLS: string[] = [
   ...Object.values(U3EM_IMAGES), ...Object.values(U3EM_POSES).map((pose) => pose.src),
@@ -72,7 +80,7 @@ export const U3EM_IMAGE_URLS: string[] = [
 ];
 
 type ActorId = "deneb" | "kaf" | "kaiden" | "student" | "official" | "resident1" | "resident2";
-type Actor = { pose: PoseId; x: number; facing: "L" | "R"; shown: boolean; moveMs: number; fadeMs: number; z: number; alarm: number };
+type Actor = { pose: PoseId; x: number; facing: "L" | "R"; shown: boolean; moveMs: number; fadeMs: number; z: number; alarm: number; walking: boolean; pace: "walk" | "hurry" };
 type Scene = {
   actors: Record<ActorId, Actor>;
   cameraFocus: number; cameraMs: number;
@@ -84,22 +92,31 @@ type Scene = {
 
 /** Layout (scene units). Barrier: bottom end on the ground at BARRIER_X; the fog stops at its apex. */
 export const U3EM_LAYOUT = {
-  barrierX: 720, barrierScale: 1.36, fogScale: 2.6,
+  barrierX: 410, barrierScale: 1.36, fogScale: 2.6,
   barrierFrame: { w: 128, h: 256, apex: [40, 128] as const, bottomEnd: [86, 240] as const, contact: [41, 150] as const },
   /** frontX: the point of the fog body that presses on the barrier (the thin wisp tail beyond it stays behind the barrier). */
   fogFrame: { w: 384, h: 128, leftAnchorX: 8, bottomY: 119, frontX: 350 },
-  defenders: { deneb: 820, kaf: 905 },
-  kaidenWait: 1720,
+  // Spaced by visible width + ~25 units (see poseVisibleWidth); feet stay on GROUND_Y.
+  defenders: { deneb: 520, kaf: 715 },
+  kaidenWait: 1760,
+  /** Entrance targets, left → right: 데네브 (last) → 카프 → 주민·학생·학교 관계자 → 카이든 (leading). */
+  entrance: { deneb: 640, kaf: 807, resident1: 958, resident2: 1090, student: 1218, official: 1366, kaiden: 1536 },
+  entranceDistance: 1100,
+  /** Safe alley: all seven people from the evacuation. */
+  safeAlley: { deneb: 700, kaf: 867, kaiden: 1034, student: 1182, official: 1330, resident1: 1483, resident2: 1615 },
 } as const;
 const barrierApexX = U3EM_LAYOUT.barrierX - (U3EM_LAYOUT.barrierFrame.bottomEnd[0] - U3EM_LAYOUT.barrierFrame.apex[0]) * U3EM_LAYOUT.barrierScale;
 export const U3EM_FOG_CONTACT_FRONT = Math.round(barrierApexX + 6);
 
-const actor = (pose: PoseId, x: number, facing: "L" | "R", z: number, shown = true): Actor => ({ pose, x, facing, shown, moveMs: 0, fadeMs: 600, z, alarm: 0 });
+const actor = (pose: PoseId, x: number, facing: "L" | "R", z: number, shown = true): Actor => ({ pose, x, facing, shown, moveMs: 0, fadeMs: 600, z, alarm: 0, walking: false, pace: "walk" });
+const E = U3EM_LAYOUT.entrance;
+const D = U3EM_LAYOUT.entranceDistance;
 const initialScene = (): Scene => ({
   actors: {
-    resident1: actor("resident1", 330, "R", 6), resident2: actor("resident2", 430, "R", 7),
-    student: actor("student", 530, "R", 8), official: actor("official", 630, "R", 5),
-    deneb: actor("deneb", 900, "R", 3), kaf: actor("kafPeriod", 990, "R", 4), kaiden: actor("kaiden", 1640, "R", 2),
+    deneb: actor("deneb", E.deneb - D, "R", 3), kaf: actor("kafAcademy", E.kaf - D, "R", 4),
+    resident1: actor("resident1", E.resident1 - D, "R", 5), resident2: actor("resident2", E.resident2 - D, "R", 6),
+    student: actor("student", E.student - D, "R", 7), official: actor("official", E.official - D, "R", 8),
+    kaiden: actor("kaiden", E.kaiden - D, "R", 9),
   },
   cameraFocus: 1050, cameraMs: 0,
   fog: { shown: false, front: -120, moveMs: 0, fadeMs: 600 },
@@ -186,10 +203,29 @@ export function Unit3Floor3EventMap({ playerName, playerStatus, onComplete }: {
     });
     const set = (update: (current: Scene) => Scene) => { if (!cancelledRef.current) setScene(update); };
     const patchActor = (id: ActorId, patch: Partial<Actor>) => set((current) => ({ ...current, actors: { ...current.actors, [id]: { ...current.actors[id], ...patch } } }));
-    const move = (id: ActorId, x: number, ms: number, facing?: "L" | "R") => patchActor(id, { x, moveMs: ms, ...(facing ? { facing } : {}) });
     const face = (id: ActorId, facing: "L" | "R") => patchActor(id, { facing });
-    const swap = (id: ActorId, pose: PoseId, facing?: "L" | "R") => patchActor(id, { pose, moveMs: 0, ...(facing ? { facing } : {}) });
+    const swap = (id: ActorId, pose: PoseId, facing?: "L" | "R") => patchActor(id, { pose, moveMs: 0, walking: false, ...(facing ? { facing } : {}) });
     const show = (id: ActorId, shown: boolean, fadeMs = 600) => patchActor(id, { shown, fadeMs });
+    // Script-side positions (the cue script is the only writer), so walk durations follow distance / speed.
+    const at = Object.fromEntries(Object.entries(initialScene().actors).map(([id, a]) => [id, a.x])) as Record<ActorId, number>;
+    /**
+     * Common walk helper: turn to face the walking direction → short beat → walk (procedural gait on) at a fixed
+     * speed → stop (gait off, facing kept). Returns the arrival; fire-and-forget calls swallow cancellation.
+     */
+    const TURN_MS = 160;
+    const walkTo = (id: ActorId, x: number, speed = U3EM_WALK_SPEED) => {
+      const from = at[id];
+      at[id] = x;
+      const ms = Math.round((Math.abs(x - from) / speed) * 1000);
+      patchActor(id, { facing: x >= from ? "R" : "L" });
+      const arrival = wait(TURN_MS)
+        .then(() => { patchActor(id, { x, moveMs: ms, walking: true, pace: speed > U3EM_WALK_SPEED ? "hurry" : "walk" }); return wait(ms); })
+        .then(() => patchActor(id, { walking: false, moveMs: 0 }));
+      arrival.catch(() => undefined);
+      return arrival;
+    };
+    /** Instant reposition (scene changes): resets visibility, opacity, position, facing and pose. */
+    const place = (id: ActorId, patch: Partial<Actor> & { x: number }) => { at[id] = patch.x; patchActor(id, { moveMs: 0, fadeMs: 0, walking: false, shown: true, ...patch }); };
     const alarm = (id: ActorId) => set((current) => ({ ...current, actors: { ...current.actors, [id]: { ...current.actors[id], alarm: current.actors[id].alarm + 1 } } }));
     const camera = (focus: number, ms: number) => set((current) => ({ ...current, cameraFocus: focus, cameraMs: ms }));
     const fog = (patch: Partial<Scene["fog"]>) => set((current) => ({ ...current, fog: { ...current.fog, ...patch } }));
@@ -201,6 +237,7 @@ export function Unit3Floor3EventMap({ playerName, playerStatus, onComplete }: {
     });
 
     const run = async () => {
+      const L = U3EM_LAYOUT;
       // 1) 3D view fades to black (curtain over the transparent root), scene assets decode, then fade in.
       await wait(30);
       curtain(true, 700);
@@ -208,44 +245,45 @@ export function Unit3Floor3EventMap({ playerName, playerStatus, onComplete }: {
       if (cancelledRef.current) throw new Cancelled();
       setEntered(true);
       await wait(60);
-      ["resident1", "resident2", "student", "official"].forEach((id, index) => move(id as ActorId, 1130 + index * 105, 6400));
+      // Everyone walks in together from the left at one pace and the same distance (데네브 last, 카이든 leading).
+      const entrance = (Object.keys(L.entrance) as ActorId[]).map((id) => walkTo(id, L.entrance[id as keyof typeof L.entrance]));
       curtain(false, 900);
       await wait(1000);
       // 2) 주민들과 학생들이 샛길을 따라 이동한다. / 검은 안개가 밀려온다.
       await say("intro");
+      await Promise.all(entrance);
       rumble.current = startFogRumble();
       camera(820, 1600);
-      fog({ shown: true, front: 430, moveMs: 3600 });
+      fog({ shown: true, front: 280, moveMs: 3600 });
       await wait(1500);
       (["student", "resident1", "resident2", "official"] as const).forEach((id) => { face(id, "L"); });
       alarm("student"); alarm("resident1"); alarm("resident2");
       await wait(1900);
       await say("alarm");
-      // 3) 데네브·카프: left side by side, defense poses facing left, barrier to their left.
-      move("deneb", U3EM_LAYOUT.defenders.deneb, 900, "L");
-      move("kaf", U3EM_LAYOUT.defenders.kaf, 900, "L");
-      await wait(950);
+      // 3) 데네브·카프: turn left → walk left → stop → defense pose → barrier to their left.
+      await Promise.all([walkTo("deneb", L.defenders.deneb), walkTo("kaf", L.defenders.kaf)]);
+      await wait(200);
       swap("deneb", "denebDefense", "L");
       swap("kaf", "kafDefense", "L");
       await wait(250);
       playBarrierSpawn();
       set((current) => ({ ...current, barrier: "spawn" }));
       await wait(760);
-      fog({ front: U3EM_FOG_CONTACT_FRONT, moveMs: 1700 });
-      await wait(1750);
+      fog({ front: U3EM_FOG_CONTACT_FRONT, moveMs: 900 });
+      await wait(950);
       // contact → impacts repeat (impact loop effect below)
       set((current) => ({ ...current, impact: current.impact + 1 }));
-      // 4) 주민·학생·학교 관계자 exit right in turn (fade); 카이든 waits on the right.
+      // 4) 학교 관계자 → 학생 → 주민 → 주민 leave right in turn (fade); 카이든 walks ahead and waits on the right.
       camera(1150, 2200);
-      move("kaiden", U3EM_LAYOUT.kaidenWait, 2600, "R");
-      for (const id of ["resident1", "resident2", "student", "official"] as const) {
-        face(id, "R");
-        move(id, 2300, 3200);
-        timers.current.add(window.setTimeout(() => show(id, false, 900), 2100));
+      const kaidenAhead = walkTo("kaiden", L.kaidenWait);
+      for (const id of ["official", "student", "resident2", "resident1"] as const) {
+        void walkTo(id, 2400, U3EM_HURRY_SPEED);
+        timers.current.add(window.setTimeout(() => show(id, false, 900), 3200));
         await wait(520);
       }
+      await kaidenAhead;
       await wait(2600);
-      face("kaiden", "L");
+      face("kaiden", "L"); // 카이든 turns back to call the two (his next line)
       camera(1050, 1400);
       await wait(600);
       await say("holding");
@@ -265,40 +303,36 @@ export function Unit3Floor3EventMap({ playerName, playerStatus, onComplete }: {
       // 6) Release, in this exact order; no dialogue after the retreat call.
       swap("deneb", "deneb", "R");
       await wait(350);
-      move("deneb", U3EM_LAYOUT.defenders.deneb + 40, 450);
-      await wait(500);
+      await walkTo("deneb", L.defenders.deneb + 25);
+      await wait(150);
       swap("kaf", "kafAcademy", "R");
       await wait(400);
       await say("retreat");
-      move("deneb", 2350, 2600);
-      move("kaf", 2420, 2600);
-      move("kaiden", 2500, 2200, "R");
+      // turn right → walk right (all at one hurried pace, gaps kept) → far enough → barrier released → fog resumes.
+      void walkTo("deneb", at.deneb + 1150, U3EM_HURRY_SPEED);
+      void walkTo("kaf", at.kaf + 1150, U3EM_HURRY_SPEED);
+      void walkTo("kaiden", at.kaiden + 1150, U3EM_HURRY_SPEED);
       camera(1500, 2600);
-      await wait(500);
+      await wait(1450);
       set((current) => ({ ...current, barrier: "despawn" }));
       await wait(800);
-      fog({ front: 1500, moveMs: 2600 });
-      await wait(1500);
+      fog({ front: 1300, moveMs: 2600 });
+      await wait(1300);
       curtain(true, 900); // fade out before the fog reaches anyone
       rumble.current?.stop(900);
       rumble.current = null;
       await wait(1100);
-      // 7) Safe alley: fog and barrier gone, NPCs repositioned, fade in, dialogue, fade out.
-      setScene((current) => ({
-        ...current,
-        fog: { shown: false, front: -400, moveMs: 0, fadeMs: 0 }, barrier: "none", dim: false, flashback: false,
-        cameraFocus: 1500, cameraMs: 0,
-        actors: {
-          ...current.actors,
-          deneb: { ...current.actors.deneb, pose: "deneb", x: 1180, facing: "R", moveMs: 0, shown: true, fadeMs: 0 },
-          kaf: { ...current.actors.kaf, pose: "kafAcademy", x: 1290, facing: "R", moveMs: 0, shown: true, fadeMs: 0 },
-          kaiden: { ...current.actors.kaiden, x: 1430, facing: "L", moveMs: 0, shown: true, fadeMs: 0 },
-          student: { ...current.actors.student, x: 1590, facing: "L", moveMs: 0, shown: true, fadeMs: 0 },
-          official: { ...current.actors.official, x: 1700, facing: "L", moveMs: 0, shown: true, fadeMs: 0 },
-          resident1: { ...current.actors.resident1, shown: false, fadeMs: 0 },
-          resident2: { ...current.actors.resident2, shown: false, fadeMs: 0 },
-        },
-      }));
+      // 7) Safe alley: fog and barrier gone, all seven people back (visibility/opacity/position/facing reset).
+      set((current) => ({ ...current, fog: { shown: false, front: -400, moveMs: 0, fadeMs: 0 }, barrier: "none", dim: false, flashback: false }));
+      const A = L.safeAlley;
+      place("deneb", { x: A.deneb, pose: "deneb", facing: "R" });
+      place("kaf", { x: A.kaf, pose: "kafAcademy", facing: "R" });
+      place("kaiden", { x: A.kaiden, facing: "L" });
+      place("student", { x: A.student, facing: "L" });
+      place("official", { x: A.official, facing: "L" });
+      place("resident1", { x: A.resident1, facing: "L" });
+      place("resident2", { x: A.resident2, facing: "L" });
+      camera((A.deneb + A.resident2) / 2, 0);
       await wait(500);
       curtain(false, 900);
       await wait(1000);
@@ -358,10 +392,12 @@ export function Unit3Floor3EventMap({ playerName, playerStatus, onComplete }: {
             const below = (pose.h - pose.bottom) / pose.h * elementH;
             const flip = a.facing !== pose.natural;
             return (
-              <div key={id} className={`u3em-actor ${a.shown ? "is-shown" : ""}`} data-actor={id} data-facing={a.facing} data-pose={a.pose}
-                style={{ left: a.x, top: U3EM_SCENE.groundY + below - elementH, width: elementW, height: elementH, zIndex: 10 + a.z,
-                  transitionDuration: `${a.moveMs}ms, ${a.fadeMs}ms` }}>
-                <img src={pose.src} alt="" draggable={false} style={{ transform: flip ? "scaleX(-1)" : undefined }} />
+              <div key={id} className={`u3em-actor ${a.shown ? "is-shown" : ""}`} data-actor={id} data-facing={a.facing} data-pose={a.pose} data-walking={a.walking ? "1" : "0"}
+                style={{ left: a.x - ((pose.left + pose.right) / 2 / pose.w - 0.5) * elementW * (flip ? -1 : 1), top: U3EM_SCENE.groundY + below - elementH, width: elementW, height: elementH, zIndex: 10 + a.z,
+                  transitionDuration: `${a.moveMs}ms, ${a.fadeMs}ms`, ["--walk-phase" as string]: `${-(a.z * 137) % 560}ms`, ["--foot-y" as string]: `${(pose.bottom / pose.h) * 100}%` }}>
+                <div className={`u3em-walker ${a.walking ? `is-walking is-${a.pace}` : ""}`}>
+                  <img src={pose.src} alt="" draggable={false} style={{ transform: flip ? "scaleX(-1)" : undefined }} />
+                </div>
                 {a.alarm > 0 && <GridSprite key={a.alarm} className="u3em-exclamation" src={U3EM_IMAGES.exclamation} cols={12} rows={1} frames={12} fps={7} frameW={60} frameH={60} scale={1.5}
                   loop={false} style={{ top: (pose.top / pose.h) * elementH - 96 }} />}
               </div>
@@ -395,11 +431,13 @@ export function Unit3Floor3EventMap({ playerName, playerStatus, onComplete }: {
       <div className={`u3em-curtain ${scene.curtain ? "is-closed" : ""}`} style={{ transitionDuration: `${scene.curtainMs}ms` }} />
       {segment && (
         <div className="u3em-dialogue">
-          <StoryPlayer key={segment.key} sequence={segment.sequence} playerName={playerName} playerStatus={playerStatus}
+          <StoryPlayer key={segment.key} sequence={{ ...segment.sequence, dialogueSkip: false }} playerName={playerName} playerStatus={playerStatus}
             presentationMode="baseCampOverlay" onNavigate={() => undefined} onComplete={() => segmentDone.current?.()} />
         </div>
       )}
-      <button type="button" className="story-skip-button u3em-skip" onClick={finish}>이벤트 건너뛰기</button>
+      {/* Hotfix: one skip button — the existing bottom-right 「건너뛰기」 design — and it skips the whole event map
+          (segments run with dialogueSkip off, so StoryPlayer shows no second button). */}
+      <button type="button" className="story-dialogue-skip-button u3em-skip" onClick={finish}>건너뛰기</button>
     </div>
   );
 }

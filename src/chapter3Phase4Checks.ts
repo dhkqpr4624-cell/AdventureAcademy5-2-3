@@ -19,12 +19,13 @@ import {
 } from "./data/chapter3/floor3Stories";
 import { getUnit3StoryFloor } from "./game/chapter3/unit3StoryFloors";
 import { resolveFloor3KafPlacement } from "./game/chapter3/Unit3Floor3Stage";
-import { U3EM_FOG_CONTACT_FRONT, U3EM_LAYOUT, U3EM_POSES } from "./game/chapter3/eventMap/Unit3Floor3EventMap";
+import { U3EM_FOG_CONTACT_FRONT, U3EM_LAYOUT, U3EM_POSES, poseVisibleWidth } from "./game/chapter3/eventMap/Unit3Floor3EventMap";
 import { getMonsterVisualDefinition } from "./game/monster/monsterDefinitions";
 import { CHAPTER3_BASE_CAMP_MAP, createChapter3BaseCampHitboxes, createChapter3BaseCampNpcs } from "./data/chapter3/chapter3BaseCamp";
 import { GATE_OUTLINE_STEPS, NPC_OUTLINE_STEPS } from "./components/outlineMask";
 import { evaluateEmergencySupply } from "./game/chapter3/emergencySupply";
 import { CHAPTER3_STAGE_SPRITES } from "./data/chapter3/chapter3Actors";
+import { UNIT3_DEBUG_FLOORS, createUnit3DebugStart } from "./debug/unit3DebugStart";
 
 /** Phase 4 checks: Floor 3 data/flow, special-reward auto grant, pen rename, entrance strip, outlines, 카프 joining, event map layout. */
 const assert = (condition: unknown, message: string) => { if (!condition) throw new Error(`[chapter3 phase4] ${message}`); };
@@ -158,4 +159,37 @@ export function runChapter3Phase4Checks(): void {
   /* ---- event map layout: fog stops before the defenders; defenders face left of centre */
   assert(U3EM_FOG_CONTACT_FRONT < U3EM_LAYOUT.barrierX && U3EM_LAYOUT.barrierX < U3EM_LAYOUT.defenders.deneb && U3EM_LAYOUT.defenders.deneb < U3EM_LAYOUT.defenders.kaf, "fog → barrier → 데네브 → 카프 (left to right)");
   for (const [id, pose] of Object.entries(U3EM_POSES)) assert(pose.bottom > pose.top && pose.bottom <= pose.h, `pose ${id}: alpha box`);
+
+  /* ---- Phase 4 hotfix: event map layout (visible boxes never overlap in the scripted rows) + Debug Mode starts */
+  const row = (positions: Record<string, number>, poses: Record<string, keyof typeof U3EM_POSES>) => {
+    const boxes = Object.entries(positions).map(([id, x]) => ({ id, l: x - poseVisibleWidth(poses[id]) / 2, r: x + poseVisibleWidth(poses[id]) / 2 })).sort((a, b) => a.l - b.l);
+    for (let i = 1; i < boxes.length; i++) assert(boxes[i].l - boxes[i - 1].r >= 15, `event map: ${boxes[i - 1].id} / ${boxes[i].id} overlap`);
+  };
+  const standing = { deneb: "deneb", kaf: "kafAcademy", kaiden: "kaiden", student: "student", official: "official", resident1: "resident1", resident2: "resident2" } as const;
+  row(U3EM_LAYOUT.entrance, standing);
+  row(U3EM_LAYOUT.safeAlley, standing);
+  row({ deneb: U3EM_LAYOUT.defenders.deneb, kaf: U3EM_LAYOUT.defenders.kaf }, { deneb: "denebDefense", kaf: "kafDefense" });
+  row({ deneb: U3EM_LAYOUT.defenders.deneb + 25, kaf: U3EM_LAYOUT.defenders.kaf }, { deneb: "deneb", kaf: "kafAcademy" });
+  assert(Object.keys(U3EM_LAYOUT.safeAlley).length === 7, "safe alley: all seven people");
+  assert(!("kafPeriod" in U3EM_POSES), "event map: 카프 only in her academy outfit");
+
+  assert(UNIT3_DEBUG_FLOORS.map((floor) => floor.floorId).join(",") === "unit3-floor-1,unit3-floor-2,unit3-floor-3", "debug floors = implemented floors");
+  const early = createUnit3DebugStart(UNIT3_FLOOR3_ID, "early");
+  assert(early.floorRun === null && getUnit3Floor3QuestPhase(early.state) === "notAccepted" && !isKafAtBaseCamp(early.state), "debug 3층 초반: quest offerable, 카프 not joined");
+  assert(early.state.questState["quest-unit3-floor-1"] === "completed" && early.state.questState[UNIT3_FLOOR2_QUEST_ID] === "completed", "debug 초반: floors 1–2 completed");
+  for (const spec of UNIT3_FLOOR_ACHIEVEMENTS.slice(0, 2)) {
+    const status = getUnit3SpecialRewardStatus(early.state, spec);
+    assert(status.claimed && getItemQuantity(early.state.inventoryState, spec.rewardItemId) === 1 && early.state.achievementReceived[spec.achievement.id] === true, `debug 초반: ${spec.floorId} special reward + correct answers`);
+  }
+  const late = createUnit3DebugStart(UNIT3_FLOOR3_ID, "late");
+  const lateFlags = late.state.firstObjectiveEventSeen;
+  assert(late.state.questState[UNIT3_FLOOR3_QUEST_ID] === "active" && [UNIT3_FLOOR3_FLAGS.startEvent, UNIT3_FLOOR3_FLAGS.midEvent, ...UNIT3_FLOOR3_STORY_FLAGS, UNIT3_FLOOR3_FLAGS.postEventTalk].every((flag) => lateFlags[flag]), "debug 후반: accepted, every story before the final room");
+  assert(!lateFlags[UNIT3_FLOOR3_FLAGS.finalStory] && !isKafAtBaseCamp(late.state) && !late.state.rewardClaimed[UNIT3_FLOOR3_QUEST_ID], "debug 후반: final event / 카프 / reward untouched");
+  const lateRun = late.floorRun!;
+  const lateMap = prepareUnit3Floor3Map(createDungeonRun(UNIT3_FLOOR3_ID as Parameters<typeof createDungeonRun>[0], lateRun.seed).map, lateRun.seed);
+  const finalId = lateMap.rooms.find((room) => room.isFinalQuestRoom)!.id;
+  assert(!lateRun.roomProgress[finalId].eventCompleted && Object.values(lateRun.roomProgress).filter((p) => !p.eventCompleted).length === 1, "debug 후반: only the final room left");
+  assert(lateMap.connections.some((c) => (c.fromRoomId === finalId && c.toRoomId === lateRun.currentRoomId) || (c.toRoomId === finalId && c.fromRoomId === lateRun.currentRoomId)), "debug 후반: player next to the final room");
+  assert(late.state.playerState.currentHp === late.state.playerState.maxHp && getItemQuantity(late.state.inventoryState, "potion-small") >= 5, "debug: HP / potions");
+  for (const floor of UNIT3_DEBUG_FLOORS) { createUnit3DebugStart(floor.floorId, "early"); createUnit3DebugStart(floor.floorId, "late"); }
 }
