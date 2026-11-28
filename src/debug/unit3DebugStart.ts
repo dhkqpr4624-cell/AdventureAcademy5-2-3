@@ -8,6 +8,7 @@ import { completeUnit3QuestWithSpecialReward, getUnit3FloorAchievement, recordUn
 import { UNIT3_FLOOR1_FLAGS, UNIT3_FLOOR1_ID, UNIT3_FLOOR1_TITLE, acceptUnit3Floor1Quest, completeUnit3Floor1Quest, finishUnit3Floor1Run, markUnit3Flag } from "../game/chapter3/unit3Floor1";
 import { UNIT3_FLOOR2_ID, UNIT3_FLOOR2_TITLE, acceptUnit3Floor2Quest, completeUnit3Floor2Quest, finishUnit3Floor2Run } from "../game/chapter3/unit3Floor2";
 import { UNIT3_FLOOR3_ID, UNIT3_FLOOR3_TITLE, acceptUnit3Floor3Quest, completeUnit3Floor3Quest, finishUnit3Floor3Run } from "../game/chapter3/unit3Floor3";
+import { UNIT3_FLOOR4_ID, UNIT3_FLOOR4_TITLE, acceptUnit3Floor4Quest, completeUnit3Floor4Quest, finishUnit3Floor4Run, markUnit3Floor4DefenseReady } from "../game/chapter3/unit3Floor4";
 import { getUnit3StoryFloor } from "../game/chapter3/unit3StoryFloors";
 import { createInitialGameSaveState, type GameSaveState } from "../save/saveStateAdapter";
 
@@ -23,6 +24,8 @@ export const UNIT3_DEBUG_FLOORS: readonly Unit3DebugFloor[] = [
   { floorId: UNIT3_FLOOR1_ID, label: "던전 1층", title: UNIT3_FLOOR1_TITLE, accept: acceptUnit3Floor1Quest, complete: completeUnit3Floor1Quest, finish: finishUnit3Floor1Run, afterRunFlags: [UNIT3_FLOOR1_FLAGS.baseCampReturn] },
   { floorId: UNIT3_FLOOR2_ID, label: "던전 2층", title: UNIT3_FLOOR2_TITLE, accept: acceptUnit3Floor2Quest, complete: completeUnit3Floor2Quest, finish: finishUnit3Floor2Run },
   { floorId: UNIT3_FLOOR3_ID, label: "던전 3층", title: UNIT3_FLOOR3_TITLE, accept: acceptUnit3Floor3Quest, complete: completeUnit3Floor3Quest, finish: finishUnit3Floor3Run },
+  // Phase 5: Floor 4 is an event / defense screen — 후반 = quest accepted + story up to the shield creation seen.
+  { floorId: UNIT3_FLOOR4_ID, label: "던전 4층", title: UNIT3_FLOOR4_TITLE, accept: acceptUnit3Floor4Quest, complete: completeUnit3Floor4Quest, finish: finishUnit3Floor4Run },
 ];
 export type Unit3DebugPhase = "early" | "late";
 
@@ -43,7 +46,7 @@ function completeFloor(state: GameSaveState, floor: Unit3DebugFloor): GameSaveSt
   return completeUnit3QuestWithSpecialReward(next, floor.floorId, floor.complete);
 }
 
-export function createUnit3DebugStart(floorId: FloorId, phase: Unit3DebugPhase): { state: GameSaveState; floorRun: DungeonFloorRunState | null } {
+export function createUnit3DebugStart(floorId: FloorId, phase: Unit3DebugPhase): { state: GameSaveState; floorRun: DungeonFloorRunState | null; enterDungeon?: boolean } {
   const index = UNIT3_DEBUG_FLOORS.findIndex((floor) => floor.floorId === floorId);
   if (index < 0) throw new Error(`[debug] not a Unit 3 floor: ${floorId}`);
   const initial = createInitialGameSaveState();
@@ -54,6 +57,10 @@ export function createUnit3DebugStart(floorId: FloorId, phase: Unit3DebugPhase):
   if (potions < 5) state = { ...state, inventoryState: changeItemQuantity(state.inventoryState, "potion-small", 5 - potions) };
   state = { ...state, playerState: { ...state.playerState, currentHp: state.playerState.maxHp }, currentFloorId: null, currentFloorRun: null };
   if (phase === "early") return { state, floorRun: null };
+  if (floorId === UNIT3_FLOOR4_ID) {
+    // shield 60 · processed 0 come from the screen's fresh defense; 루나 not joined, no reward.
+    return { state: markUnit3Floor4DefenseReady(acceptUnit3Floor4Quest(state)), floorRun: null, enterDungeon: true };
+  }
 
   // 후반: quest accepted, every story before the final room seen, player one room before the (untouched) final room.
   state = markDungeonStoriesBeforeFinal(UNIT3_DEBUG_FLOORS[index].accept(state), floorId);

@@ -1,67 +1,74 @@
-# Phase 4 changed files (base fa32e78d1b63ac59934df7d58661ff97508cfae0)
-A  docs/chapter3/PHASE4_REPORT.md
-A  public/assets/chapter3/floor3/eventmap/background.png
-A  public/assets/chapter3/floor3/eventmap/foreground.png
-A  public/assets/chapter3/floor3/eventmap/ground.png
-A  public/assets/chapter3/floor3/illust/checkpoint-alley.png
-A  public/assets/chapter3/floor3/illust/farmers-packing.png
-A  public/assets/chapter3/floor3/illust/government-general.png
-A  public/assets/chapter3/floor3/illust/kenpei-street.png
-A  public/assets/chapter3/floor3/illust/stopped-classroom.png
-A  public/assets/chapter3/floor3/items/taken-land-deed.png
-A  public/assets/chapter3/floor3/monsters/governor-watcher.png
-A  public/assets/chapter3/floor3/monsters/kenpei.png
-A  public/assets/chapter3/floor3/portraits/farmer.png
-A  public/assets/chapter3/floor3/portraits/kenpei.png
-A  public/assets/chapter3/floor3/standing/deneb-defense-R.png
-A  public/assets/chapter3/floor3/standing/kaf-defense-R.png
-A  public/assets/chapter3/floor3/standing/resident1.png
-A  public/assets/chapter3/floor3/standing/resident2.png
-A  public/assets/chapter3/floor3/standing/school-official.png
-A  public/assets/chapter3/floor3/standing/student.png
-A  public/assets/chapter3/floor3/vfx/barrier-despawn-12f.png
-A  public/assets/chapter3/floor3/vfx/barrier-hold-loop-16f.png
-A  public/assets/chapter3/floor3/vfx/barrier-impact-10f.png
-A  public/assets/chapter3/floor3/vfx/barrier-spawn-12f.png
-A  public/assets/chapter3/floor3/vfx/black-fog-loop-16f.png
-A  public/assets/chapter3/floor3/vfx/kenpei-saber-slash.json
-A  public/assets/chapter3/floor3/vfx/kenpei-saber-slash.png
-A  public/assets/chapter3/floor3/vfx/watcher-surveillance-sigil.json
-A  public/assets/chapter3/floor3/vfx/watcher-surveillance-sigil.png
-A  public/assets/chapter3/maps/basecamp/dungeon-entrance-loop-strip.png
-M  scripts/chapter3/pack_pixelfx_sheets.py
-M  src/app/App.tsx
-M  src/chapter3Phase3Checks.ts
-M  src/chapter3Phase3HotfixChecks.ts
-A  src/chapter3Phase4Checks.ts
-M  src/components/InventoryPopup.tsx
-M  src/components/NpcIdleSprite.tsx
-A  src/components/outlineMask.ts
-M  src/data/DungeonFloorTitles.ts
-M  src/data/chapter3/chapter3BaseCamp.ts
-A  src/data/chapter3/floor3Questions.ts
-A  src/data/chapter3/floor3Stories.ts
-M  src/data/floorQuestionPools.ts
-M  src/game/audio/chapter3ProceduralSfx.ts
-A  src/game/baseCamp/DungeonEntranceAnimation.tsx
-A  src/game/chapter3/Unit3Floor3Stage.tsx
-M  src/game/chapter3/Unit3MonsterAttackVfx.tsx
-M  src/game/chapter3/dungeonPreload.ts
-M  src/game/chapter3/emergencySupply.ts
-A  src/game/chapter3/eventMap/GridSprite.tsx
-A  src/game/chapter3/eventMap/Unit3Floor3EventMap.tsx
-M  src/game/chapter3/unit3Achievements.ts
-M  src/game/chapter3/unit3Floor2.ts
-A  src/game/chapter3/unit3Floor3.ts
-M  src/game/chapter3/unit3StoryFloors.tsx
-M  src/game/dungeon/dungeonRunQuestionAllocatorChecks.ts
-M  src/game/floor/floorDefinitions.ts
-M  src/game/floor/floorTypes.ts
-M  src/game/inventory/itemDefinitions.ts
-M  src/game/monster/monsterDefinitions.ts
-M  src/runAllChecks.ts
-M  src/screens/BaseCampScreen/BaseCampWorld.tsx
-M  src/screens/Chapter3BaseCamp/Chapter3BaseCampScreen.tsx
-M  src/screens/DungeonScreen/DungeonScreen.tsx
-M  src/styles/chapter3.css
-M  src/types/baseCamp.ts
+public/assets/audio/bgm/unit3-dungeon4.wav
+public/assets/audio/sfx/unit3-f4/command-japanese-01.mp3
+public/assets/audio/sfx/unit3-f4/command-japanese-02.mp3
+public/assets/audio/sfx/unit3-f4/crowd-manse.mp3
+public/assets/audio/sfx/unit3-f4/crowd-murmur.mp3
+public/assets/audio/sfx/unit3-f4/declaration-01.mp3
+public/assets/audio/sfx/unit3-f4/declaration-02.mp3
+public/assets/audio/sfx/unit3-f4/heavy-impact.wav
+public/assets/audio/sfx/unit3-f4/heavy-rumble.wav
+public/assets/audio/sfx/unit3-f4/military-footsteps.wav
+public/assets/audio/sfx/unit3-f4/military-whistle.wav
+public/assets/chapter3/floor4/eventmap/background.png
+public/assets/chapter3/floor4/eventmap/foreground.png
+public/assets/chapter3/floor4/eventmap/ground.png
+public/assets/chapter3/floor4/illust/shanghai-government.png
+public/assets/chapter3/floor4/illust/tapgol-declaration.png
+public/assets/chapter3/floor4/items/taegeuk-flag.png
+public/assets/chapter3/floor4/portraits/luna-period/angry.png
+public/assets/chapter3/floor4/portraits/luna-period/default.png
+public/assets/chapter3/floor4/portraits/luna-period/sad.png
+public/assets/chapter3/floor4/portraits/luna-period/serious.png
+public/assets/chapter3/floor4/portraits/luna-period/shout.png
+public/assets/chapter3/floor4/portraits/luna-period/smile.png
+public/assets/chapter3/floor4/standing/luna-period-defense-R.png
+public/assets/chapter3/floor4/standing/luna-period.png
+public/assets/chapter3/floor4/standing/protester-elder.png
+public/assets/chapter3/floor4/standing/protester-female.png
+public/assets/chapter3/floor4/standing/protester-male.png
+public/assets/chapter3/floor4/standing/protester-student.png
+public/assets/chapter3/floor4/standing/resident-crouch.png
+public/assets/chapter3/floor4/standing/resident-fallen-female.png
+public/assets/chapter3/floor4/standing/resident-fallen-male.png
+public/assets/chapter3/floor4/vfx/dungeon-rift.json
+public/assets/chapter3/floor4/vfx/dungeon-rift.png
+public/assets/chapter3/floor4/vfx/giant-shockwave.json
+public/assets/chapter3/floor4/vfx/giant-shockwave.png
+public/assets/chapter3/floor4/vfx/incoming-attack.json
+public/assets/chapter3/floor4/vfx/incoming-attack.png
+public/assets/chapter3/floor4/vfx/light-flow.json
+public/assets/chapter3/floor4/vfx/light-flow.png
+public/assets/chapter3/floor4/vfx/record-door.json
+public/assets/chapter3/floor4/vfx/record-door.png
+public/assets/chapter3/floor4/vfx/shield-crack.json
+public/assets/chapter3/floor4/vfx/shield-crack.png
+scripts/chapter3/pack_pixelfx_sheets.py
+src/app/App.tsx
+src/bgmFollowupChecks.ts
+src/chapter3Phase4Checks.ts
+src/chapter3Phase5Checks.ts
+src/components/PlayerDefeatedOverlay.tsx
+src/data/DungeonFloorTitles.ts
+src/data/chapter3/chapter3BaseCamp.ts
+src/data/chapter3/floor4Questions.ts
+src/data/chapter3/floor4Stories.ts
+src/data/floorQuestionPools.ts
+src/debug/unit3DebugStart.ts
+src/game/audio/chapter3ProceduralSfx.ts
+src/game/audioBgm.ts
+src/game/chapter3/dungeonPreload.ts
+src/game/chapter3/eventMap/eventMapActor.tsx
+src/game/chapter3/floor4/Unit3Floor4Screen.tsx
+src/game/chapter3/floor4/Unit3Floor4Stage.tsx
+src/game/chapter3/unit3Achievements.ts
+src/game/chapter3/unit3Floor4.ts
+src/game/dungeon/dungeonRunQuestionAllocatorChecks.ts
+src/game/floor/floorDefinitions.ts
+src/game/floor/floorTypes.ts
+src/game/inventory/itemDefinitions.ts
+src/runAllChecks.ts
+src/save/SaveManager.ts
+src/save/saveConstants.ts
+src/screens/Chapter3BaseCamp/Chapter3BaseCampScreen.tsx
+src/styles/chapter3.css
+src/three/weapon/SwordViewModel.ts

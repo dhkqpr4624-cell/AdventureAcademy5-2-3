@@ -39,6 +39,8 @@ export const FLOOR_DEFINITIONS: readonly FloorDefinition[] = [
   { id: "unit3-floor-1", order: 101, title: "3단원 1층", questId: "quest-unit3-floor-1", questionCount: 10 },
   { id: "unit3-floor-2", order: 102, title: "3단원 2층", questId: "quest-unit3-floor-2", questionCount: 10 },
   { id: "unit3-floor-3", order: 103, title: "3단원 3층", questId: "quest-unit3-floor-3", questionCount: 10 },
+  // Phase 5: Floor 4 is the 12-question shield defense (no 3D run; Unit3Floor4Screen).
+  { id: "unit3-floor-4", order: 104, title: "3단원 4층", questId: "quest-unit3-floor-4", questionCount: 12 },
 ];
 
 export const INITIAL_FLOOR_UNLOCK_STATE: FloorUnlockState = {

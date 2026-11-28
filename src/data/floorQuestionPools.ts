@@ -1,6 +1,7 @@
 import type { FloorId } from "../game/floor/floorTypes";
 import type { Question } from "../types/question";
 import { UNIT3_FLOOR3_QUESTIONS } from "./chapter3/floor3Questions";
+import { UNIT3_FLOOR4_QUESTIONS } from "./chapter3/floor4Questions";
 import {
   DUNGEON1_UNIT2_QUESTIONS,
   DUNGEON2_UNIT2_QUESTIONS,
@@ -43,6 +44,7 @@ export const FLOOR_QUESTION_POOLS: Readonly<Record<Exclude<FloorId, "floor-10">,
   "unit3-floor-1": UNIT3_FLOOR1_INTERIM_QUESTIONS,
   "unit3-floor-2": UNIT3_FLOOR2_INTERIM_QUESTIONS,
   "unit3-floor-3": UNIT3_FLOOR3_QUESTIONS, // Phase 4: separate module, INTERIM data (see chapter3/floor3Questions.ts)
+  "unit3-floor-4": UNIT3_FLOOR4_QUESTIONS, // Phase 5: separate module, INTERIM data (see chapter3/floor4Questions.ts)
 };
 
 export const DUNGEON_1_TO_9_QUESTION_POOL: readonly Question[] = [

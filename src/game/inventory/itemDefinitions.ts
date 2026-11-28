@@ -42,6 +42,13 @@ export const ITEM_DEFINITION_REGISTRY: Record<string, ItemDefinition> = {
     description: "일제가 토지조사사업을 벌일 때 빼앗긴 대한제국 국민의 땅문서",
     icon: `${import.meta.env.BASE_URL}assets/chapter3/floor3/items/taken-land-deed.png`, stackable: false,
   },
+  // Phase 5: Unit 3 Floor 4 special reward — a weapon skin with NO stats; the default attack VFX (no attackVfxId).
+  // The supplied image is both the icon and the sword-model texture (one file, see SwordViewModel).
+  "weapon-taegeuk-flag": {
+    id: "weapon-taegeuk-flag", name: "3·1 운동 태극기", type: "weaponSkin",
+    rarity: "rare", description: "대한 독립 만세 시위에 참여한 사람들이 손에 들고 있던 태극기.",
+    icon: `${import.meta.env.BASE_URL}assets/chapter3/floor4/items/taegeuk-flag.png`, stackable: false,
+  },
   "weapon-learning-fountain-pen": {
     id: "weapon-learning-fountain-pen", name: "애국계몽 만년필", type: "weaponSkin",
     rarity: "rare", description: "책과 배움으로 나라를 지키려 했던 사람들의 뜻을 담은 무기.",

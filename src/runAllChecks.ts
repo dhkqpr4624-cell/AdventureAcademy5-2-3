@@ -1,3 +1,4 @@
+import { runChapter3Phase5Checks } from "./chapter3Phase5Checks";
 import { runFinalNineFixesChecks } from "./finalNineFixesChecks";
 import { runPlayerStatusChecks } from "./components/playerStatusChecks";
 import { runCriticalChecks } from "./game/combat/criticalChecks";
@@ -133,6 +134,7 @@ const checks = [
   ["chapter3 phase 3 checks", runChapter3Phase3Checks],
   ["chapter3 phase 3 hotfix checks", runChapter3Phase3HotfixChecks],
   ["chapter3 phase 4 checks", runChapter3Phase4Checks],
+  ["chapter3 phase 5 checks (floor 4 defense / rewards / save isolation / bgm)", runChapter3Phase5Checks],
 ] as const;
 
 for (const [label, run] of checks) {

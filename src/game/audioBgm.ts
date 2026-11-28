@@ -11,7 +11,8 @@ export type BgmTrackId =
   | "unit3-hq"
   | "unit3-tension"
   | "unit3-basecamp"
-  | "unit3-dungeon";
+  | "unit3-dungeon"
+  | "unit3-dungeon4";
 
 export type BgmOptions = {
   loop?: boolean;
@@ -40,6 +41,9 @@ export const BGM_URLS: Readonly<Record<BgmTrackId, string>> = {
   "unit3-basecamp": `${import.meta.env.BASE_URL}assets/audio/bgm/unit3-basecamp.wav`,
   // Phase 3 hotfix: Unit 3 dungeon theme (Floors 1–2; per-floor tracks can be mapped in UNIT3_DUNGEON_BGM_BY_FLOOR).
   "unit3-dungeon": `${import.meta.env.BASE_URL}assets/audio/bgm/unit3-dungeon.wav`,
+  // Phase 5: Floor 4 (3·1 운동 방어전) — the supplied Strong BGM, one instance whose volume is ramped between the
+  // story level and the defense level (never paused / restarted for it).
+  "unit3-dungeon4": `${import.meta.env.BASE_URL}assets/audio/bgm/unit3-dungeon4.wav`,
 };
 
 /**
@@ -49,11 +53,13 @@ export const BGM_URLS: Readonly<Record<BgmTrackId, string>> = {
  *   intro-adventureacademy.wav  -12.2 LUFS  ->  10^((-25.5 + 12.2) / 20) = 0.216
  *   unit3-basecamp.wav          -19.0 LUFS  ->  10^((-25.5 + 19.0) / 20) = 0.473
  *   unit3-dungeon.wav           -15.8 LUFS  ->  10^((-25.5 + 15.8) / 20) = 0.327   (Phase 3 hotfix)
+ *   unit3-dungeon4.wav          -25.3 LUFS  ->  10^((-25.5 + 25.3) / 20) = 0.977   (Phase 5)
  */
 export const BGM_LOUDNESS_TRIM: Readonly<Partial<Record<BgmTrackId, number>>> = {
   "unit3-hq": 0.216,
   "unit3-basecamp": 0.473,
   "unit3-dungeon": 0.327,
+  "unit3-dungeon4": 0.977,
 };
 
 /**
@@ -241,6 +247,16 @@ export function duckBgm(factor: number, durationMs: number, id?: BgmTrackId): vo
 export function crossfadeBgm(id: BgmTrackId, fadeOutMs: number, options: BgmOptions = {}): Promise<void> {
   if (activeBgm?.id === id) return Promise.resolve();
   return fadeOutBgm(fadeOutMs).then(() => playBgm(id, undefined, options));
+}
+
+/**
+ * Phase 5: ramps the active track to `factor` × its own target volume (one Audio element; position untouched).
+ * Unlike duckBgm it may also go above a lowered level again (factor 1 = the track's full scene volume).
+ */
+export function setBgmLevel(factor: number, durationMs: number, id?: BgmTrackId): void {
+  const entry = activeBgm;
+  if (!entry || entry.fadingOut || (id && entry.id !== id)) return;
+  rampVolume(entry, Math.max(0, Math.min(1, entry.targetVolume * factor)), durationMs);
 }
 
 export function stopBgm(id?: BgmTrackId): void {

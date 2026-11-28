@@ -91,9 +91,24 @@ def main(src_root, repo_root, only=None):
 # remix authored for this project (scripts/chapter3/pixelfx-effects/memory-awakening.js, copied into the checkout's
 # src/fx/holy/ and indexed with `node tools/index.mjs`). Every 2nd PixelFX frame (30 → 15 fps) is copied unchanged
 # into a COLS-wide grid; the peak (full wrap, where the event map swaps 카프's outfit) is reported in the sidecar.
+GOLD = ["#2a1a08", "#5a3a12", "#8a5a1c", "#c08a2a", "#e6b84a", "#f6d77e", "#fff0c0", "#ffffff"]
+RED = ["#120608", "#2a0c10", "#4a1418", "#7a1e1e", "#a8322a", "#d65a3a", "#f09a6a", "#ffe2cc"]
 GRIDS = {
     "kaf-memory-awakening": ("memory", "holy/memory-awakening", {}, ["--no-actor"], 2, 8, 1.0,
         "public/assets/chapter3/floor3/vfx/kaf-memory-awakening.png"),
+    # Phase 5 · Floor 4 (아우내 장터 방어전). Options are passed with --opts; frames copied unchanged (every 2nd).
+    "f4-light-flow": ("beam", "arcane/arcane-beam", {"palette": GOLD}, ["--no-actor"], 2, 6, 0.0,
+        "public/assets/chapter3/floor4/vfx/light-flow.png"),
+    "f4-record-door": ("door", "arcane/portal", {"palette": GOLD, "width": 22, "height": 38}, ["--no-actor"], 2, 6, 0.0,
+        "public/assets/chapter3/floor4/vfx/record-door.png"),
+    "f4-incoming-attack": ("attack", "projectiles/magic-missile", {"palette": RED}, ["--no-actor"], 2, 6, 0.9,
+        "public/assets/chapter3/floor4/vfx/incoming-attack.png"),
+    "f4-giant-shockwave": ("shockwave", "shadow/dark-explosion", {"palette": RED}, ["--no-actor"], 2, 8, 0.77,
+        "public/assets/chapter3/floor4/vfx/giant-shockwave.png"),
+    "f4-dungeon-rift": ("rift", "shadow/eclipse", {"palette": RED, "pearl": ["#5a1a1a", "#a8423a", "#f0a08a", "#fff2ea"]}, ["--no-actor"], 2, 10, 0.0,
+        "public/assets/chapter3/floor4/vfx/dungeon-rift.png"),
+    "f4-shield-crack": ("crack", "ice/ice-shatter", {}, ["--no-actor"], 2, 8, 0.62,
+        "public/assets/chapter3/floor4/vfx/shield-crack.png"),
 }
 
 
@@ -119,7 +134,7 @@ def pack_grid(src_root, repo_root, only=None):
         out_fps = fps / step
         sidecar = {
             "generator": "pixelfx", "pixelfxCommit": PIXELFX_COMMIT, "effect": effect_id, "options": opts or "defaults (meta.options)",
-            "renderCommand": f"node tools/render.mjs {effect_id} --sheet {' '.join(flags)}",
+            "renderCommand": f"node tools/render.mjs {effect_id} --sheet {' '.join(flags)}" + (f" --opts '{json.dumps(opts)}'" if opts else ""),
             "contract": "event-map GridSprite one-shot", "frames": len(picks), "cols": cols, "rows": rows, "frameSize": [w, h],
             "fps": out_fps, "durationMs": round(len(picks) / out_fps * 1000), "sourceFps": fps, "sourcePivot": info["pivot"],
             "sourceFramesUsed": picks, "peakSeconds": peak_s, "peakFrame": round(peak_s * out_fps),

@@ -66,14 +66,14 @@ const supplyPlacement = {
   height: Math.round(1003 * SUPPLY_SCALE),
 };
 
-export type Chapter3CampTargetId = "deneb" | "kaiden" | "supply" | "dungeonEntrance" | "kaf";
+export type Chapter3CampTargetId = "deneb" | "kaiden" | "supply" | "dungeonEntrance" | "kaf" | "luna";
 type CampBox = { x: number; y: number; width: number; height: number };
 
 /**
  * Click/hover hitboxes in map pixels, fitted to the visible pixels of each sprite (PNG bounding boxes),
  * not to the transparent frame. The dungeon entrance box is the bounding box of the gate layer.
  */
-export function createChapter3BaseCampHitboxes(npcs: readonly BaseCampNpcView[]): Record<Exclude<Chapter3CampTargetId, "kaf">, CampBox> & { kaf?: CampBox } {
+export function createChapter3BaseCampHitboxes(npcs: readonly BaseCampNpcView[]): Record<Exclude<Chapter3CampTargetId, "kaf" | "luna">, CampBox> & { kaf?: CampBox; luna?: CampBox } {
   const box = (id: string, left: number, right: number, top: number, bottom: number) => {
     const placement = npcs.find((npc) => npc.id === id)!.placement;
     return {
@@ -90,6 +90,8 @@ export function createChapter3BaseCampHitboxes(npcs: readonly BaseCampNpcView[])
     dungeonEntrance: { x: 629, y: 312, width: 401, height: 457 },
     // Phase 4: 카프 (after the Floor 3 rescue) — kapp standing_R visible pixels 32..379 × 132..681 of 400×700.
     ...(npcs.some((npc) => npc.id === "kaf") ? { kaf: box("kaf", 32 / 400, 379 / 400, 132 / 700, 681 / 700) } : {}),
+    // Phase 5: 루나 (after Floor 4) — chapter3 luna standing_L visible pixels 112..517 × 51..667 of 600×700.
+    ...(npcs.some((npc) => npc.id === "luna") ? { luna: box("luna", 112 / 600, 517 / 600, 51 / 700, 667 / 700) } : {}),
   };
 }
 
@@ -98,7 +100,9 @@ export function createChapter3BaseCampHitboxes(npcs: readonly BaseCampNpcView[])
  * crates ("보급물품") that open the existing shop. The player is the viewer (first person) and is not drawn.
  */
 export const CHAPTER3_BASE_CAMP_KAF_X = 405;
-export function createChapter3BaseCampNpcs(options: { kaf?: boolean } = {}): BaseCampNpcView[] {
+/** Phase 5: right of the supply crates (visible ≈1504–1625; crates end ≈1435), facing the camp centre. */
+export const CHAPTER3_BASE_CAMP_LUNA_X = 1565;
+export function createChapter3BaseCampNpcs(options: { kaf?: boolean; luna?: boolean } = {}): BaseCampNpcView[] {
   return [
     // Phase 4: 카프 joins after the Floor 3 rescue — her original Adventure Academy outfit (Chapter 2 standing_R),
     // left of 데네브, facing the camp centre. No blink sheet exists for this standing, so she idles without one.
@@ -107,6 +111,9 @@ export function createChapter3BaseCampNpcs(options: { kaf?: boolean } = {}): Bas
     { id: "deneb", displayName: "데네브", displayRole: "지휘관", placement: placement("deneb", 545),
       idle: idle(`${import.meta.env.BASE_URL}assets/npcs/chapter2/deneb/standing_R.png`, `${import.meta.env.BASE_URL}assets/npcs/chapter2/deneb/blink_R.png`, 7) },
     { id: "kaiden", displayName: "카이든", displayRole: "지휘관", placement: placement("kaiden", 1115), idle: idle(kaidenStanding, kaidenBlink, 4) },
+    // Phase 5: 루나 joins after Floor 4 as 정찰요원 — Adventure Academy outfit (chapter3 standing + 4-frame blink).
+    ...(options.luna ? [{ id: "luna", displayName: "루나", displayRole: "정찰요원", placement: placement("luna", CHAPTER3_BASE_CAMP_LUNA_X),
+      idle: { ...idle(CHAPTER3_STAGE_SPRITES.luna.images.L!, CHAPTER3_STAGE_SPRITES.luna.blink!.images.L!, CHAPTER3_STAGE_SPRITES.luna.blink!.frames), blinkFrameDurationMs: CHAPTER3_STAGE_SPRITES.luna.blink!.frameMs } }] : []),
     { id: "supply", displayName: "보급물품", displayRole: "상점", nameTagVariant: "shop", placement: supplyPlacement, idle: idle(`${import.meta.env.BASE_URL}assets/chapter3/floor1/shop/supply-crates.png`) },
   ];
 }

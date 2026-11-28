@@ -18,6 +18,7 @@ import type { SetStateAction } from "react";
 import { UNIT3_FLOOR1_FLAGS, UNIT3_FLOOR1_ID, UNIT3_FLOOR1_QUEST_ID, finishUnit3Floor1Run, markUnit3Flag } from "../game/chapter3/unit3Floor1";
 import { UNIT3_FLOOR2_FLAGS, UNIT3_FLOOR2_ID, UNIT3_FLOOR2_QUEST_ID, finishUnit3Floor2Run } from "../game/chapter3/unit3Floor2";
 import { UNIT3_FLOOR3_FLAGS, UNIT3_FLOOR3_ID, UNIT3_FLOOR3_QUEST_ID, finishUnit3Floor3Run } from "../game/chapter3/unit3Floor3";
+import { UNIT3_FLOOR4_FLAGS, UNIT3_FLOOR4_ID, UNIT3_FLOOR4_QUEST_ID, finishUnit3Floor4Run, markUnit3Floor4DefenseReady } from "../game/chapter3/unit3Floor4";
 import { migrateUnit3SpecialRewards, recordUnit3CorrectAnswer } from "../game/chapter3/unit3Achievements";
 
 /** Save → game state, with the Phase 3 hotfix special-reward migration (idempotent, never removes anything). */
@@ -30,11 +31,14 @@ const UNIT3_DUNGEON_FLOORS = {
   [UNIT3_FLOOR1_ID]: { questId: UNIT3_FLOOR1_QUEST_ID, finalFlag: UNIT3_FLOOR1_FLAGS.finalStory, finish: finishUnit3Floor1Run, bgm: "unit3-dungeon" },
   [UNIT3_FLOOR2_ID]: { questId: UNIT3_FLOOR2_QUEST_ID, finalFlag: UNIT3_FLOOR2_FLAGS.finalStory, finish: finishUnit3Floor2Run, bgm: "unit3-dungeon" },
   [UNIT3_FLOOR3_ID]: { questId: UNIT3_FLOOR3_QUEST_ID, finalFlag: UNIT3_FLOOR3_FLAGS.finalStory, finish: finishUnit3Floor3Run, bgm: "unit3-dungeon" },
+  // Phase 5: Floor 4 is its own event / shield-defense screen (no 3D dungeon); it drives its single BGM itself.
+  [UNIT3_FLOOR4_ID]: { questId: UNIT3_FLOOR4_QUEST_ID, finalFlag: UNIT3_FLOOR4_FLAGS.finalStory, finish: finishUnit3Floor4Run, bgm: "unit3-dungeon4" },
 } as const satisfies Record<string, { bgm: BgmTrackId } & Record<string, unknown>>;
 type Unit3DungeonFloorId = keyof typeof UNIT3_DUNGEON_FLOORS;
 
 const StoryScreen = lazy(() => import("../screens/StoryScreen/StoryScreen").then((module) => ({ default: module.StoryScreen })));
 const DungeonScreen = lazy(() => import("../screens/DungeonScreen/DungeonScreen").then((module) => ({ default: module.DungeonScreen })));
+const Unit3Floor4Screen = lazy(() => import("../game/chapter3/floor4/Unit3Floor4Screen").then((module) => ({ default: module.Unit3Floor4Screen })));
 const Chapter3BaseCampScreen = lazy(() => import("../screens/Chapter3BaseCamp/Chapter3BaseCampScreen").then((module) => ({ default: module.Chapter3BaseCampScreen })));
 
 const BUTTON_CLICK_SFX_URL = `${import.meta.env.BASE_URL}assets/audio/button-clicked-sfx.mp3`;
@@ -143,6 +147,11 @@ export function App() {
       }
       return;
     }
+    if (currentScreen === "dungeon" && dungeonFloorId === UNIT3_FLOOR4_ID) {
+      // Floor 4: no BGM until the 탑골공원 declaration and 만세 end (the screen starts its track then).
+      void fadeOutBgm(1200, "unit3-basecamp");
+      return;
+    }
     if (currentScreen === "dungeon") {
       // Phase 3 hotfix: dungeon theme. It starts on entry (the camp theme releases over 1 s while it fades in) and
       // loops through exploration, normal / elite fights, story events, illustrations and "다시 도전하기" — all of
@@ -175,6 +184,28 @@ export function App() {
         onEnterDungeon={(floorId) => { dungeonFloorRef.current = floorId; setDungeonFloorId(floorId); navigate("dungeon"); }} />;
       case "dungeon": {
         const floorId = dungeonFloorId;
+        if (floorId === UNIT3_FLOOR4_ID) {
+          const leave = () => { void fadeOutBgm(1200, "unit3-dungeon4"); updateGame((current) => ({ ...current, currentFloorId: null, currentFloorRun: null })); navigate("baseCamp"); };
+          return <Unit3Floor4Screen
+            key={floorId}
+            playerName={game.playerState.name ?? ""}
+            playerStatus={game.playerState}
+            defenseReady={Boolean(game.firstObjectiveEventSeen[UNIT3_FLOOR4_FLAGS.defenseReady])}
+            cleared={Boolean(game.firstObjectiveEventSeen[UNIT3_FLOOR4_FLAGS.finalStory])}
+            onNavigate={navigate}
+            onQuestionCorrect={(questionId) => {
+              const before = gameRef.current;
+              const next = recordUnit3CorrectAnswer(before, floorId, questionId);
+              if (next !== before) { commitGame(next); requestSave("itemAcquired"); }
+            }}
+            onDefenseReady={() => {
+              if (gameRef.current.firstObjectiveEventSeen[UNIT3_FLOOR4_FLAGS.defenseReady]) return;
+              updateGame((current) => markUnit3Floor4DefenseReady({ ...current, currentFloorId: floorId })); requestSave("storyCompleted", true);
+            }}
+            onCleared={() => { updateGame((current) => finishUnit3Floor4Run(current)); requestSave("floorCleared", true); navigate("baseCamp"); }}
+            onReturnToCamp={leave}
+          />;
+        }
         const floor = UNIT3_DUNGEON_FLOORS[floorId];
         const applyState = <T,>(value: SetStateAction<T>, current: T): T => typeof value === "function" ? (value as (previous: T) => T)(current) : value;
         return <DungeonScreen
@@ -228,7 +259,7 @@ export function App() {
           commitGame(start.state);
           startedAtRef.current = Date.now();
           debugFloorRunRef.current = start.floorRun;
-          if (start.floorRun) {
+          if (start.floorRun || start.enterDungeon) {
             dungeonFloorRef.current = floorId as Unit3DungeonFloorId; setDungeonFloorId(floorId as Unit3DungeonFloorId);
             setCurrentScreen("dungeon");
           } else setCurrentScreen("baseCamp");

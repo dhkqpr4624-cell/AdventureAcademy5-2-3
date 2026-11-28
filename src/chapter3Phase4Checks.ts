@@ -57,7 +57,7 @@ export function runChapter3Phase4Checks(): void {
   /* ---- special reward auto-grant at the report (all floors) */
   const f3spec = UNIT3_FLOOR_ACHIEVEMENTS.find((spec) => spec.floorId === UNIT3_FLOOR3_ID);
   assert(f3spec && f3spec.requiredCorrect === 7 && f3spec.rewardItemId === "decor-taken-land-deed", "floor 3 special reward: 빼앗긴 땅문서, 7 questions");
-  assert(UNIT3_FLOOR_ACHIEVEMENTS.map((spec) => spec.requiredCorrect).join(",") === "6,7,7", "requirements 6 / 7 / 7");
+  assert(UNIT3_FLOOR_ACHIEVEMENTS.slice(0, 3).map((spec) => spec.requiredCorrect).join(",") === "6,7,7", "requirements 6 / 7 / 7 (Floors 1–3; Floor 4 in phase 5 checks)");
   const ids = UNIT3_FLOOR3_QUESTIONS.map((question) => question.id);
   const ready3 = (correct: number) => {
     let state = withFlags(acceptUnit3Floor3Quest(floor2Completed()), UNIT3_FLOOR3_FLAGS.finalStory);
@@ -200,7 +200,7 @@ export function runChapter3Phase4Checks(): void {
   assert([UNIT3_FLOOR3_START_STORY, UNIT3_FLOOR3_MID_STORY, ...UNIT3_FLOOR3_STORY_ROOM_STORIES, UNIT3_FLOOR3_POST_EVENTS_STORY].flatMap(kafSpeakers).every((id) => id === "kaf"), "floor 3 rooms: 개화기 portraits");
   assert(UNIT3_KAF_PERIOD_ACTOR.portraits.angry?.imageUrl?.endsWith("kaf-period/angry.png") && BARRIER_SPAWN_SFX_URL.endsWith("assets/audio/sfx/barrier-spawn.wav"), "hotfix 2 assets wired");
 
-  assert(UNIT3_DEBUG_FLOORS.map((floor) => floor.floorId).join(",") === "unit3-floor-1,unit3-floor-2,unit3-floor-3", "debug floors = implemented floors");
+  assert(UNIT3_DEBUG_FLOORS.map((floor) => floor.floorId).join(",") === "unit3-floor-1,unit3-floor-2,unit3-floor-3,unit3-floor-4", "debug floors = implemented floors");
   const early = createUnit3DebugStart(UNIT3_FLOOR3_ID, "early");
   assert(early.floorRun === null && getUnit3Floor3QuestPhase(early.state) === "notAccepted" && !isKafAtBaseCamp(early.state), "debug 3층 초반: quest offerable, 카프 not joined");
   assert(early.state.questState["quest-unit3-floor-1"] === "completed" && early.state.questState[UNIT3_FLOOR2_QUEST_ID] === "completed", "debug 초반: floors 1–2 completed");

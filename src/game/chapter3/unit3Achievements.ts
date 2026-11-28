@@ -10,6 +10,7 @@ import {
 import {
   UNIT3_FLOOR3_ACHIEVEMENT, UNIT3_FLOOR3_ID, UNIT3_FLOOR3_QUEST_ID, UNIT3_FLOOR3_SPECIAL_REWARD, UNIT3_FLOOR3_TITLE,
 } from "./unit3Floor3";
+import { UNIT3_FLOOR4_ACHIEVEMENT, UNIT3_FLOOR4_ID, UNIT3_FLOOR4_QUEST_ID, UNIT3_FLOOR4_SPECIAL_REWARD, UNIT3_FLOOR4_TITLE } from "./unit3Floor4";
 
 /**
  * Unit 3 achievements and special rewards (Phase 3 hotfix).
@@ -66,6 +67,12 @@ export const UNIT3_FLOOR_ACHIEVEMENTS: readonly Unit3FloorAchievementSpec[] = [
     floorId: UNIT3_FLOOR3_ID, floorLabel: "던전 3층", floorTitle: UNIT3_FLOOR3_TITLE, questId: UNIT3_FLOOR3_QUEST_ID,
     achievement: UNIT3_FLOOR3_ACHIEVEMENT, rewardItemId: UNIT3_FLOOR3_SPECIAL_REWARD.itemId,
     requiredCorrect: UNIT3_FLOOR3_SPECIAL_REWARD.requiredCorrect, legacyGrantFlag: "unit3-floor-3:no-legacy-grant",
+  },
+  {
+    // Phase 5. Never handed out before, so the legacy flag is never set.
+    floorId: UNIT3_FLOOR4_ID, floorLabel: "던전 4층", floorTitle: UNIT3_FLOOR4_TITLE, questId: UNIT3_FLOOR4_QUEST_ID,
+    achievement: UNIT3_FLOOR4_ACHIEVEMENT, rewardItemId: UNIT3_FLOOR4_SPECIAL_REWARD.itemId,
+    requiredCorrect: UNIT3_FLOOR4_SPECIAL_REWARD.requiredCorrect, legacyGrantFlag: "unit3-floor-4:no-legacy-grant",
   },
 ];
 

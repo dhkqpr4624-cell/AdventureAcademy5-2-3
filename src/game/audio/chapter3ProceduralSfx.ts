@@ -445,3 +445,55 @@ export function playBarrierImpact(level = 0.3): void {
   thump.start(now); thump.stop(now + 0.35);
   oneShotVoice(out, [hit, low, env, thump, thumpEnv], [hit, thump], 600);
 }
+
+/**
+ * Phase 5 · Floor 4: supplied recordings (public/assets/audio/sfx/unit3-f4/, unchanged) played through the same
+ * Unit 3 SFX bus as the cues above, so stopAllChapter3Sfx and the returned handles clean them up (skip, game
+ * over, leaving the screen). Buffers are decoded once and reused; `loop` keeps a bed (crowd murmur) running.
+ */
+const sfxBuffers = new Map<string, Promise<AudioBuffer | null>>();
+export function preloadUnit3SfxFile(url: string): Promise<AudioBuffer | null> {
+  const ctx = getContext();
+  if (!ctx) return Promise.resolve(null);
+  let pending = sfxBuffers.get(url);
+  if (!pending) {
+    pending = fetch(url)
+      .then((response) => (response.ok ? response.arrayBuffer() : Promise.reject(new Error(String(response.status)))))
+      .then((data) => ctx.decodeAudioData(data))
+      .catch(() => { sfxBuffers.delete(url); return null; });
+    sfxBuffers.set(url, pending);
+  }
+  return pending;
+}
+export function playUnit3SfxFile(url: string, options: { level?: number; loop?: boolean; fadeInMs?: number; onEnded?: () => void } = {}): Chapter3SfxHandle & { ended: Promise<void> } {
+  const ctx = getContext();
+  let voice: Voice | null = null;
+  let cancelled = false;
+  let resolveEnded: () => void = () => undefined;
+  const ended = new Promise<void>((resolve) => { resolveEnded = resolve; });
+  if (!ctx || !master) { resolveEnded(); return { stop: () => undefined, ended }; }
+  void preloadUnit3SfxFile(url).then((buffer) => {
+    if (!buffer || cancelled || !master) { resolveEnded(); return; }
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = Boolean(options.loop);
+    const out = ctx.createGain();
+    const level = options.level ?? 0.4;
+    if (options.fadeInMs) { out.gain.setValueAtTime(0, ctx.currentTime); out.gain.linearRampToValueAtTime(level, ctx.currentTime + options.fadeInMs / 1000); }
+    else out.gain.value = level;
+    source.connect(out);
+    out.connect(master);
+    source.onended = () => { resolveEnded(); options.onEnded?.(); };
+    source.start();
+    voice = { nodes: [source], sources: [source], out, timer: null };
+    voices.add(voice);
+    if (!options.loop) {
+      const self = voice;
+      self.timer = window.setTimeout(() => { voices.delete(self); }, Math.ceil(buffer.duration * 1000) + 300);
+    }
+  });
+  return {
+    stop: (fadeMs = 200) => { cancelled = true; if (voice) release(voice, fadeMs); resolveEnded(); },
+    ended,
+  };
+}

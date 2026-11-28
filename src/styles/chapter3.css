@@ -426,3 +426,49 @@
 .u3em-dialogue.is-memory .story-portrait-layer { filter: sepia(.65) saturate(.55) blur(.7px); opacity: .78; }
 .u3em-dialogue.is-memory .story-speaker-name { filter: sepia(.6) saturate(.6); }
 .u3em-dialogue.is-memory .story-dialogue-box p:not(.story-speaker-name) { color: #f4ecdd; }
+
+/* ---------------------------------------------------------------- Phase 5 · Unit 3 Floor 4 (3·1 운동 방어전) */
+/* clip (not just hidden): the scaled scene is wider than the viewport, and focus must never scroll the root */
+.u4-root { overflow: clip; }
+.u4-root.is-entered { background: linear-gradient(180deg, #8fa3b4 0%, #b7b9ae 48%, #6a5b4c 100%); }
+.u4-root[data-stage="tapgol"], .u4-root[data-stage="shanghai"] { background: #000; }
+.u4-root[data-stage="tapgol"] .u3em-camera, .u4-root[data-stage="shanghai"] .u3em-camera { opacity: 0; }
+.u4-root .u3em-camera { transition-property: transform, opacity; }
+.u4-stage .u4-kaf-standing { position: absolute; right: 9%; bottom: 23vh; height: 54vh; aspect-ratio: 400 / 700; object-fit: contain; image-rendering: pixelated; opacity: 0; transition: opacity 500ms ease; z-index: 3; }
+.u4-stage .u4-kaf-standing.is-shown { opacity: 1; }
+.u4-caption { position: absolute; left: max(18px, env(safe-area-inset-left)); bottom: max(18px, env(safe-area-inset-bottom)); z-index: 75; padding: .45rem .8rem; border-radius: 4px; background: rgba(0, 0, 0, .58); color: #f6efdf; font-size: clamp(.82rem, 1.5vw, .98rem); letter-spacing: .02em; opacity: 0; transition: opacity 600ms ease; pointer-events: none; white-space: nowrap; }
+.u4-caption.is-shown { opacity: 1; }
+.u4-shield { position: absolute; z-index: 30; transition: transform 520ms cubic-bezier(.2, .9, .3, 1.2), opacity 520ms ease; pointer-events: none; }
+.u4-shield-body, .u4-shield-flip { position: absolute; inset: 0; }
+.u4-shield-flip > .u3em-sprite, .u4-shield-flip > .u3em-despawn > .u3em-sprite { position: absolute; left: 0; top: 0; }
+.u4-shield-flip > .u3em-despawn { position: absolute; inset: 0; }
+.u4-shield-body.is-shaking { animation: u4-shake 360ms ease-out; }
+.u4-shield-flip.is-pulsing { animation: u4-pulse 700ms ease-out; }
+@keyframes u4-shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-5px); } 45% { transform: translateX(4px); } 70% { transform: translateX(-2px); } }
+@keyframes u4-pulse { 0% { filter: brightness(1); } 35% { filter: brightness(1.55); } 100% { filter: brightness(1); } }
+.u4-fx { position: absolute; z-index: 32; pointer-events: none; }
+.u4-fx > .u3em-sprite { position: absolute; left: 0; top: 0; }
+.u4-beam { z-index: 31; opacity: .9; }
+.u4-rift { z-index: 1; }
+.u4-door { z-index: 4; }
+.u4-shadow { position: absolute; inset: -6% -40% 0; background: radial-gradient(ellipse at 50% 60%, rgba(12, 10, 16, .62), rgba(12, 10, 16, 0) 70%); animation: u4-shadow-in 900ms ease forwards; pointer-events: none; }
+@keyframes u4-shadow-in { from { opacity: 0; } to { opacity: 1; } }
+.u4-quake { animation: u4-quake 520ms ease-out; }
+@keyframes u4-quake { 0%, 100% { transform: translate(0, 0); } 20% { transform: translate(-6px, 3px); } 40% { transform: translate(5px, -2px); } 60% { transform: translate(-3px, 2px); } 80% { transform: translate(2px, -1px); } }
+.u4-flash { position: absolute; inset: 0; z-index: 45; background: #fff6e8; opacity: 0; pointer-events: none; }
+.u4-flash.is-on { animation: u4-flash 700ms ease-out; }
+@keyframes u4-flash { 0% { opacity: 0; } 15% { opacity: .78; } 100% { opacity: 0; } }
+.u4-evening { position: absolute; inset: 0; z-index: 44; background: linear-gradient(180deg, rgba(42, 30, 64, .42), rgba(70, 38, 26, .34)); pointer-events: none; }
+.u4-root .u4-question-panel { top: clamp(.6rem, 2vh, 1.2rem); bottom: auto; height: min(52vh, 560px); z-index: 52; }
+.u4-hud { position: absolute; left: 50%; top: calc(clamp(.6rem, 2vh, 1.2rem) + min(52vh, 560px) + .5rem); transform: translateX(-50%); z-index: 53; display: flex; align-items: center; gap: .6rem; padding: .35rem .8rem; border: 2px solid #c9a96e; border-radius: 8px; background: rgba(18, 17, 19, .9); color: #fff7e7; font-size: .92rem; white-space: nowrap; }
+.u4-root[data-ui="guide"] .u4-hud, .u4-root[data-ui="title"] .u4-hud { top: clamp(.6rem, 2vh, 1.2rem); }
+.u4-hud-gauge { position: relative; width: clamp(110px, 18vw, 220px); height: 12px; border: 1px solid #8f7a4f; border-radius: 3px; background: #2a2420; overflow: hidden; }
+.u4-hud-gauge > span { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #f2c75c, #fff2b8); transition: width 480ms ease; }
+.u4-hud-count { color: #e3d3ad; }
+.u4-guide { z-index: 90; }
+.u4-guide-text { line-height: 1.7; margin: .4rem 0 1rem; padding: 0 1.4rem; text-align: center; }
+.u4-title { position: absolute; left: 50%; top: 34%; transform: translate(-50%, -50%); z-index: 85; padding: .6rem 1.6rem; color: #fff1c9; font-size: clamp(1.6rem, 4.6vw, 2.8rem); font-weight: 700; letter-spacing: .08em; text-shadow: 0 3px 0 #3b2614, 0 0 22px rgba(255, 210, 120, .7); animation: u4-title 1900ms ease forwards; pointer-events: none; white-space: nowrap; }
+@keyframes u4-title { 0% { opacity: 0; transform: translate(-50%, -40%) scale(.94); } 18%, 78% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; } }
+.u4-banner { position: absolute; left: 50%; top: 30%; transform: translateX(-50%); z-index: 85; padding: .8rem 1.4rem; border: 2px solid #e0c27a; border-radius: 10px; background: rgba(20, 18, 14, .9); color: #fff3cf; font-size: clamp(1rem, 2.4vw, 1.3rem); font-weight: 700; box-shadow: 0 0 28px rgba(255, 214, 120, .35); white-space: nowrap; }
+.u4-gameover { z-index: 95; }
+@media (prefers-reduced-motion: reduce) { .u4-quake, .u4-shield-body.is-shaking, .u4-flash.is-on { animation: none; } }

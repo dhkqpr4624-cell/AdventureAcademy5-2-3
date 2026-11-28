@@ -106,12 +106,14 @@ export function runDungeonRunQuestionAllocatorChecks() {
     "unit3-floor-1": 20,
     "unit3-floor-2": 20, // interim: same verified pool as Unit 3 Floor 1
     "unit3-floor-3": 20, // Phase 4 interim: same verified pool (separate module floor3Questions.ts)
+    "unit3-floor-4": 20, // Phase 5 interim: same verified pool (separate module floor4Questions.ts)
   };
   for (const [floorId, expectedPoolCount] of Object.entries(expectedPoolCounts) as Array<[Exclude<FloorId, "floor-10">, number]>) {
     const pool = FLOOR_QUESTION_POOLS[floorId];
     check(pool.length === expectedPoolCount, `${floorId} pool contains ${expectedPoolCount} questions`);
     check(new Set(pool.map((item) => item.id)).size === pool.length, `${floorId} pool ids are unique`);
     check(!pool.some((item) => item.prompt.includes("짝수를 모두 고르시오")), `${floorId} excludes the debug even-number question`);
+    if (floorId === "unit3-floor-4") continue; // Phase 5: no dungeon run — 12 questions drawn by the defense screen
     const floorRun = createDungeonRun(floorId, `${floorId}-ten-question-check`);
     const assignments = allocateDungeonRunQuestions(floorRun.map, floorRun.seed, floorId);
     const floorAssigned = Object.values(assignments).flat();

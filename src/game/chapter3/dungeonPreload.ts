@@ -83,6 +83,19 @@ export function scheduleUnit3DungeonPreload(enterableFloorIds: readonly string[]
         }
       },
     ];
+    // Phase 5: Floor 4 (event map + defense, every entry) — its screen chunk first, then its images (download
+    // only; the screen decodes the event-map set at entry) and the SFX files.
+    if (enterableFloorIds.includes("unit3-floor-4")) steps.unshift(async () => {
+      const module = await import("./floor4/Unit3Floor4Screen");
+      const urls = storyFloorIds.includes("unit3-floor-4") ? module.U4_ALL_PRELOAD_URLS : module.U4_IMAGE_URLS;
+      for (const url of urls) {
+        if (cancelled) return;
+        await whenIdle();
+        await preloadImage(url, false);
+      }
+      const { preloadUnit3SfxFile } = await import("../audio/chapter3ProceduralSfx");
+      Object.values(module.U4_SFX).forEach((url) => void preloadUnit3SfxFile(url));
+    });
     for (const step of steps) {
       if (cancelled) return;
       await whenIdle();

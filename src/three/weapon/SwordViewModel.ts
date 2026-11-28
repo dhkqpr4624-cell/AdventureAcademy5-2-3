@@ -107,6 +107,13 @@ export const LEARNING_FOUNTAIN_PEN_DEFINITION: SwordDefinition = {
   textureUrl: `${import.meta.env.BASE_URL}assets/swords/learning-fountain-pen.png`,
 };
 
+/** Unit 3 Floor 4 reward skin: the supplied 태극기 image on the existing sword model / animation / VFX. */
+export const TAEGEUK_FLAG_DEFINITION: SwordDefinition = {
+  ...BASIC_SWORD_DEFINITION,
+  id: "taegeuk-flag",
+  textureUrl: `${import.meta.env.BASE_URL}assets/chapter3/floor4/items/taegeuk-flag.png`,
+};
+
 export function getSwordDefinitionForEquippedItem(
   equippedItemId: string | null | undefined,
 ): SwordDefinition {
@@ -119,6 +126,7 @@ export function getSwordDefinitionForEquippedItem(
   if (equippedItemId === "weapon-choe-museon-cannon") return CHOE_MUSEON_CANNON_DEFINITION;
   if (equippedItemId === "weapon-uibyeong-hwando") return UIBYEONG_HWANDO_DEFINITION;
   if (equippedItemId === "weapon-learning-fountain-pen") return LEARNING_FOUNTAIN_PEN_DEFINITION;
+  if (equippedItemId === "weapon-taegeuk-flag") return TAEGEUK_FLAG_DEFINITION;
   return BASIC_SWORD_DEFINITION;
 }
 

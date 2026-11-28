@@ -25,6 +25,12 @@ export const DUNGEON_FLOOR_TITLES: DungeonFloorTitle[] = [
     subtitle: "일제의 식민 통치와 달라진 생활",
   },
   {
+    floor: 4,
+    floorId: "unit3-floor-4",
+    title: "던전 4층",
+    subtitle: "3·1 운동과 대한민국 임시정부",
+  },
+  {
     floor: 1,
     floorId: "floor-1",
     title: "던전 1층",

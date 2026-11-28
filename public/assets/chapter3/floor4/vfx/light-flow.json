@@ -1,0 +1,55 @@
+{
+ "generator": "pixelfx",
+ "pixelfxCommit": "5294518ce7c72e48b6100a744596e0acf57f2826",
+ "effect": "arcane/arcane-beam",
+ "options": {
+  "palette": [
+   "#2a1a08",
+   "#5a3a12",
+   "#8a5a1c",
+   "#c08a2a",
+   "#e6b84a",
+   "#f6d77e",
+   "#fff0c0",
+   "#ffffff"
+  ]
+ },
+ "renderCommand": "node tools/render.mjs arcane/arcane-beam --sheet --no-actor --opts '{\"palette\": [\"#2a1a08\", \"#5a3a12\", \"#8a5a1c\", \"#c08a2a\", \"#e6b84a\", \"#f6d77e\", \"#fff0c0\", \"#ffffff\"]}'",
+ "contract": "event-map GridSprite one-shot",
+ "frames": 18,
+ "cols": 6,
+ "rows": 3,
+ "frameSize": [
+  264,
+  100
+ ],
+ "fps": 15.0,
+ "durationMs": 1200,
+ "sourceFps": 30,
+ "sourcePivot": [
+  26,
+  84
+ ],
+ "sourceFramesUsed": [
+  0,
+  2,
+  4,
+  6,
+  8,
+  10,
+  12,
+  14,
+  16,
+  18,
+  20,
+  22,
+  24,
+  26,
+  28,
+  30,
+  32,
+  34
+ ],
+ "peakSeconds": 0.0,
+ "peakFrame": 0
+}

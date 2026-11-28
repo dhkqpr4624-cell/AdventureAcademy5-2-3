@@ -41,16 +41,25 @@ import {
   UNIT3_FLOOR3_DENEB_ACTIVE_STORY, UNIT3_FLOOR3_DENEB_AFTER_STORY, UNIT3_FLOOR3_KAIDEN_ACTIVE_STORY, UNIT3_FLOOR3_KAIDEN_AFTER_STORY,
   UNIT3_FLOOR3_QUEST_ACCEPTED_CHECKPOINT, UNIT3_FLOOR3_QUEST_COMPLETE_STORY, UNIT3_FLOOR3_QUEST_OFFER_STORY, UNIT3_KAF_BASE_TALK_STORY,
 } from "../../data/chapter3/floor3Stories";
+import {
+  UNIT3_FLOOR4_ACHIEVEMENT, UNIT3_FLOOR4_FLAGS, UNIT3_FLOOR4_ID, UNIT3_FLOOR4_QUEST_ID, UNIT3_FLOOR4_QUEST_TITLE, UNIT3_FLOOR4_REWARD, UNIT3_FLOOR4_TITLE,
+  acceptUnit3Floor4Quest, completeUnit3Floor4Quest, getUnit3Floor4QuestPhase, isLunaAtBaseCamp,
+} from "../../game/chapter3/unit3Floor4";
+import {
+  UNIT3_FLOOR4_DENEB_ACTIVE_STORY, UNIT3_FLOOR4_DENEB_AFTER_STORY, UNIT3_FLOOR4_KAIDEN_ACTIVE_STORY, UNIT3_FLOOR4_KAIDEN_AFTER_STORY,
+  UNIT3_FLOOR4_QUEST_ACCEPTED_CHECKPOINT, UNIT3_FLOOR4_QUEST_COMPLETE_STORY, UNIT3_FLOOR4_QUEST_OFFER_STORY, UNIT3_LUNA_BASE_TALK_STORY,
+} from "../../data/chapter3/floor4Stories";
 import { EMERGENCY_SUPPLY_STORY } from "../../data/chapter3/emergencySupplyStory";
 import { applyEmergencySupply, evaluateEmergencySupply } from "../../game/chapter3/emergencySupply";
 import { playRandomizedOneShot } from "../../game/audioOneShot";
 
-type Unit3CampFloorId = typeof UNIT3_FLOOR1_ID | typeof UNIT3_FLOOR2_ID | typeof UNIT3_FLOOR3_ID;
-const UNIT3_CAMP_FLOORS: readonly Unit3CampFloorId[] = [UNIT3_FLOOR1_ID, UNIT3_FLOOR2_ID, UNIT3_FLOOR3_ID];
+type Unit3CampFloorId = typeof UNIT3_FLOOR1_ID | typeof UNIT3_FLOOR2_ID | typeof UNIT3_FLOOR3_ID | typeof UNIT3_FLOOR4_ID;
+const UNIT3_CAMP_FLOORS: readonly Unit3CampFloorId[] = [UNIT3_FLOOR1_ID, UNIT3_FLOOR2_ID, UNIT3_FLOOR3_ID, UNIT3_FLOOR4_ID];
 const CAMP_FLOOR_INFO: Record<Unit3CampFloorId, { label: string; title: string; questId: string; finalFlag: string }> = {
   [UNIT3_FLOOR1_ID]: { label: "던전 1층", title: UNIT3_FLOOR1_TITLE, questId: UNIT3_FLOOR1_QUEST_ID, finalFlag: UNIT3_FLOOR1_FLAGS.finalStory },
   [UNIT3_FLOOR2_ID]: { label: "던전 2층", title: UNIT3_FLOOR2_TITLE, questId: UNIT3_FLOOR2_QUEST_ID, finalFlag: UNIT3_FLOOR2_FLAGS.finalStory },
   [UNIT3_FLOOR3_ID]: { label: "던전 3층", title: UNIT3_FLOOR3_TITLE, questId: UNIT3_FLOOR3_QUEST_ID, finalFlag: UNIT3_FLOOR3_FLAGS.finalStory },
+  [UNIT3_FLOOR4_ID]: { label: "던전 4층", title: UNIT3_FLOOR4_TITLE, questId: UNIT3_FLOOR4_QUEST_ID, finalFlag: UNIT3_FLOOR4_FLAGS.finalStory },
 };
 const HEAL_SFX_URL = `${import.meta.env.BASE_URL}assets/audio/heal-sfx.mp3`;
 
@@ -74,7 +83,9 @@ export function Chapter3BaseCampScreen({ game, updateGame, requestSave, onNaviga
   const viewportRef = useRef<BaseCampViewportController>(null);
   // Phase 4: 카프 stands in the camp from the moment the Floor 3 event map ends (saved there, before the report).
   const kafAtCamp = isKafAtBaseCamp(game);
-  const npcViews = useMemo(() => createChapter3BaseCampNpcs({ kaf: kafAtCamp }), [kafAtCamp]);
+  // Phase 5: 루나 from the moment the Floor 4 story ends (saved there, before the report).
+  const lunaAtCamp = isLunaAtBaseCamp(game);
+  const npcViews = useMemo(() => createChapter3BaseCampNpcs({ kaf: kafAtCamp, luna: lunaAtCamp }), [kafAtCamp, lunaAtCamp]);
   const hitboxes = useMemo(() => createChapter3BaseCampHitboxes(npcViews), [npcViews]);
   const [hovered, setHovered] = useState<Chapter3CampTargetId | null>(null);
   const [story, setStory] = useState<ActiveStory | null>(null);
@@ -90,10 +101,13 @@ export function Chapter3BaseCampScreen({ game, updateGame, requestSave, onNaviga
   const floor1Phase = getUnit3Floor1QuestPhase(game);
   const floor2Phase = getUnit3Floor2QuestPhase(game);
   const floor3Phase = getUnit3Floor3QuestPhase(game);
+  const floor4Phase = getUnit3Floor4QuestPhase(game);
   /** Deneb / Kaiden / tracker follow Floor 1 until its quest is completed, then Floor 2 (Phase 3), then Floor 3 (Phase 4). */
-  const campFloor: Unit3CampFloorId = floor2Phase === "completed" && floor3Phase !== "locked" ? UNIT3_FLOOR3_ID
+  const campFloor: Unit3CampFloorId = floor3Phase === "completed" && floor4Phase !== "locked" ? UNIT3_FLOOR4_ID
+    : floor2Phase === "completed" && floor3Phase !== "locked" ? UNIT3_FLOOR3_ID
     : floor1Phase === "completed" && floor2Phase !== "locked" ? UNIT3_FLOOR2_ID : UNIT3_FLOOR1_ID;
-  const questPhase = campFloor === UNIT3_FLOOR3_ID ? floor3Phase as Exclude<typeof floor3Phase, "locked">
+  const questPhase = campFloor === UNIT3_FLOOR4_ID ? floor4Phase as Exclude<typeof floor4Phase, "locked">
+    : campFloor === UNIT3_FLOOR3_ID ? floor3Phase as Exclude<typeof floor3Phase, "locked">
     : campFloor === UNIT3_FLOOR2_ID ? floor2Phase as Exclude<typeof floor2Phase, "locked"> : floor1Phase;
   /** Floor 3's quest is offered and reported to 카이든 (script); Floors 1–2 to 데네브. */
   const questGiver: "deneb" | "kaiden" = campFloor === UNIT3_FLOOR3_ID ? "kaiden" : "deneb";
@@ -131,6 +145,19 @@ export function Chapter3BaseCampScreen({ game, updateGame, requestSave, onNaviga
       return;
     }
     if (target === "kaf") { setStory({ sequence: UNIT3_KAF_BASE_TALK_STORY, kind: "talk" }); return; }
+    if (target === "luna") { setStory({ sequence: UNIT3_LUNA_BASE_TALK_STORY, kind: "talk" }); return; }
+    if (campFloor === UNIT3_FLOOR4_ID) {
+      // Phase 5: Floor 4 is offered and reported to 데네브 (script).
+      if (target === "deneb") {
+        if (questPhase === "notAccepted") setStory({ sequence: UNIT3_FLOOR4_QUEST_OFFER_STORY, kind: "offer", floor: campFloor });
+        else if (questPhase === "readyToComplete") setStory({ sequence: UNIT3_FLOOR4_QUEST_COMPLETE_STORY, kind: "complete", floor: campFloor });
+        else if (questPhase === "active") setStory({ sequence: UNIT3_FLOOR4_DENEB_ACTIVE_STORY, kind: "talk" });
+        else setStory({ sequence: UNIT3_FLOOR4_DENEB_AFTER_STORY, kind: "talk" });
+      } else {
+        setStory({ sequence: questPhase === "completed" ? UNIT3_FLOOR4_KAIDEN_AFTER_STORY : UNIT3_FLOOR4_KAIDEN_ACTIVE_STORY, kind: "talk" });
+      }
+      return;
+    }
     if (campFloor === UNIT3_FLOOR3_ID) {
       if (target === "kaiden") {
         if (questPhase === "notAccepted") setStory({ sequence: UNIT3_FLOOR3_QUEST_OFFER_STORY, kind: "offer", floor: campFloor });
@@ -195,7 +222,7 @@ export function Chapter3BaseCampScreen({ game, updateGame, requestSave, onNaviga
   const claimReward = () => {
     // Phase 4: the special item comes with the quest reward when its correct-answer condition is already met.
     updateGame((state) => completeUnit3QuestWithSpecialReward(state, rewardFloor,
-      rewardFloor === UNIT3_FLOOR3_ID ? completeUnit3Floor3Quest : rewardFloor === UNIT3_FLOOR2_ID ? completeUnit3Floor2Quest : completeUnit3Floor1Quest));
+      rewardFloor === UNIT3_FLOOR4_ID ? completeUnit3Floor4Quest : rewardFloor === UNIT3_FLOOR3_ID ? completeUnit3Floor3Quest : rewardFloor === UNIT3_FLOOR2_ID ? completeUnit3Floor2Quest : completeUnit3Floor1Quest));
     requestSave("questCompleted", true);
   };
 
@@ -219,7 +246,9 @@ export function Chapter3BaseCampScreen({ game, updateGame, requestSave, onNaviga
   };
 
   const marker = questPhase === "notAccepted" ? "available" : questPhase === "readyToComplete" ? "readyToComplete" : null;
-  const rewardSpec = rewardFloor === UNIT3_FLOOR3_ID
+  const rewardSpec = rewardFloor === UNIT3_FLOOR4_ID
+    ? { questId: UNIT3_FLOOR4_QUEST_ID, title: UNIT3_FLOOR4_QUEST_TITLE, reward: UNIT3_FLOOR4_REWARD, achievement: UNIT3_FLOOR4_ACHIEVEMENT }
+    : rewardFloor === UNIT3_FLOOR3_ID
     ? { questId: UNIT3_FLOOR3_QUEST_ID, title: UNIT3_FLOOR3_QUEST_TITLE, reward: UNIT3_FLOOR3_REWARD, achievement: UNIT3_FLOOR3_ACHIEVEMENT }
     : rewardFloor === UNIT3_FLOOR2_ID
     ? { questId: UNIT3_FLOOR2_QUEST_ID, title: UNIT3_FLOOR2_QUEST_TITLE, reward: UNIT3_FLOOR2_REWARD, achievement: UNIT3_FLOOR2_ACHIEVEMENT }
@@ -231,7 +260,7 @@ export function Chapter3BaseCampScreen({ game, updateGame, requestSave, onNaviga
   /** granted with this report (condition met now) or already received */
   const rewardSpecialEarned = Boolean(rewardSpecial && (rewardSpecial.claimed || rewardSpecial.progress >= rewardSpecial.required));
   const smallPotion = getItemDefinition("potion-small")!;
-  const campQuestTitle = campFloor === UNIT3_FLOOR3_ID ? UNIT3_FLOOR3_QUEST_TITLE : campFloor === UNIT3_FLOOR2_ID ? UNIT3_FLOOR2_QUEST_TITLE : UNIT3_FLOOR1_QUEST_TITLE;
+  const campQuestTitle = campFloor === UNIT3_FLOOR4_ID ? UNIT3_FLOOR4_QUEST_TITLE : campFloor === UNIT3_FLOOR3_ID ? UNIT3_FLOOR3_QUEST_TITLE : campFloor === UNIT3_FLOOR2_ID ? UNIT3_FLOOR2_QUEST_TITLE : UNIT3_FLOOR1_QUEST_TITLE;
   const campFloorLabel = `${CAMP_FLOOR_INFO[campFloor].label} · ${CAMP_FLOOR_INFO[campFloor].title}`;
   const giverName = questGiver === "kaiden" ? "카이든" : "데네브";
 
@@ -240,7 +269,7 @@ export function Chapter3BaseCampScreen({ game, updateGame, requestSave, onNaviga
       {(Object.keys(hitboxes) as Chapter3CampTargetId[]).map((target) => {
         const box = hitboxes[target as keyof typeof hitboxes];
         if (!box) return null;
-        const label = target === "deneb" ? "데네브와 대화하기" : target === "kaiden" ? "카이든과 대화하기" : target === "kaf" ? "카프와 대화하기" : target === "supply" ? "보급물품 상점 열기" : "던전 입구로 들어가기";
+        const label = target === "deneb" ? "데네브와 대화하기" : target === "kaiden" ? "카이든과 대화하기" : target === "kaf" ? "카프와 대화하기" : target === "luna" ? "루나와 대화하기" : target === "supply" ? "보급물품 상점 열기" : "던전 입구로 들어가기";
         return (
           <button
             key={target}
@@ -308,6 +337,7 @@ export function Chapter3BaseCampScreen({ game, updateGame, requestSave, onNaviga
               if (checkpointId === UNIT3_FLOOR1_QUEST_ACCEPTED_CHECKPOINT) updateGame((state) => acceptUnit3Floor1Quest(state));
               else if (checkpointId === UNIT3_FLOOR2_QUEST_ACCEPTED_CHECKPOINT) updateGame((state) => acceptUnit3Floor2Quest(state));
               else if (checkpointId === UNIT3_FLOOR3_QUEST_ACCEPTED_CHECKPOINT) updateGame((state) => acceptUnit3Floor3Quest(state));
+              else if (checkpointId === UNIT3_FLOOR4_QUEST_ACCEPTED_CHECKPOINT) updateGame((state) => acceptUnit3Floor4Quest(state));
               else return;
               requestSave("questAccepted", true);
             }}
@@ -382,7 +412,7 @@ export function Chapter3BaseCampScreen({ game, updateGame, requestSave, onNaviga
             <header><p className="eyebrow">QUEST COMPLETE</p><h2 id="chapter3-reward-title">{rewardSpec.title} 완료</h2></header>
             <div className="quest-reward-grid chapter3-reward-grid">
               <article><p className="eyebrow">골드</p><span className="reward-icon">G</span><strong>{rewardSpec.reward.gold} Gold</strong></article>
-              <article><p className="eyebrow">포션</p><span className="reward-icon"><ItemIcon item={smallPotion} /></span><strong>{smallPotion.name} {rewardSpec.reward.smallPotions}개</strong></article>
+              {rewardSpec.reward.smallPotions > 0 && <article><p className="eyebrow">포션</p><span className="reward-icon"><ItemIcon item={smallPotion} /></span><strong>{smallPotion.name} {rewardSpec.reward.smallPotions}개</strong></article>}
               {/* Phase 4: the special item comes with the quest reward when its correct-answer condition is met at the
                   report; otherwise it stays claimable in the achievement window. */}
               <article className={`chapter3-reward-special ${rewardSpecialEarned ? "is-unlocked" : "is-pending"}`} data-special={rewardSpecialEarned ? "granted" : "pending"}>
